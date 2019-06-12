@@ -50,6 +50,9 @@ trait BoundingVolumeRepository extends CtpRepository{
      val semanticType = bv_bounding_sphere
   }
 
+
+  //TODO SciPy Convex Hull
+
 //  @combinator object pythonBVH {
 //    def apply = ???
 //    python call, determine BVH func signature

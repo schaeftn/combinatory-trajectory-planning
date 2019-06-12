@@ -6,6 +6,7 @@ import org.combinators.ctp.repositories.geometricrepresentation.{intListType, ve
 @JsonCodec
 case class UnityMeshData(intArray: intListType, vertexArray: vertexArrayType)
 
+//TODO: Rename?!
 @JsonCodec
 case class MinBoxData(vertexArray: vertexArrayType)
 
