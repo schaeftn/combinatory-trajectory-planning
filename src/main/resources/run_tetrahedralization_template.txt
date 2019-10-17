@@ -1,0 +1,20 @@
+import sys
+
+sys.path.append("/home/tristan/projects:/home/tristan/projects/cell_decomposition_py")
+sys.path.append("/home/tristan/projects:/home/tristan/projects/cell_decomposition_py/generated")
+sys.path.append("/home/tristan/projects/cell_decomposition_py/org")
+sys.path.append("/home/tristan/projects/cell_decomposition_py/org/combinators")
+
+from combinators.ctp.py.celldecomposition.tetrahedralize import tetrahedralize
+from combinators.ctp.py.celldecomposition.scene_object import *
+
+np.set_printoptions(threshold=sys.maxsize)
+
+
+def run_gen_scene_3d():
+$substitute$
+    tetrahedralize(scene_objects, scene_size)
+
+
+if __name__ == '__main__':
+    run_gen_scene_3d()

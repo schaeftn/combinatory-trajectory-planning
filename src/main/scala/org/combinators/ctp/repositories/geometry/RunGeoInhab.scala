@@ -1,4 +1,4 @@
-package org.combinators.ctp.repositories.geometricrepresentation
+package org.combinators.ctp.repositories.geometry
 
 import com.typesafe.scalalogging.LazyLogging
 import io.circe.parser.decode
@@ -9,7 +9,7 @@ import org.combinators.ctp.repositories.protocol.UnityMeshData
 import org.eclipse.paho.client.mqttv3.{IMqttMessageListener, MqttClient, MqttMessage}
 
 class RunGeoInhab(geo: UnityMeshData, client: MqttClient) extends LazyLogging{
- /* lazy val repo = new GeometricDataFromUnity(geo)
+ /* lazy val repo = new GeometricRepresentationRepository(geo)
   lazy val Gamma = repo.reflected
   logger.debug(Gamma.combinators.map { case (c, ty) => s"$c : $ty" }.mkString("{ ", ",\n", "}"))
   logger.debug(s"|- ? : ${ReflectedRepository.nativeTypeOf[repo.nativeTarget]} :&: ${repo.semanticTarget}")

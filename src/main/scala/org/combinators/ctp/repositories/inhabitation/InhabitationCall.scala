@@ -4,7 +4,7 @@ import org.combinators.cls.interpreter._
 import org.combinators.cls.types._
 
 class InhabitationCall[R, S](repository: R, kinding: Kinding, taxonomy: Taxonomy, t: Type) {
-  val rr = ReflectedRepository[R](repository, taxonomy, kinding)
+  lazy val rr = ReflectedRepository[R](repository, taxonomy, kinding)
 
   def getIhResult[S]: InhabitationResult[S] = rr.inhabit[S](t)
 

@@ -10,7 +10,7 @@ package object collisiondetection {
   val twoSphereCollisionFunction: Type = Constructor("twoSphereCollisionFunction")
   val sphereBoxColFun: Type = Constructor("colfun", Constructor("box"), Constructor("sphere"))
 
-  val v_colFunctions: Variable = new Variable("v_colFunctions")
+  val v_colFunctions: Variable = Variable("v_colFunctions")
 
   val hColFun = Constructor("hColFun")
   def tohColFun = (t:Type) => Constructor("hColFun", t)
@@ -34,7 +34,7 @@ val tree: Tree[Int] =  1.node(
 
   tree.subForest.head
 
-  val cd_report_var: Variable = new Variable("cd_report_var")
+  val cd_report_var: Variable = Variable("cd_report_var")
 
   val cd_report_boolean: Type = Constructor("cd_report_boolean")
   val cd_report_enumerative: Type = Constructor("cd_report_enumerative")

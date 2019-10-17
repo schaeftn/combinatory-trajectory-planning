@@ -1,57 +1,63 @@
 package org.combinators.ctp.repositories.boundingvolumes
 
+import com.typesafe.scalalogging.LazyLogging
 import io.circe.Decoder
 import org.combinators.cls.interpreter.ReflectedRepository
 import org.combinators.cls.types.Type
-import org.combinators.ctp.repositories.boundingvolumes.{BoundingVolumeRepository, bv_bounding_box, bv_bounding_sphere}
-import org.combinators.ctp.repositories.geometricrepresentation.{sphereData, vertexPairType}
+import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.protocol.ClsMqttBvAgent.{bbRequestTopic, bbResponseTopic, bsRequestTopic, bsResponseTopic}
 import org.combinators.ctp.repositories.protocol.{BoundingBoxData, BoundingSphereData, CtpMessageListener, UnityMeshData}
+
 import scala.reflect.runtime.universe._
-import io.circe._
 import io.circe.syntax._
-import io.circe.parser.decode
+import org.eclipse.paho.client.mqttv3.MqttClient
 
-trait CptBbValues {
-  val Gamma = new BoundingVolumeRepository {}
-  val reflectedRepository: ReflectedRepository[BoundingVolumeRepository] =
-    ReflectedRepository(Gamma, Gamma.semanticTaxonomy, Gamma.kinding)
-  val responseTopic: String = bbResponseTopic
-  val requestTopic: String = bbRequestTopic
-  val targetType: Type = bv_bounding_box
-  val decoder = Decoder[UnityMeshData]
-  implicit val typeTag: WeakTypeTag[UnityMeshData => vertexPairType]
+object CtpBbListener extends LazyLogging {
+  def apply(c: MqttClient)(implicit t: WeakTypeTag[UnityMeshData => vertexPairType]) = {
+    val Gamma = new BoundingVolumeRepository {}
+    val reflectedRepository: ReflectedRepository[BoundingVolumeRepository] =
+      ReflectedRepository(Gamma, Gamma.semanticTaxonomy, Gamma.kinding)
+    val responseTopic: String = bbResponseTopic
+    val requestTopic: String = bbRequestTopic
+    val targetType: Type = bv_bounding_box
+    val decoder = Decoder[UnityMeshData]
 
-  def resultToByteArray: vertexPairType => Array[Byte] = { outputTy =>
-    BoundingBoxData(outputTy._1, outputTy._2).asJson.toString.getBytes
+    def resultToByteArray: vertexPairType => Array[Byte] = { outputTy =>
+      BoundingBoxData(outputTy._1, outputTy._2).asJson.toString.getBytes
+    }
+
+    def run = { a: UnityMeshData =>
+      logger.info(s"Starting Inhabitation")
+      val result = reflectedRepository.inhabit[UnityMeshData => vertexPairType](targetType)
+      if (result.isEmpty) logger.info("Empty inhabitation result") else logger.info("Valid inhabitation result")
+      result.interpretedTerms.index(0)(a)
+    }
+
+    CtpMessageListener[UnityMeshData, vertexPairType](run, decoder, resultToByteArray, requestTopic, responseTopic, c)
   }
 }
 
-object CtpBbListener {
-  def apply(implicit t: WeakTypeTag[UnityMeshData => vertexPairType]) =
-    new CtpMessageListener[UnityMeshData, vertexPairType, BoundingVolumeRepository] with CptBbValues {
-      override val typeTag: WeakTypeTag[UnityMeshData => vertexPairType] = t
+object CtpBsListener extends LazyLogging {
+  def apply(c: MqttClient)(implicit t: WeakTypeTag[UnityMeshData => sphereData]) = {
+    val Gamma = new BoundingVolumeRepository {}
+    val reflectedRepository: ReflectedRepository[BoundingVolumeRepository] =
+      ReflectedRepository(Gamma, Gamma.semanticTaxonomy, Gamma.kinding)
+    val responseTopic: String = bsResponseTopic
+    val requestTopic: String = bsRequestTopic
+    val targetType: Type = bv_bounding_sphere
+    val decoder = Decoder[UnityMeshData]
+
+    def resultToByteArray: sphereData => Array[Byte] = { outputTy =>
+      BoundingSphereData(outputTy._1, outputTy._2).asJson.toString.getBytes
     }
-}
 
-trait CptBsValues {
-  val Gamma = new BoundingVolumeRepository {}
-  val reflectedRepository: ReflectedRepository[BoundingVolumeRepository] =
-    ReflectedRepository(Gamma, Gamma.semanticTaxonomy, Gamma.kinding)
-  val responseTopic: String = bsResponseTopic
-  val requestTopic: String = bsRequestTopic
-  val targetType: Type = bv_bounding_sphere
-  val decoder = Decoder[UnityMeshData]
-  implicit val typeTag: WeakTypeTag[UnityMeshData => sphereData]
+    def run: UnityMeshData => sphereData = { a: UnityMeshData =>
+      logger.info(s"Starting Inhabitation")
+      val result = reflectedRepository.inhabit[UnityMeshData => sphereData](targetType)
+      if (result.isEmpty) logger.info("Empty inhabitation result") else logger.info("Valid inhabitation result")
+      result.interpretedTerms.index(0)(a)
+    }
 
-  def resultToByteArray: sphereData => Array[Byte] = { outputTy =>
-    BoundingSphereData(outputTy._1, outputTy._2).asJson.toString.getBytes
+    CtpMessageListener[UnityMeshData, sphereData](run, decoder, resultToByteArray, requestTopic, responseTopic, c)
   }
-}
-
-object CtpBsListener {
-  def apply(implicit t: WeakTypeTag[UnityMeshData => sphereData]) =
-    new CtpMessageListener[UnityMeshData, sphereData, BoundingVolumeRepository] with CptBsValues {
-      override val typeTag: WeakTypeTag[UnityMeshData => sphereData] = t
-    }
 }

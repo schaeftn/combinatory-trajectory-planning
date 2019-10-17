@@ -42,8 +42,8 @@ lazy val root = (Project(id = "combinatory-trajectory-planning", base = file("."
       "org.scala-graph" %% "graph-core" % "1.12.5",
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.0",
       "com.dreizak" % "miniball" % "1.0.3",
-      "org.scalaz" %% "scalaz-core" % "7.2.27"
-    ) ++
+      "org.scalaz" %% "scalaz-core" % "7.2.27",
+      "org.apache.commons" % "commons-math3" % "3.6.1") ++
       Seq(
         "io.circe" %% "circe-core",
         "io.circe" %% "circe-generic",

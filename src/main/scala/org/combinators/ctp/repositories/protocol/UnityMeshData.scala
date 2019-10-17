@@ -1,7 +1,7 @@
 package org.combinators.ctp.repositories.protocol
 
 import io.circe.generic.JsonCodec
-import org.combinators.ctp.repositories.geometricrepresentation.{intListType, vertexArrayType, vertexType}
+import org.combinators.ctp.repositories._
 
 @JsonCodec
 case class UnityMeshData(intArray: intListType, vertexArray: vertexArrayType)

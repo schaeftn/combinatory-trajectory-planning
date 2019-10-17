@@ -39,15 +39,13 @@ trait CellTypes{
   val twoCell: Type = 'twoCell
   val threeCell: Type = 'threeCell
 
-}
-
-trait RobotFormRepository extends CellTypes {
   val pointRobot: Type = 'pointRobot
   val robotCellOne: Type = 'robotCellOne
   val robotCellTwo: Type = 'robotCellTwo
   val nonRigidRobot: Type = 'nonRigidRobot
+}
 
-
+trait RobotFormRepository extends CellTypes {
   //Composed of n Elements
   @combinator object NonRigidRobot {
     def apply = ???

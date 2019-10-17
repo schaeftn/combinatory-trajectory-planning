@@ -1,23 +1,22 @@
 package org.combinators.ctp.repositories.boundingvolumes
 
 import com.dreizak.miniball.highdim.Miniball
-import com.dreizak.miniball.model.{ArrayPointSet}
+import com.dreizak.miniball.model.ArrayPointSet
 import org.combinators.cls.interpreter.combinator
-import org.combinators.ctp.repositories.geometricrepresentation.{vertexArrayType, vertexType}
+import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.protocol.UnityMeshData
-import org.combinators.ctp.repositories.geometricrepresentation._
 import org.combinators.ctp.repositories.inhabitation.CtpRepository
 
 trait BoundingVolumeRepository extends CtpRepository{
   @combinator object UnityDataBoundingBox {
-    def apply: (UnityMeshData => vertexPairType) = { a: UnityMeshData =>
+    def apply: UnityMeshData => vertexPairType = { a: UnityMeshData =>
       val va = a.vertexArray
 
       def getXyz(v: vertexArrayType): vertexArrayType = v.zipWithIndex.filter {
         case (_, b) if (b % 3) == 0 => true
         case _ => false} map (_._1)
 
-      def minmax: vertexArrayType => (Float, Float) = { (a: vertexArrayType) => (a.max, a.min) }
+      def minmax: vertexArrayType => (Float, Float) = { a: vertexArrayType => (a.max, a.min) }
 
       val (maxX, minX) = minmax(getXyz(va))
       val (maxY, minY) = minmax(getXyz(va.tail))
@@ -40,7 +39,7 @@ trait BoundingVolumeRepository extends CtpRepository{
 
         for (
           j <- 0 to 2;
-          i <- 0 to n-1
+          i <- 0 until n
         ) yield pts.set(i, j, vSeq(3*i + j))
 
         val mb: Miniball = new Miniball(pts)

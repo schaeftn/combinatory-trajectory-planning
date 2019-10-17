@@ -3,7 +3,7 @@ package org.combinators.ctp.repositories.collisiondetection
 import org.combinators.cls.interpreter._
 import org.combinators.cls.types.Type
 import org.combinators.cls.types.syntax._
-import org.combinators.ctp.repositories.geometricrepresentation._
+import org.combinators.ctp.repositories._
 import org.combinators.ctp._
 import org.combinators.ctp.repositories.protocol.{BoundingBoxData, BoundingSphereData}
 import scalaz.Tree

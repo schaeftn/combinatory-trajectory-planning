@@ -1,18 +1,35 @@
 package org.combinators.ctp.repositories.mptasks
 
 import org.combinators.cls.interpreter.combinator
-import org.combinators.cls.types.{Constructor, Type}
+import org.combinators.cls.types.syntax._
+import org.combinators.ctp.repositories.taxkinding.{CombinatorialMotionPlanning, CtpTaxonomy, GeometricModelTypes, MpTask}
 
 
-trait MpTasksRepository {
-  val mpt_sp_type: Type = Constructor("ShortestPath")
-  val mpt_pc_type: Type = Constructor("PathCoverage")
-  val mpt_mc_type: Type = Constructor("MaxClearance")
+trait MpTasksRepository extends MpTask with CombinatorialMotionPlanning with GeometricModelTypes {
 
   @combinator object ShortestPathCombinator {
-    def apply = ???
-    val semanticType = mpt_sp_type
+    def apply(start: vertexType, end: vertexType): MpTaskSpTwoD =
+      new MpTaskSpTwoD(start, end) {}
+
+    val semanticType = mpt_start_position_type :&: dimensionality_two_d_t =>:
+      mpt_target_position_type :&: dimensionality_two_d_t =>: mpt_shortest_path_type :&: dimensionality_two_d_t
   }
+
+  //Add Dynamically new SynthesisTask ...
+  // Oder Synth Task -> Scene -> SynthesisGoal
+
+
+/*
+  •	Path Finding
+  •	Traveling Salesman
+  •	Coverage
+  •	max Clearance
+  (•	Persuer Evader, weil reaktiv?!)
+*/
+
+
+  //Todo Propertyfile => type
+/*
 
   @combinator object PathCoverageCombinator {
     def apply = ???
@@ -23,4 +40,7 @@ trait MpTasksRepository {
     def apply = ???
     val semanticType = mpt_mc_type
   }
+*/
+
+
 }

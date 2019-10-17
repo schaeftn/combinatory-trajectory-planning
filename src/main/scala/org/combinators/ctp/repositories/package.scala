@@ -2,14 +2,14 @@ package org.combinators.ctp
 
 import org.combinators.cls.types.{Kinding, Type, Variable}
 import org.combinators.ctp.repositories.mptasks.MpTasksRepository
+import org.combinators.ctp.repositories.taxkinding.{CombinatorialMotionPlanning, CtpTaxonomy, GeometricModelTypes, MpTask, Protocol, RobotModel, SampleBasedMotionPlanning, SceneDescription}
 
-package object repositories extends MpTasksRepository{
-  val v_mptask = Variable("v_mpt")
+package object repositories extends CombinatorialMotionPlanning
+  with CtpTaxonomy with GeometricModelTypes with MpTask with RobotModel
+  with SampleBasedMotionPlanning with SceneDescription with Protocol{
+  def buildKinding(m: Map[Variable, Seq[Type]]): Kinding =
+    (m map (a => a._2.foldLeft(Kinding(a._1))((a, b) => a.addOption(b)))).reduce((k1, k2) => k1.merge(k2))
 
-  val map = Map(v_mptask -> Seq(mpt_sp_type, mpt_pc_type, mpt_mc_type))
-
-  def buildKinding(m: Map[Variable, Seq[Type]]) =
-    m map (a => a._2.foldLeft(Kinding(a._1))((a, b) => a.addOption(b)))
-
-  lazy val kinding = buildKinding(map)
+  val kindingMap = Map.empty[Variable, Seq[Type]]
+  override val kinding =Kinding.empty //buildKinding(kindingMap)
 }

@@ -1,6 +1,7 @@
-package org.combinators.ctp.repositories.geometricrepresentation
+package org.combinators.ctp.repositories.geometry
 
-import scala.math._
+import org.combinators.ctp.repositories._
+import math._
 
 object GeoTests extends App{
   def test: (vertexType, vertexType) => Float =
