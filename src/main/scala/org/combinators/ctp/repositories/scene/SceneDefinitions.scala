@@ -11,7 +11,9 @@ case class Scene(boundaries: List[Float], obstacles: List[MqttCubeData]) {}
 case class PolygonScene(vertices: List[List[Float]], obstacles: List[List[Int]], boundaries: List[Float]) {}
 
 @JsonCodec
-case class PolySceneLineSegmentation(vertices: List[List[Float]], obstacles: List[List[Int]], boundaries: List[Float], lines: List[List[Int]]) {}
+case class PolySceneLineSegmentation(vertices: List[List[Float]], obstacles: List[List[Int]],
+                                     boundaries: List[Float], topVertices :List[Int],
+                                     bottomVertices: List[Int], lines: List[List[Int]]) {}
 
 @JsonCodec
 case class PolySceneCellSegmentation(vertices: List[List[Float]], obstacles: List[List[Int]], boundaries: List[Float], freeCells: List[List[Int]]) {}

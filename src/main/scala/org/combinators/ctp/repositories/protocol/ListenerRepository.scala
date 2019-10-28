@@ -10,7 +10,7 @@ import org.combinators.ctp.repositories._
 import org.combinators.cls.interpreter.combinator
 import org.combinators.cls.types.Constructor
 import org.combinators.cls.types.syntax._
-import org.combinators.ctp.repositories.scene.{CtpSceneConnectionValues, CtpSceneConnectionValues2d, CtpSceneConnectionValues3d, CtpSceneConnectionValuesVcd, CtpSceneListener, CtpSceneListenerVcd, CtpSceneListenerVcd2, CtpSceneUtils2D, PolySceneLineSegmentation, PolygonScene, PythonTemplateUtils, Scene, SegmentationLines2d}
+import org.combinators.ctp.repositories.scene.{CtpSceneConnectionValues, CtpSceneConnectionValues2d, CtpSceneConnectionValues3d, CtpSceneConnectionValuesVcd, CtpSceneListener, CtpSceneListenerVcd, CtpSceneListenerVcd2, CtpSceneUtils2D, PolySceneCellSegmentation, PolySceneLineSegmentation, PolygonScene, PythonTemplateUtils, Scene, SegmentationLines2d}
 import org.eclipse.paho.client.mqttv3.{IMqttMessageListener, MqttClient, MqttConnectOptions, MqttMessage}
 
 trait ListenerRepository extends LazyLogging with PythonTemplateUtils{
@@ -31,6 +31,49 @@ trait ListenerRepository extends LazyLogging with PythonTemplateUtils{
   }*/
 
   //TODO Check other MQTT Libs with streams, enabling combinators typed Spec -> SceneStream
+  @combinator object SceneAgentMqttVcdToCells {
+    def apply(c: MqttClient, v: CtpSceneConnectionValues2d,
+              transformToPoly: Scene => PolygonScene, run: PolygonScene => PolySceneLineSegmentation,
+              translateResult: PolySceneLineSegmentation => PolySceneCellSegmentation): Unit = {
+      def publishResult: String => Unit = { resultData =>
+        logger.info("Publishing result to " + v.responseTopic)
+        c.publish(v.requestTopic, resultToByteArray(resultData), 2, true)
+      }
+
+      def onMessage: IMqttMessageListener = (topic: String, message: MqttMessage) => {
+        logger.info("Received Payload: " + new String(message.getPayload))
+        val decoded = decode[scene_type_2d_n](new String(message.getPayload))
+        logger.info("decoded payload")
+
+        if (decoded.isLeft) {
+          logger.info(s"Error: ${decoded.left.get}")
+        } else {
+          logger.info(s"Starting cell decomposition")
+          val r = run(transformToPoly(decoded.right.get))
+          logger.info("computed result")
+          publishResult(translateResult(r).asJson.toString())
+          logger.info("Result published")
+        }
+      }
+      logger.info("Combinator SceneAgentMqttVcd")
+
+      logger.info("Response Topic: " + v.requestTopic)
+      c.subscribe(v.responseTopic, 2, onMessage)
+      logger.info("SceneAgentMqttVcd Cells: Press <Enter> to exit.")
+      scala.io.StdIn.readLine()
+      logger.info(s"Disconnecting from MqttClient")
+      c.disconnect()
+      c.close()
+    }
+
+    val semanticType = p_mqttClient_type =>:
+      p_unitySceneConnectionValues_two_d_type :&: cmp_cd_cells =>:
+      (sd_unity_scene_type =>: sd_polygon_scene_type) =>:
+      (sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation) =>:
+      (sd_seg_lines :&: sd_poly_scene_segmentation =>: sd_seg_cells :&: sd_poly_scene_segmentation) =>:
+      p_unitySceneAgent_type :&: cmp_vertical_cell_decomposition_type :&: dimensionality_two_d_t :&: p_unityResult_type :&: cmp_cd_cells
+  }
+
   @combinator object SceneAgentMqttVcd {
     def apply(c: MqttClient, v: CtpSceneConnectionValues2d,
               transformToPoly: Scene => PolygonScene, run: PolygonScene => PolySceneLineSegmentation, translateResult: PolySceneLineSegmentation => SegmentationLines2d): Unit = {
@@ -58,7 +101,7 @@ trait ListenerRepository extends LazyLogging with PythonTemplateUtils{
 
       logger.info("Response Topic: " + v.requestTopic)
       c.subscribe(v.responseTopic, 2, onMessage)
-      logger.info("SceneAgentMqttVcd: Press <Enter> to exit.")
+      logger.info("SceneAgentMqttVcd Lines: Press <Enter> to exit.")
       scala.io.StdIn.readLine()
       logger.info(s"Disconnecting from MqttClient")
       c.disconnect()
@@ -66,12 +109,13 @@ trait ListenerRepository extends LazyLogging with PythonTemplateUtils{
     }
 
     val semanticType = p_mqttClient_type =>:
-      p_unitySceneConnectionValues_two_d_type =>:
+      p_unitySceneConnectionValues_two_d_type :&:  cmp_cd_lines =>:
       (sd_unity_scene_type =>: sd_polygon_scene_type) =>:
       (sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation) =>:
       Constructor("foo") =>:
       p_unitySceneAgent_type :&: cmp_vertical_cell_decomposition_type :&: dimensionality_two_d_t :&: p_unityResult_type :&: cmp_cd_lines
   }
+
 
   /*
     @combinator object SceneAgentMqttVcd2 {
@@ -132,7 +176,17 @@ trait ListenerRepository extends LazyLogging with PythonTemplateUtils{
       CtpSceneConnectionValuesVcd(ctpSceneRequest, ctpSceneResponse)
     }
 
-    val semanticType = p_unityConnectionProperties_type =>:  p_unitySceneConnectionValues_two_d_type
+    val semanticType = p_unityConnectionProperties_type =>:  p_unitySceneConnectionValues_two_d_type :&: cmp_cd_lines
+  }
+
+  @combinator object SceneConnectionValues2dCells {
+    def apply(p: Properties): CtpSceneConnectionValues2d = {
+      val ctpSceneRequest = p.getProperty("org.combinators.ctp.ctpSceneRequest2DCells")
+      val ctpSceneResponse = p.getProperty("org.combinators.ctp.ctpSceneResponse2D")
+      CtpSceneConnectionValuesVcd(ctpSceneRequest, ctpSceneResponse)
+    }
+
+    val semanticType = p_unityConnectionProperties_type =>:  p_unitySceneConnectionValues_two_d_type :&: cmp_cd_cells
   }
 
   @combinator object SceneConnectionValues2daabb {
