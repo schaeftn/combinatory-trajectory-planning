@@ -8,7 +8,7 @@ import com.dreizak.miniball.highdim.Miniball
 import com.dreizak.miniball.model.PointSetUtils
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories._
-import org.combinators.ctp.repositories.protocol._
+import org.combinators.ctp.repositories.toplevel._
 import com.dreizak.miniball.model.ArrayPointSet
 
 object foo extends App {

@@ -34,6 +34,9 @@ trait CombinatorialMotionPlanning {
   val cmp_config_space_type = Constructor("cmp_config_space_type")
 
   val cmp_cell_graph = Constructor("cmp_cell_graph") // Decomposition result as cell graph
+  val cmp_scene_graph = Constructor("cmp_scene_graph") // Decomposition result as scene graph (contains scene and graph)
+  val cmp_scene_graph_path = Constructor("cmp_scene_graph_path") // Decomposition result as scene graph (contains scene, graph and path)
+  val cmp_scene_graph_pathf = Constructor("cmp_scene_graph_pathf") // Decomposition result as scene graph (contains scene, graph and path)
   val cmp_cfree_polygons = Constructor("cmp_cfree_polygons") // Decomposition result as cfree polygons
   val cmp_cd_lines = Constructor("cmp_cd_lines") // Decomposition result as lines
   val cmp_cd_cells = Constructor("cmp_cd_cells") // Decomposition result as cells

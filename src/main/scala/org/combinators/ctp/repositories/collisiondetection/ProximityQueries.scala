@@ -5,7 +5,7 @@ import org.combinators.cls.types.Type
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
 import org.combinators.ctp._
-import org.combinators.ctp.repositories.protocol.{BoundingBoxData, BoundingSphereData}
+import org.combinators.ctp.repositories.toplevel.{BoundingBoxData, BoundingSphereData}
 import scalaz.Tree
 
 class ProximityQueries {

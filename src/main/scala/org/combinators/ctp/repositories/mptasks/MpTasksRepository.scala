@@ -7,13 +7,13 @@ import org.combinators.ctp.repositories.taxkinding.{CombinatorialMotionPlanning,
 
 trait MpTasksRepository extends MpTask with CombinatorialMotionPlanning with GeometricModelTypes {
 
-  @combinator object ShortestPathCombinator {
-    def apply(start: vertexType, end: vertexType): MpTaskSpTwoD =
-      new MpTaskSpTwoD(start, end) {}
-
-    val semanticType = mpt_start_position_type :&: dimensionality_two_d_t =>:
-      mpt_target_position_type :&: dimensionality_two_d_t =>: mpt_shortest_path_type :&: dimensionality_two_d_t
-  }
+//  @combinator object ShortestPathCombinator {
+//    def apply(start: vertexType, end: vertexType): MpTaskStartGoal =
+//      new MpTaskSpTwoD(start, end) {}
+//
+//    val semanticType = mpt_start_position_type :&: dimensionality_two_d_t =>:
+//      mpt_target_position_type :&: dimensionality_two_d_t =>: mpt_shortest_path_type :&: dimensionality_two_d_t
+//  }
 
   //Add Dynamically new SynthesisTask ...
   // Oder Synth Task -> Scene -> SynthesisGoal

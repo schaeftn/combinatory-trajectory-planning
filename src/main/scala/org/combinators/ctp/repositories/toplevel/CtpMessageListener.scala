@@ -1,9 +1,9 @@
-package org.combinators.ctp.repositories.protocol
+package org.combinators.ctp.repositories.toplevel
 
 import com.typesafe.scalalogging.LazyLogging
 import io.circe._
 import io.circe.parser.decode
-import org.eclipse.paho.client.mqttv3.{IMqttMessageListener, MqttClient, MqttMessage}
+import org.eclipse.paho.client.mqttv3.{IMqttMessageListener, MqttClient, MqttMessage => MqttPahoMessage}
 
 /**
  * Listener Mqtt Messages.
@@ -34,7 +34,7 @@ trait CtpMessageListener[R, S] extends LazyLogging {
     client.publish(requestTopic, encodeResult(resultData), 2, true)
   }
 
-  def onMessage: IMqttMessageListener = (topic: String, message: MqttMessage) => {
+  def onMessage: IMqttMessageListener = (topic: String, message: MqttPahoMessage) => {
     implicit val decodeEvent: Decoder[R] = decoder
 
     logger.info("Received Payload: " + new String(message.getPayload))

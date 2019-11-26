@@ -1,17 +1,19 @@
-package org.combinators.ctp.repositories.protocol
+package org.combinators.ctp.repositories.toplevel
 
 import java.util.Properties
-import org.combinators.ctp.repositories.scene.{CtpSceneConnectionValues, CtpSceneListener}
+import org.combinators.ctp.repositories.boundingvolumes._
 import org.eclipse.paho.client.mqttv3.{MqttClient, MqttConnectOptions}
 
-object ClsMqttSceneAgent extends App  {
+object ClsMqttBvAgent extends App  {
   val connectionSettings = new Properties()
-  connectionSettings.load(getClass.getClassLoader.getResourceAsStream("mqtt.properties"))
+  connectionSettings.load(getClass.getResourceAsStream("mqtt.properties"))
 
   val broker = connectionSettings.getProperty("org.combinators.ctp.broker")
   val clientId = connectionSettings.getProperty("org.combinators.ctp.clientId")
-  val ctpSceneRequest = connectionSettings.getProperty("org.combinators.ctp.ctpSceneRequest")
-  val ctpSceneResponse = connectionSettings.getProperty("org.combinators.ctp.ctpSceneResponse")
+  val bsRequestTopic = connectionSettings.getProperty("org.combinators.ctp.bsRequestTopic")
+  val bbRequestTopic = connectionSettings.getProperty("org.combinators.ctp.bbRequestTopic")
+  val bsResponseTopic = connectionSettings.getProperty("org.combinators.ctp.bsResponseTopic")
+  val bbResponseTopic = connectionSettings.getProperty("org.combinators.ctp.bbResponseTopic")
 
   println(s"""Connecting to broker "$broker" as "$clientId"""")
   val client: MqttClient = new MqttClient(broker, clientId)
@@ -22,9 +24,11 @@ object ClsMqttSceneAgent extends App  {
   options.setMaxInflight(1000)
   client.connect(options)
 
-  println(s"Receiving tasks from topic: $ctpSceneRequest")
+  println(s"Receiving tasks from topic: $bsRequestTopic")
+  println(s"Receiving tasks from topic: $bbRequestTopic")
 
-  CtpSceneListener(client, CtpSceneConnectionValues(ctpSceneRequest, ctpSceneResponse)).subscribe
+  CtpBbListener(client).subscribe
+  CtpBsListener(client).subscribe
 
   println("Press <Enter> to exit.")
   scala.io.StdIn.readLine()
@@ -32,4 +36,6 @@ object ClsMqttSceneAgent extends App  {
   println(s"Disconnecting $clientId from $broker")
   client.disconnect()
   client.close()
+
+  
 }

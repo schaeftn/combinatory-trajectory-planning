@@ -38,9 +38,12 @@ lazy val root = (Project(id = "combinatory-trajectory-planning", base = file("."
       "ch.qos.logback" % "logback-classic" % "1.2.3",
       "org.apache.poi" % "poi" % "3.9",
       "org.apache.poi" % "poi-ooxml" % "3.9",
+      "com.lightbend.akka" %% "akka-stream-alpakka-mqtt" % "2.0.0-M1",
       "com.typesafe.scala-logging" %% "scala-logging" % "3.9.0",
       "org.scala-graph" %% "graph-core" % "1.12.5",
+      "org.scala-graph" %% "graph-json" % "1.12.1",
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.0",
+      "org.locationtech.jts" % "jts-core" % "1.16.1",
       "com.dreizak" % "miniball" % "1.0.3",
       "org.scalaz" %% "scalaz-core" % "7.2.27",
       "org.apache.commons" % "commons-math3" % "3.6.1") ++

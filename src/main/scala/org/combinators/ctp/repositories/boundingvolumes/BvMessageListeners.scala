@@ -5,8 +5,8 @@ import io.circe.Decoder
 import org.combinators.cls.interpreter.ReflectedRepository
 import org.combinators.cls.types.Type
 import org.combinators.ctp.repositories._
-import org.combinators.ctp.repositories.protocol.ClsMqttBvAgent.{bbRequestTopic, bbResponseTopic, bsRequestTopic, bsResponseTopic}
-import org.combinators.ctp.repositories.protocol.{BoundingBoxData, BoundingSphereData, CtpMessageListener, UnityMeshData}
+import org.combinators.ctp.repositories.toplevel.ClsMqttBvAgent.{bbRequestTopic, bbResponseTopic, bsRequestTopic, bsResponseTopic}
+import org.combinators.ctp.repositories.toplevel.{BoundingBoxData, BoundingSphereData, CtpMessageListener, UnityMeshData}
 
 import scala.reflect.runtime.universe._
 import io.circe.syntax._

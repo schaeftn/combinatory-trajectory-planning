@@ -1,14 +1,16 @@
 package org.combinators.ctp.repositories.graphsearch
 
-import scalax.collection.Graph
+import scalax.collection.{Graph, GraphTraversal}
 import scalax.collection.GraphEdge.UnDiEdge
 import scalax.collection.edge.WBase.WEdge
-import scalax.collection.edge.WDiEdge
 
 import scala.annotation.tailrec
 import scala.collection.FilterableSet
 import scala.language.{higherKinds, postfixOps}
 
+trait test {
+  /*val testWalk = new Walk{}*/
+}
 /**
  * This class represents an implementation of the backwards value iteration algorithm presented in
  * [[http://planning.cs.uiuc.edu/]].
@@ -211,7 +213,6 @@ ValueIteration[N, E[X] <: UnDiEdge[X] with WEdge[X]](graph: Graph[N, E],
 }
 
 object ValueIteration {
-
   /**
    * Applies backwards value iteration to a given graph `graph` and a set of terminal nodes `termNodes`.
    *

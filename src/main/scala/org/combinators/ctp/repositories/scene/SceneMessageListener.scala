@@ -3,7 +3,7 @@ package org.combinators.ctp.repositories.scene
 import java.io.{BufferedWriter, File, FileWriter}
 
 import org.combinators.ctp.repositories._
-import org.combinators.ctp.repositories.protocol.{CtpCdMessageListener, CtpMessageListener}
+import org.combinators.ctp.repositories.toplevel.{CtpCdMessageListener, CtpMessageListener}
 import io.circe.Decoder
 import io.circe.syntax._
 import java.util.Properties
@@ -15,16 +15,12 @@ import org.eclipse.paho.client.mqttv3.MqttClient
 
 import scala.io.Source
 
-trait CtpSceneConnectionValues2d {
-  val responseTopic: String
-  val requestTopic: String
-  val decoder = Decoder[Scene]
-}
 
-trait CtpSceneConnectionValues2dPoly {
-  val responseTopic: String
-  val requestTopic: String
-  val decoder = Decoder[PolygonScene]
+//TODO Housekeeping, remove redundant traits
+
+trait CtpSceneConnectionValues2d {
+  val ctpScenePublishTopic: String
+  val ctpSceneSubscribeTopic: String
 }
 
 trait CtpSceneConnectionValues3d {
@@ -32,7 +28,6 @@ trait CtpSceneConnectionValues3d {
   val requestTopic: String
   val decoder = Decoder[Scene]
 }
-
 
 trait PythonTemplateUtils {
   def resultToByteArray: String => Array[Byte] = { outputTy =>
@@ -253,8 +248,8 @@ object CtpSceneConnectionValues {
 
 object CtpSceneConnectionValuesVcd {
   def apply(reqTopic: String, resTopic: String): CtpSceneConnectionValues2d = new CtpSceneConnectionValues2d {
-    override val responseTopic: String = resTopic
-    override val requestTopic: String = reqTopic
+    override val ctpScenePublishTopic : String = resTopic
+    override val ctpSceneSubscribeTopic: String = reqTopic
   }
 }
 
@@ -272,7 +267,7 @@ object CtpSceneListenerVcd {
     val utils = new CtpSceneUtils2D {}
     CtpMessageListener[scene_type_2d_n, String](
       utils.computeCellDecomposition, Decoder[scene_type_2d_n],
-      utils.resultToByteArray, v.requestTopic, v.responseTopic, _client)
+      utils.resultToByteArray, v.ctpSceneSubscribeTopic, v.ctpScenePublishTopic, _client)
   }
 }
 
@@ -281,6 +276,6 @@ object CtpSceneListenerVcd2 {
     val utils = new CtpSceneUtils2DPolyScene {}
     CtpMessageListener[scene_type_2d_n, String](
       utils.computeCellDecomposition, Decoder[scene_type_2d_n],
-      utils.resultToByteArray, v.requestTopic, v.responseTopic, _client)
+      utils.resultToByteArray, v.ctpSceneSubscribeTopic, v.ctpScenePublishTopic, _client)
   }
 }

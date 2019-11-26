@@ -1,14 +1,14 @@
-package org.combinators.ctp.repositories.protocol
+package org.combinators.ctp.repositories.toplevel
 
 import org.combinators.ctp.repositories.boundingvolumes._
-import org.combinators.ctp.repositories.protocol.ClsMqttBvAgent._
+import org.combinators.ctp.repositories.toplevel.ClsMqttBvAgent._
 import org.combinators.cls.interpreter.ReflectedRepository
 import org.combinators.cls.types.Type
 import io.circe._
 import io.circe.syntax._
 import io.circe.parser.decode
 import com.typesafe.scalalogging.LazyLogging
-import org.eclipse.paho.client.mqttv3.{IMqttMessageListener, MqttMessage}
+import org.eclipse.paho.client.mqttv3.{IMqttMessageListener, MqttMessage => MqttPahoMessage}
 
 import scala.reflect.runtime.universe._
 
@@ -40,7 +40,7 @@ abstract class CptInhabitationMessageListener[R, S, T] extends LazyLogging {
     result.interpretedTerms.index(0)(a)
   }
 
-  def onMessage: IMqttMessageListener = (topic: String, message: MqttMessage) => {
+  def onMessage: IMqttMessageListener = (topic: String, message: MqttPahoMessage) => {
     implicit val decodeEvent: Decoder[R] = decoder
 
     logger.info("Received Payload: " + new String(message.getPayload))

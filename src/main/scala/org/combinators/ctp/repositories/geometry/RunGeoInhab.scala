@@ -5,8 +5,8 @@ import io.circe.parser.decode
 import org.combinators.cls.interpreter._
 import org.combinators.cls.types.Type
 import org.combinators.cls.types.syntax._
-import org.combinators.ctp.repositories.protocol.UnityMeshData
-import org.eclipse.paho.client.mqttv3.{IMqttMessageListener, MqttClient, MqttMessage}
+import org.combinators.ctp.repositories.toplevel.UnityMeshData
+import org.eclipse.paho.client.mqttv3.{IMqttMessageListener, MqttClient}
 
 class RunGeoInhab(geo: UnityMeshData, client: MqttClient) extends LazyLogging{
  /* lazy val repo = new GeometricRepresentationRepository(geo)

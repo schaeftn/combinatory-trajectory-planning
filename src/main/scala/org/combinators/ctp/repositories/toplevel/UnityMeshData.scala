@@ -1,4 +1,4 @@
-package org.combinators.ctp.repositories.protocol
+package org.combinators.ctp.repositories.toplevel
 
 import io.circe.generic.JsonCodec
 import org.combinators.ctp.repositories._

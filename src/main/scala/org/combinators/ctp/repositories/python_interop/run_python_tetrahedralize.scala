@@ -1,7 +1,7 @@
 package org.combinators.ctp.repositories.python_interop
 import java.util.Properties
 
-import org.combinators.ctp.repositories.protocol.ClsMqttSceneAgent.getClass
+import org.combinators.ctp.repositories.toplevel.ClsMqttSceneAgent.getClass
 
 import scala.sys.process._
 

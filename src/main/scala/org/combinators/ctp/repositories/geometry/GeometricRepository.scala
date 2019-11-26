@@ -3,7 +3,7 @@ package org.combinators.ctp.repositories.geometry
 import org.combinators.cls.interpreter._
 import org.combinators.cls.types.{Kinding, Type}
 import org.combinators.cls.types.syntax._
-import org.combinators.ctp.repositories.protocol.UnityMeshData
+import org.combinators.ctp.repositories.toplevel.UnityMeshData
 import org.combinators.ctp.repositories._
 import org.eclipse.paho.client.mqttv3.MqttClient
 import org.combinators.ctp.repositories._
@@ -11,7 +11,7 @@ import org.combinators.ctp.repositories.scene.{MqttCubeData, MqttTransform}
 
 import math._
 
-trait GeometricRepository {
+trait GeometricRepository extends GeometryUtils {
   @combinator object AabbGen2D {
     def apply(): PpVertexList => PpAaBb2D = { a =>
       val xCoords = a.vertices map (v => v.head)

@@ -158,8 +158,9 @@ trait SceneRepository extends SceneDescription with CtpTaxonomy {
 
     def apply: PolySceneLineSegmentation =>  PolySceneCellSegmentation = { ls =>
       val ls_var = addBoundaryLines(ls)
-      val cells = for (i <- ls_var.lines.indices) yield {
-        val cellLines = findRightCell(i, ls_var, ls_var.vertices(ls_var.lines(i).head).head)
+      val cells = for (i <- ls_var.lines.indices;
+                       cellLines = findRightCell(i, ls_var, ls_var.vertices(ls_var.lines(i).head).head);
+                       if cellLines._2.nonEmpty) yield {
         cellLines._1 ++ cellLines._2
       }
 
@@ -169,10 +170,21 @@ trait SceneRepository extends SceneDescription with CtpTaxonomy {
   }
 
 
-//  @combinator object CellToCentroidCell {
-//    def apply: ???
-//    val semanticType  = sd_seg_cells :&: sd_poly_scene_segmentation => sd_poly_scene_segmentation :&: sd_seg_centroid_cells
-//  }
+  @combinator object CellToCentroidCellNaive {
+    def apply: PolySceneCellSegmentation => PolySceneCellSegmentationCentroids = { pscs =>
+      val xvals = pscs.freeCells.map(i => i.map(vid => pscs.vertices(vid).head))
+      val yvals = pscs.freeCells.map(i => i.map(vid => pscs.vertices(vid)(1)))
+
+      val xIntervalList: List[Float] = xvals.map(i => (i.min + i.max)/2)
+      val yInvervalList: List[Float] = yvals.map(i => (i.min + i.max)/2)
+
+      val centroids = xIntervalList.zip(yInvervalList).map { case ((a, b)) => List(a, b) }
+
+      PolySceneCellSegmentationCentroids(pscs.vertices, pscs.obstacles, pscs.boundaries, pscs.freeCells, centroids)
+    }
+
+    val semanticType = sd_poly_scene_segmentation :&: sd_seg_cells =>: sd_poly_scene_segmentation :&: sd_seg_centroid_cells
+  }
 
 
   /*

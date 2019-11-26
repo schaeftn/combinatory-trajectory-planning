@@ -3,7 +3,7 @@ package org.combinators.ctp.repositories
 import org.combinators.cls.types.{Constructor, Type, Variable}
 import scalaz._
 import Scalaz._
-import org.combinators.ctp.repositories.protocol.BoundingBoxData
+import org.combinators.ctp.repositories.toplevel.BoundingBoxData
 
 
 package object collisiondetection {

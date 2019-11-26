@@ -3,20 +3,71 @@ package org.combinators.ctp.repositories.scene
 import io.circe.generic.JsonCodec
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.geometry.PpPolyhedronMesh
+import scalax.collection.Graph
+import scalax.collection.edge.WUnDiEdge
+import scala.language.implicitConversions
 
 @JsonCodec
-case class Scene(boundaries: List[Float], obstacles: List[MqttCubeData]) {}
+case class Scene(boundaries: List[Float], obstacles: List[MqttCubeData]) {
+  def empty = Scene(List.empty, List.empty)
+}
 
 @JsonCodec
 case class PolygonScene(vertices: List[List[Float]], obstacles: List[List[Int]], boundaries: List[Float]) {}
 
 @JsonCodec
-case class PolySceneLineSegmentation(vertices: List[List[Float]], obstacles: List[List[Int]],
-                                     boundaries: List[Float], topVertices :List[Int],
-                                     bottomVertices: List[Int], lines: List[List[Int]]) {}
+case class PolySceneLineSegmentation(vertices: List[List[Float]],
+                                     obstacles: List[List[Int]],
+                                     boundaries: List[Float],
+                                     topVertices :List[Int],
+                                     bottomVertices: List[Int],
+                                     lines: List[List[Int]]) {}
 
 @JsonCodec
-case class PolySceneCellSegmentation(vertices: List[List[Float]], obstacles: List[List[Int]], boundaries: List[Float], freeCells: List[List[Int]]) {}
+case class PolySceneCellSegmentation(vertices: List[List[Float]],
+                                     obstacles: List[List[Int]],
+                                     boundaries: List[Float],
+                                     freeCells: List[List[Int]]) {}
+
+@JsonCodec
+case class PolySceneCellSegmentationCentroids(vertices: List[List[Float]],
+                                              obstacles: List[List[Int]],
+                                              boundaries: List[Float],
+                                              freeCells: List[List[Int]],
+                                              centroids: List[List[Float]]) {}
+
+case class PolySceneSegmentationGraph(vertices: List[List[Float]],
+                                      obstacles: List[List[Int]],
+                                      boundaries: List[Float],
+                                      freeCells: List[List[Int]],
+                                      centroids: List[List[Float]],
+                                      graph: Graph[List[Float], WUnDiEdge]) {
+  self =>
+  def withGraph(g: Graph[List[Float], WUnDiEdge]): PolySceneSegmentationGraph =
+    PolySceneSegmentationGraph(self.vertices, self.obstacles, self.boundaries, self.freeCells, self.centroids, g)
+
+  def withPath(p:(Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)): PolySceneSegmentationGraphPath =
+    PolySceneSegmentationGraphPath(self.vertices, self.obstacles, self.boundaries, self.freeCells,self.graph, p)
+}
+
+case class PolySceneSegmentationGraphPath(
+                                           vertices: List[List[Float]],
+                                           obstacles: List[List[Int]],
+                                           boundaries: List[Float],
+                                           freeCells: List[List[Int]],
+                                           graph: Graph[List[Float], WUnDiEdge],
+                                           gpath: (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)) {
+  self =>
+
+  def withPath(p: (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)): PolySceneSegmentationGraphPath =
+    PolySceneSegmentationGraphPath(self.vertices, self.obstacles, self.boundaries, self.freeCells, self.graph, p)
+
+  def withGraph(g: Graph[List[Float], WUnDiEdge]): PolySceneSegmentationGraphPath =
+    PolySceneSegmentationGraphPath(self.vertices, self.obstacles, self.boundaries, self.freeCells, g, self.gpath)
+
+  def empty:PolySceneSegmentationGraphPath = PolySceneSegmentationGraphPath(List.empty, List.empty, List.empty,
+    List.empty, Graph.empty, (Seq.empty, Seq.empty, 0.0f))
+}
 
 @JsonCodec
 case class PolyLineSegmentation(vertices: List[List[Float]], lines: List[List[Int]]) {}

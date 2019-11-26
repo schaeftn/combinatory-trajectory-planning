@@ -9,8 +9,8 @@ trait MpTask {
   val mpt_min_cost_type: Type = Constructor("mpt_min_cost_type")
   val mpt_target_config_type: Type = Constructor("mpt_target_config_type")
 
-  val mpt_start_position_type: Type = Constructor("mpt_start_position_type")
-  val mpt_target_position_type: Type = Constructor("mpt_target_position_type")
+  val mpt_start_goal_position_type: Type = Constructor("mpt_start_goal_position_type")
+  val mpt_start_goal_pose_type: Type = Constructor("mpt_start_goal_pose_type")
 
   val mpt_anytime_type: Type = Constructor("mpt_anytime_type")
 
