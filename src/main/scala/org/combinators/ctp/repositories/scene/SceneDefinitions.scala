@@ -1,6 +1,9 @@
 package org.combinators.ctp.repositories.scene
 
 import io.circe.generic.JsonCodec
+import io.circe.parser.decode
+import io.circe.generic.auto._
+import io.circe.syntax._
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.geometry.PpPolyhedronMesh
 import scalax.collection.Graph
@@ -13,7 +16,16 @@ case class Scene(boundaries: List[Float], obstacles: List[MqttCubeData]) {
 }
 
 @JsonCodec
-case class PolygonScene(vertices: List[List[Float]], obstacles: List[List[Int]], boundaries: List[Float]) {}
+case class PolygonScene(vertices: List[List[Float]], obstacles: List[List[Int]], boundaries: List[Float]) {
+  self =>
+  def withVertices(v: List[List[Float]]): PolygonScene = {
+    PolygonScene(v, self.obstacles, self.boundaries)
+  }
+
+  def withFreeCells(l: List[List[Int]]): PolySceneCellSegmentation = {
+    PolySceneCellSegmentation(self.vertices, self.obstacles, self.boundaries, l)
+  }
+}
 
 @JsonCodec
 case class PolySceneLineSegmentation(vertices: List[List[Float]],
@@ -27,7 +39,9 @@ case class PolySceneLineSegmentation(vertices: List[List[Float]],
 case class PolySceneCellSegmentation(vertices: List[List[Float]],
                                      obstacles: List[List[Int]],
                                      boundaries: List[Float],
-                                     freeCells: List[List[Int]]) {}
+                                     freeCells: List[List[Int]]) {self=>
+
+}
 
 @JsonCodec
 case class PolySceneCellSegmentationCentroids(vertices: List[List[Float]],
@@ -86,6 +100,23 @@ case class SegmentationLines2d(lines: List[List[List[Float]]])
 
 @JsonCodec
 case class SceneCfreePolygons2d(vertices: List[List[Float]], cfreePolygons: List[PpPolyhedronMesh])
+
+@JsonCodec
+case class TriangleSeg(vertices: List[List[Float]], triangles: List[List[Int]]) {
+  self =>
+  def withCentroids(c: List[List[Float]]): TriangleSegCentroids =
+    TriangleSegCentroids(self.vertices, self.triangles, c)
+}
+
+case class TriangleSegCentroids(vertices: List[List[Float]],
+                                triangles: List[List[Int]],
+                                centroids: List[List[Float]])
+
+case class TriangleSegPath(vertices: List[List[Float]],
+                           freeCells: List[List[Int]],
+                           graph: Graph[List[Float], WUnDiEdge],
+                           gpath: (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float))
+
 
 @JsonCodec
 case class SceneMesh(vertices: vertexArrayType2, faces: facesArrayType, voxels: voxelArrayType) {}

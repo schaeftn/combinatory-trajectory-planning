@@ -186,6 +186,31 @@ trait SceneRepository extends SceneDescription with CtpTaxonomy {
     val semanticType = sd_poly_scene_segmentation :&: sd_seg_cells =>: sd_poly_scene_segmentation :&: sd_seg_centroid_cells
   }
 
+  @combinator object CellToCentroidCellTriangles {
+    def apply: TriangleSeg => TriangleSegCentroids = { pscs =>
+      println("c1")
+      println(s"pscs $pscs")
+      println(s"freecells ${pscs.triangles}")
+      println(s"vertices ${pscs.vertices}")
+      val xvals = pscs.triangles.map(i => i.map(vid => pscs.vertices(vid).head))
+      val yvals = pscs.triangles.map(i => i.map(vid => pscs.vertices(vid)(1)))
+      println("c2")
+
+      val xIntervalList: List[Float] = xvals.map(i => (i.min + i.max)/2)
+      val yInvervalList: List[Float] = yvals.map(i => (i.min + i.max)/2)
+      println("c3")
+
+      val centroids = xIntervalList.zip(yInvervalList).map { case ((a, b)) => List(a, b) }
+      println("c4")
+
+      pscs.withCentroids(centroids)
+      println("c5")
+      pscs.withCentroids(centroids)
+    }
+
+    val semanticType = Constructor("tCentroids")
+  }
+
 
   /*
 Combinator to apply affine 2d transformation to 2d structure for a single vertex.

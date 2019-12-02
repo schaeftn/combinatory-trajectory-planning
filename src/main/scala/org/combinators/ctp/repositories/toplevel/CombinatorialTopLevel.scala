@@ -27,7 +27,7 @@ trait CombinatorialTopLevel extends LazyLogging {
 
     val semanticType =
       (sd_unity_scene_type =>: sd_polygon_scene_type) =>:
-        (sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation) =>:
+        (sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_lines) =>:
         (sd_seg_lines :&: sd_poly_scene_segmentation =>: sd_seg_cells :&: sd_poly_scene_segmentation) =>:
         (sd_poly_scene_segmentation :&: sd_seg_cells =>: sd_poly_scene_segmentation :&: sd_seg_centroid_cells) =>:
         (sd_poly_scene_segmentation :&: sd_seg_centroid_cells =>: cmp_cell_graph) =>:
@@ -68,7 +68,7 @@ trait CombinatorialTopLevel extends LazyLogging {
 
     val semanticType =
       (sd_unity_scene_type =>: sd_polygon_scene_type) =>:
-        (sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation) =>:
+        (sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&:sd_seg_lines) =>:
         (sd_seg_lines :&: sd_poly_scene_segmentation =>: sd_seg_cells :&: sd_poly_scene_segmentation) =>:
         (sd_poly_scene_segmentation :&: sd_seg_cells =>: sd_poly_scene_segmentation :&: sd_seg_centroid_cells) =>:
         (sd_poly_scene_segmentation :&: sd_seg_centroid_cells =>: cmp_cell_graph) =>:
@@ -76,5 +76,47 @@ trait CombinatorialTopLevel extends LazyLogging {
         Constructor("graphTraversalFct") =>:
         (sd_unity_scene_type :&: mpt_start_goal_position_type :&: dimensionality_two_d_t =>:
           cmp_scene_graph_path :&: dimensionality_two_d_t)
+  }
+
+  @combinator object SceneTaskToGraphPathFctTriangulation {
+    def apply(toPolygonScene: Scene => PolygonScene,
+              run: PolygonScene => TriangleSeg,
+              toCentroids: TriangleSeg => TriangleSegCentroids,
+              toGraph: TriangleSegCentroids => Graph[List[Float], WUnDiEdge],
+              gGraphAdd: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Graph[List[Float], WUnDiEdge],
+              toGraphPathFct: (Graph[List[Float], WUnDiEdge],MpTaskStartGoal) =>
+                (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)):
+    (Scene, MpTaskStartGoal) => TriangleSegPath = { (scene: Scene, mpt: MpTaskStartGoal) =>
+      println("topl 00")
+      val pScene = toPolygonScene(scene)
+      println("topl 00")
+
+      val centroidSegmentation = toCentroids(run(pScene))
+      println("topl 0")
+
+      val graph = gGraphAdd(toGraph(centroidSegmentation), mpt)
+      println("topl 1")
+
+      println("topl 2")
+      println(s"mpt: ${mpt}")
+      println(s"addGraph: ${graph}")
+      val path: (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float) = toGraphPathFct(graph, mpt)
+
+      println(s"path._1 ${path._1}")
+      println(s"path._2 ${path._2}")
+      println(s"path._3 ${path._3}")
+      println("topl 3")
+
+      TriangleSegPath(centroidSegmentation.vertices, centroidSegmentation.triangles, graph, path)
+    }
+
+    val semanticType =
+      (sd_unity_scene_type =>: sd_polygon_scene_type) =>:
+        (sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_cells :&: sd_seg_triangles) =>:
+        Constructor("tCentroids") =>:
+        Constructor("tGraphbuild") =>:
+        Constructor("tGraphAdd") =>:
+        Constructor("graphTraversalFct") =>:
+        Constructor("tgp")
   }
 }

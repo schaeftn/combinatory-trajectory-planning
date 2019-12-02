@@ -22,6 +22,7 @@ trait SceneDescription {
   val sd_poly_scene_segmentation = Constructor("sd_poly_scene_segmentation")
   val sd_seg_lines = Constructor("sd_seg_lines")
   val sd_seg_cells = Constructor("sd_seg_cells")
+  val sd_seg_triangles = Constructor("sd_seg_triangles")
   val sd_seg_centroid_cells = Constructor("sd_seg_centroid_cells")
 
   type scene_2d_boundaries_n = ((Int, Int), (Int, Int))
