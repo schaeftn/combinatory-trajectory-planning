@@ -140,7 +140,63 @@ trait CellDecompRepository extends PythonTemplateUtils with AkkaImplicits {
       trianglesSeg
     }
 
-    val semanticType = (sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_cells :&: sd_seg_triangles)
+    val semanticType = (sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_cells :&: sd_seg_triangles_simple)
+  }
+
+  @combinator object TriangulatePolyParametrized {
+    def apply: PolygonScene => TriangleSeg = { s: PolygonScene =>
+      val connectionSettings = new Properties()
+      connectionSettings.load(getClass.getClassLoader.getResourceAsStream("pythoninterop.properties"))
+      val genfolder = connectionSettings.getProperty("org.combinators.ctp.python.genfolder")
+      val cdStartLocation = genfolder + connectionSettings.getProperty("org.combinators.ctp.python.cdStartLocationTriPara")
+      val templateLocation = genfolder + connectionSettings.getProperty("org.combinators.ctp.python.cdTemplateLocationTriPara")
+
+      def pythonSceneString(scene: PolygonScene): String = {
+        val obstacleString = (for (i <- scene.obstacles.indices) yield s"b$i").reduce((a, b) => a + ", " + b)
+        val vlist = scene.obstacles.map { i => i.map(scene.vertices).map(listToPythonArray)}.map(listToPythonArray)
+
+        scene.obstacles.indices.foreach(i => println("i print: " + scene.obstacles(i).toString()))
+        val object_instances = scene.obstacles.indices.map(i =>
+          s"""    b$i = SceneObjectCHull2D(${vlist(i)})""").reduce(_ + "\n" + _)
+
+        s"$object_instances\n" +
+          s"    scene_objects = [$obstacleString]\n" +
+          s"    scene_size = [${scene.boundaries.mkString(", ")}]"
+      }
+
+      def runCdFile(s: String): TriangleSeg = {
+        println(s"Template Location: $templateLocation")
+        val templateSource = Source.fromFile(templateLocation)
+        val fileContents = templateSource.getLines.mkString("\n")
+        println(s"Got file contents $fileContents")
+        templateSource.close
+
+        println("template read")
+        println("Replaced file contents: \n" + fileContents.replace("$substitute$", s))
+        val file = new File(cdStartLocation)
+        val bw = new BufferedWriter(new FileWriter(file))
+        bw.write(fileContents.replace("$substitute$", s))
+        bw.close()
+        println("outFile written")
+
+        val foo = s"python3 $cdStartLocation"
+        val resultString = foo.lineStream_!.takeWhile(_ => true).
+          foldLeft("")((b, s) => b.concat(s))
+        println(s"Resultstring: $resultString")
+        val decoded = decode[TriangleSeg](resultString).right.get
+        println("decoded")
+        decoded
+      }
+
+      println(s"Python Scene String: ${pythonSceneString(s)}")
+      val trianglesSeg = runCdFile(pythonSceneString(s))
+//      s.withFreeCells(trianglesSeg.triangles)
+//      println(s"with freecells")
+//      s.withVertices(s.vertices ++ trianglesSeg.vertices).withFreeCells(trianglesSeg.triangles.map(i => i.map(_ + s.vertices.length)))
+      trianglesSeg
+    }
+
+    val semanticType = (sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_cells :&: sd_seg_triangles_para)
   }
 
   def boundVerts(b: List[Float]): List[List[Float]] =

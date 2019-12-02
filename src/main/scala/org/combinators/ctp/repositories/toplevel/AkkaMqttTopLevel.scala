@@ -133,10 +133,9 @@ trait AkkaMqttTopLevel extends LazyLogging with AkkaImplicits{
     val semanticType = p_unityConnectionProperties_type =>:
       p_mqttAkkaSource_type :&: sd_unity_scene_type :&: dimensionality_two_d_t =>:
       p_mqttAkkaSource_type :&: mpt_start_goal_position_type :&: dimensionality_two_d_t =>:
-      Constructor("tgp") =>:
+      Constructor("tgp") :&:cmp_scene_triangulation_parameters=>:
       p_mqttAkkaSink_type :&: cmp_scene_graph_path :&: dimensionality_two_d_t =>:
-      p_unitySceneAgent_type :&: cmp_vertical_cell_decomposition_type :&:
-        dimensionality_two_d_t :&: p_unityResult_type :&: cmp_scene_graph_path :&: sd_seg_triangles
+      p_unitySceneAgent_type :&: dimensionality_two_d_t :&: cmp_scene_graph_path :&: cmp_scene_triangulation_parameters
   }
 
 // @combinator object AkkaFlowSceneSeg2DPath2 {

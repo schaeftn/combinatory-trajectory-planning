@@ -112,11 +112,11 @@ trait CombinatorialTopLevel extends LazyLogging {
 
     val semanticType =
       (sd_unity_scene_type =>: sd_polygon_scene_type) =>:
-        (sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_cells :&: sd_seg_triangles) =>:
+        (sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_cells :&: cmp_scene_triangulation_parameters) =>:
         Constructor("tCentroids") =>:
         Constructor("tGraphbuild") =>:
         Constructor("tGraphAdd") =>:
         Constructor("graphTraversalFct") =>:
-        Constructor("tgp")
+        Constructor("tgp") :&: cmp_scene_triangulation_parameters
   }
 }

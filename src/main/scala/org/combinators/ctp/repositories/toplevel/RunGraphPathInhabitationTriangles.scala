@@ -15,7 +15,7 @@ import org.combinators.ctp.repositories.graphsearch.GraphSearchRepository
 import org.combinators.ctp.repositories.mptasks.MpTaskStartGoal
 import org.combinators.ctp.repositories.scene._
 import org.combinators.ctp.repositories.taxkinding.CombinatorialMotionPlanning
-import org.combinators.ctp.repositories.{cmp_cell_graph, cmp_scene_graph_path, dimensionality_two_d_t, sd_polygon_scene_type, sd_seg_centroid_cells, sd_seg_triangles, _}
+import org.combinators.ctp.repositories.{cmp_cell_graph, cmp_scene_graph_path, dimensionality_two_d_t, sd_polygon_scene_type, sd_seg_centroid_cells, _}
 import org.locationtech.jts.util.Stopwatch
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
@@ -41,7 +41,7 @@ object RunGraphPathInhabitationTriangles extends App with LazyLogging with AkkaI
   val ihBatch = Gamma.InhabitationBatchJob[Properties](p_unityConnectionProperties_type)
     .addJob[Source[Scene, Future[Done]]](p_mqttAkkaSource_type :&: sd_unity_scene_type :&: dimensionality_two_d_t)
     .addJob[Scene => PolygonScene](sd_unity_scene_type =>: sd_polygon_scene_type)
-    .addJob[PolygonScene => TriangleSeg](sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_cells :&: sd_seg_triangles)
+    .addJob[PolygonScene => TriangleSeg](sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_cells :&: sd_seg_triangles_para)
     .addJob[TriangleSeg => TriangleSegCentroids](
       Constructor("tCentroids"))
     .addJob[TriangleSegCentroids => Graph[List[Float], WUnDiEdge]](
@@ -53,7 +53,7 @@ object RunGraphPathInhabitationTriangles extends App with LazyLogging with AkkaI
       Constructor("graphTraversalFct"))
     .addJob[(Scene, MpTaskStartGoal) => TriangleSegPath](Constructor("tgp"))
     .addJob[Sink[MqttMessage, Future[Done]]](p_mqttAkkaSink_type :&: cmp_scene_graph_path :&: dimensionality_two_d_t)
-    .addJob[Unit](p_unitySceneAgent_type :&: cmp_scene_graph_path :&: sd_seg_triangles)
+    .addJob[Unit](p_unitySceneAgent_type :&: cmp_scene_graph_path :&: sd_seg_triangles_para)
 
   def getResultList(b: Gamma.InhabitationBatchJob) = {
     @scala.annotation.tailrec

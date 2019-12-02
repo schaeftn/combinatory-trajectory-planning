@@ -6,7 +6,7 @@ import org.combinators.ctp.repositories.scene.{MqttCubeData, PolygonScene, Scene
 
 trait SceneDescription {
   val cmp_scene_source_var = Variable("cmp_scene_source_var")
-
+val cmp_scene_triangulation_parameters = Variable("cmp_scene_triangulation_parameters")
   val sd_source_unity_type = Constructor("sd_source_unity_type")
   val sd_source_string_type = Constructor("sd_source_string_type")
   val sd_source_native_scala_type = Constructor("sd_source_native_scala_type")
@@ -22,7 +22,8 @@ trait SceneDescription {
   val sd_poly_scene_segmentation = Constructor("sd_poly_scene_segmentation")
   val sd_seg_lines = Constructor("sd_seg_lines")
   val sd_seg_cells = Constructor("sd_seg_cells")
-  val sd_seg_triangles = Constructor("sd_seg_triangles")
+  val sd_seg_triangles_simple = Constructor("sd_seg_triangles_simple")
+  val sd_seg_triangles_para = Constructor("sd_seg_triangles_para")
   val sd_seg_centroid_cells = Constructor("sd_seg_centroid_cells")
 
   type scene_2d_boundaries_n = ((Int, Int), (Int, Int))
