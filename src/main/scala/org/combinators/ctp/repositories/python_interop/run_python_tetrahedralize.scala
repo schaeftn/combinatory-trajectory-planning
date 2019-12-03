@@ -9,7 +9,7 @@ object run_python_tetrahedralize extends App {
 
   val connectionSettings = new Properties()
   connectionSettings.load(getClass.getClassLoader.getResourceAsStream("pythoninterop.properties"))
-  val tetStartLocation = connectionSettings.getProperty("org.combinators.ctp.python.cdTetStartLocation")
+  val tetStartLocation = connectionSettings.getProperty("org.combinators.ctp.python.cdStartLocationTet")
 
   val foo = s"python3 $tetStartLocation"
   val result = foo.lineStream_!

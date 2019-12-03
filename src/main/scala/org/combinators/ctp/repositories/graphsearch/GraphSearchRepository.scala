@@ -123,6 +123,7 @@ trait GraphSearchRepository extends GeometryUtils{
   @combinator object TriGraphAdd {
     def apply: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Graph[List[Float], WUnDiEdge] = {
       case ((g, mpTask)) =>
+        println("tGraphAdd")
         val (sIndex, eIndex) = findFreeCellTri(g,mpTask)
 
         val newNodes = g.nodes.toOuter.toList :+ mpTask.startPosition :+ mpTask.endPosition
@@ -305,13 +306,14 @@ trait GraphSearchRepository extends GeometryUtils{
 
 
       val centroids = csc.centroids
-      val edges:IndexedSeq[WUnDiEdge[List[Float]]] = filteredLines.map {
-        case (cp: List[Float], leftCellId: Int, rightCellId: Int) =>{
+      val edges: IndexedSeq[WUnDiEdge[List[Float]]] = filteredLines.flatMap {
+        case (cp: List[Int], leftCellId: Int, rightCellId: Int) => {
           val v1 = csc.vertices(cp.head)
           val v2 = csc.vertices(cp.last)
           List(WUnDiEdge(v1, centroids(leftCellId))(distance(v1, centroids(leftCellId))),
             WUnDiEdge(v2, centroids(rightCellId))(distance(v2, centroids(rightCellId))))
-      }}.flatten
+        }
+      }
 
       val foo = Graph.from(centroids, edges)
 
@@ -321,6 +323,59 @@ trait GraphSearchRepository extends GeometryUtils{
     }
 
     val semanticType = Constructor("tGraphbuild")
+  }
+
+  @combinator object CellCentroidToScalaGraphTet {
+    def apply: TriangleSegCentroids => Graph[List[Float], WUnDiEdge] = { csc =>
+      println("tGraphbuildNd")
+      val segmentationObjects = for (freeCell1 <- csc.triangles.indices;
+                                   freeCell2 <- csc.triangles.indices;
+                                   i = csc.triangles(freeCell1).intersect(csc.triangles(freeCell2));
+                                   if (i.nonEmpty && i.size == csc.triangles(freeCell1).size - 1 &&
+                                     csc.triangles(freeCell1).size == csc.triangles(freeCell2).size &&
+                                     freeCell1 != freeCell2))
+        yield (i, freeCell1, freeCell2)
+      val filteredSegObjects = segmentationObjects.filter(i => i._2 < i._3)
+      println("FilteredLinesOut")
+      filteredSegObjects.foreach(println)
+      println("FilteredLinesDone")
+
+      val centroids = csc.centroids
+      centroids.filter(i => i.size != 3).foreach(k => println(s"Warn: Centroid length != 3. ${k.toString}"))
+
+      val edges: IndexedSeq[WUnDiEdge[List[Float]]] = filteredSegObjects.map {
+        case (cp: List[Int], leftCellId: Int, rightCellId: Int) => {
+          WUnDiEdge(centroids(rightCellId), centroids(leftCellId))(distance(centroids(rightCellId), centroids(leftCellId)))
+        }
+      }
+
+      val foo = Graph.from(centroids, edges)
+
+      //TODO AddNodes, Find Start end Cells, Add Edges
+      println("Returning Cell Graph")
+      Graph.from(centroids, edges)
+    }
+
+    val semanticType = Constructor("tGraphbuildNd")
+  }
+
+  @combinator object CellCentroidToScalaGraphFast {
+    def apply: TriangleSegCentroids => Graph[List[Float], WUnDiEdge] = { csc =>
+      println("tGraphbuildNdFast")
+
+      val edges = (csc.triangles.map { tri =>
+        val triList = tri.combinations(2).toList //check Performance filter anstatt Verwendung Scala Graph Set Edge
+        triList.map(i => WUnDiEdge(csc.vertices(i.head), csc.vertices(i.last))(distance(csc.vertices(i.head), csc.vertices(i.last))))
+      }).reduce(_ ++ _)
+
+      val foo = Graph.from(csc.vertices, edges)
+
+      //TODO AddNodes, Find Start end Cells, Add Edges
+      println("Returning Cell Graph")
+      Graph.from(csc.vertices, edges)
+    }
+
+    val semanticType = Constructor("tGraphbuildNdFast")
   }
 
 

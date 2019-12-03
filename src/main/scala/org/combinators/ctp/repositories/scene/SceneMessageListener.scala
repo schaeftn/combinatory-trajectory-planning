@@ -185,7 +185,7 @@ trait CtpSceneUtils extends PythonTemplateUtils {
     val connectionSettings2 = new Properties()
     connectionSettings2.load(getClass.getClassLoader.getResourceAsStream("pythoninterop.properties"))
     val sceneLocation = connectionSettings2.getProperty("org.combinators.ctp.python.cdFileLocation")
-    val templateLocation = connectionSettings2.getProperty("org.combinators.ctp.python.cdTemplateLocation")
+    val templateLocation = connectionSettings2.getProperty("org.combinators.ctp.python.cdTemplateLocationTet")
     val templateSource = Source.fromFile(templateLocation)
 
     val fileContents = templateSource.getLines.mkString("\n")
@@ -209,7 +209,7 @@ trait CtpSceneUtils extends PythonTemplateUtils {
     //execute and read string
     val connectionSettings = new Properties()
     connectionSettings.load(getClass.getClassLoader.getResourceAsStream("pythoninterop.properties"))
-    val tetStartLocation = connectionSettings.getProperty("org.combinators.ctp.python.cdTetStartLocation")
+    val tetStartLocation = connectionSettings.getProperty("org.combinators.ctp.python.cdStartLocationTet")
 
     val foo = s"python3 $tetStartLocation"
     val result = foo.lineStream_!

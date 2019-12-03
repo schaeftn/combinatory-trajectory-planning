@@ -42,15 +42,17 @@ trait SceneRepository extends SceneDescription with CtpTaxonomy {
       val (_, objList, globalVertices) = obstacleVertexTuple.
         foldLeft(0, List.empty[Range], List.empty[List[Float]]) {
           case ((id, obsVertices, globalVertices), obstacleVertices) =>
-            (id + obstacleVertices.vertices.size,  Range(id, id + obstacleVertices.vertices.size) +: obsVertices , globalVertices ++ obstacleVertices.vertices)
+            (id + obstacleVertices.vertices.size,
+              Range(id, id + obstacleVertices.vertices.size) +: obsVertices ,
+              globalVertices ++ obstacleVertices.vertices)
         }
       objList.foreach(i =>println("objList: " + i))
       val objects = objList.map{_.toList}
       PolygonScene(globalVertices, objects, s.boundaries)
     }
 
-    val semanticType = gm_CubeToPoly :&: dimensionality_two_d_t =>:
-      (sd_unity_scene_type =>: sd_polygon_scene_type)
+    val semanticType = gm_CubeToPoly :&: dimensionality_var =>:
+      (sd_unity_scene_type =>: sd_polygon_scene_type) :&: dimensionality_var
   }
 
 
@@ -209,6 +211,33 @@ trait SceneRepository extends SceneDescription with CtpTaxonomy {
     }
 
     val semanticType = Constructor("tCentroids")
+  }
+
+  def avgForVertexCell(cell: List[List[Float]]) = {
+    cell.reduceLeft { (a, b) =>
+      val zipped = a.zipAll(b, 0.0f,0.0f)
+      zipped.map{case (val1,val2) => val1 + val2}
+    }.map(_/cell.size)
+  }
+
+  @combinator object CellToCentroidND{
+    def apply: TriangleSeg => TriangleSegCentroids = { pscs =>
+      println("c1")
+      println(s"pscs $pscs")
+      println(s"freecells ${pscs.triangles}")
+      println(s"vertices ${pscs.vertices}")
+      val cellsV = pscs.triangles.map(i => i.map(pscs.vertices))
+      println("c2")
+      val centroids = cellsV.map(avgForVertexCell)
+//      val centroids = cellsV.map(cell => cell.map(vertex => vertex)
+//        cell(vid).indices.map(dimension => cell(vid)(dimension)).sum / cell.size))
+      println("c3")
+      pscs.withCentroids(centroids)
+      println("c5")
+      pscs.withCentroids(centroids)
+    }
+
+    val semanticType = Constructor("tCentroidsNd")
   }
 
 

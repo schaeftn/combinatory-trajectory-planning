@@ -119,4 +119,48 @@ trait CombinatorialTopLevel extends LazyLogging {
         Constructor("graphTraversalFct") =>:
         Constructor("tgp") :&: cmp_scene_triangulation_parameters
   }
+
+
+  @combinator object SceneTaskToGraphPathFctTetrahedralization {
+    def apply(toPolygonScene: Scene => PolygonScene,
+              run: PolygonScene => TriangleSeg,
+              toCentroids: TriangleSeg => TriangleSegCentroids,
+              toGraph: TriangleSegCentroids => Graph[List[Float], WUnDiEdge],
+              gGraphAdd: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Graph[List[Float], WUnDiEdge],
+              toGraphPathFct: (Graph[List[Float], WUnDiEdge],MpTaskStartGoal) =>
+                (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)):
+    (Scene, MpTaskStartGoal) => TriangleSegPath = { (scene: Scene, mpt: MpTaskStartGoal) =>
+      println(s"starting. mpTask: ${mpt.startPosition} to ${mpt.endPosition}")
+      println("3d topl 00")
+      val pScene = toPolygonScene(scene)
+      println("3d topl 00")
+
+      val centroidSegmentation = toCentroids(run(pScene))
+      println("3d topl 0")
+
+      val graph = gGraphAdd(toGraph(centroidSegmentation), mpt)
+      println("3d topl 1")
+
+      println("3d topl 2")
+      println(s"mpt: ${mpt}")
+      println(s"addGraph: ${graph}")
+      val path: (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float) = toGraphPathFct(graph, mpt)
+
+      println(s"3d path._1 ${path._1}")
+      println(s"3d path._2 ${path._2}")
+      println(s"3d path._3 ${path._3}")
+      println("3d topl 3")
+
+      TriangleSegPath(centroidSegmentation.vertices, centroidSegmentation.triangles, graph, path)
+    }
+
+    val semanticType =
+      (sd_unity_scene_type =>: sd_polygon_scene_type) :&: dimensionality_three_d_t =>:
+        (sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_cells) :&: dimensionality_three_d_t =>:
+        Constructor("tCentroidsNd") =>:
+        Constructor("tGraphbuildNdFast") =>:
+        Constructor("tGraphAdd") =>:
+        Constructor("graphTraversalFct") =>:
+        Constructor("tet")
+  }
 }

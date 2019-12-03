@@ -138,6 +138,47 @@ trait AkkaMqttTopLevel extends LazyLogging with AkkaImplicits{
       p_unitySceneAgent_type :&: dimensionality_two_d_t :&: cmp_scene_graph_path :&: cmp_scene_triangulation_parameters
   }
 
+
+  @combinator object AkkaGraphSceneSegTet {
+    def apply(p:Properties,
+              sceneSource: Source[Scene, Future[Done]],
+              taskSource: Source[MpTaskStartGoal, Future[Done]],
+              composedFunction: (Scene, MpTaskStartGoal) => TriangleSegPath,
+              sceneSink: Sink[MqttMessage, Future[Done]]): Unit = {
+      def toMqttMsg(s: TriangleSegPath) = {
+        val topic = p.getProperty("org.combinators.ctp.ctpSceneGraphPathFromScala3d")
+        MqttMessage(topic, ByteString(s.asJson.toString()))
+      }
+
+      val streamGraph: RunnableGraph[NotUsed] = RunnableGraph.fromGraph(GraphDSL.create() { implicit b =>
+        val zip = b.add(Zip[Scene, MpTaskStartGoal])
+        sceneSource ~> zip.in0
+        taskSource ~> zip.in1
+        zip.out.map {
+          case ((a, b)) =>
+            logger.info("running composedfct")
+            val result = composedFunction(a, b)
+            logger.info("post composedfct")
+            println(toMqttMsg(result))
+            toMqttMsg(result)
+        } ~> sceneSink
+        ClosedShape
+      })
+      streamGraph.run()
+
+      logger.info(s"Listening: Tet")
+      scala.io.StdIn.readLine()
+      logger.info(s"Disconnecting from MqttClient")
+    }
+
+    val semanticType = p_unityConnectionProperties_type =>:
+      p_mqttAkkaSource_type :&: sd_unity_scene_type :&: dimensionality_three_d_t =>:
+      p_mqttAkkaSource_type :&: mpt_start_goal_position_type :&: dimensionality_three_d_t =>:
+      Constructor("tet") =>:
+      p_mqttAkkaSink_type :&: cmp_scene_graph_path :&: dimensionality_three_d_t =>:
+      p_unitySceneAgent_type :&: dimensionality_three_d_t :&: cmp_scene_graph_path
+  }
+
 // @combinator object AkkaFlowSceneSeg2DPath2 {
 //    def apply(p: Properties,
 //              mc: MqttConnectionSettings,
