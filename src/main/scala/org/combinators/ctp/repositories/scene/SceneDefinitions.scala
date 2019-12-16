@@ -127,6 +127,9 @@ case class MqttCubeData(tMatrix: List[List[Float]], cubeSize: List[Float])
 @JsonCodec
 case class MqttTransform(transformMatrixList: List[List[Float]])
 
+@JsonCodec
+case class PathPreds(nodes: List[Int], preds: List[Int])
+
 /**
  * TODO Applied Transform Matrix will expressed by semantic Types
  */

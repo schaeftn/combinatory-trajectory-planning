@@ -21,7 +21,7 @@ import scalax.collection.edge.WUnDiEdge
 
 import scala.concurrent.Future
 
-object RunGraphPathInhabitation extends App with LazyLogging with AkkaImplicits {
+object RunGraphPathInhabitationObs extends LazyLogging with AkkaImplicits {
   //val ihCall  = InhabitationCall[InteropRepository, Properties](new InteropRepository{}, Constructor("p_unityConnectionProperties_type"))
 
   lazy val repository = new ListenerRepository with SceneRepository with GeometricRepository with AkkaMqttComponents
@@ -35,18 +35,7 @@ object RunGraphPathInhabitation extends App with LazyLogging with AkkaImplicits 
 
   println(s"Combinators ${Gamma.combinators.size}")
 
-
-  /*p_unityConnectionProperties_type =>:
-      p_mqttAkkaSource_type :&: sd_unity_scene_type :&: dimensionality_two_d_t =>:
-      p_mqttAkkaSource_type :&: mpt_start_goal_position_type :&: dimensionality_two_d_t =>:
-      (sd_unity_scene_type :&: dimensionality_two_d_t =>: cmp_scene_graph :&: dimensionality_two_d_t) =>:
-      p_mqttAkkaSink_type :&: cmp_scene_graph :&: dimensionality_two_d_t =>:
-      Constructor("graphTraversalFct") =>:
-      p_unitySceneAgent_type :&: cmp_vertical_cell_decomposition_type :&:*/
-
-
-
-  val ihCall = Gamma.inhabit[Properties](p_unityConnectionProperties_type)
+    val ihCall = Gamma.inhabit[Properties](p_unityConnectionProperties_type)
   println("done")
   val ihCall2 = Gamma.inhabit[Source[Scene, Future[Done]]](p_mqttAkkaSource_type
     :&: sd_unity_scene_type :&: dimensionality_two_d_t)

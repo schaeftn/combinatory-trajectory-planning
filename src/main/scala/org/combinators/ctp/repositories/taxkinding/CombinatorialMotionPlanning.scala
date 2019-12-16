@@ -15,6 +15,9 @@ trait CombinatorialMotionPlanning {
   val cmp_graph_dijkstra_type = Constructor("cmp_graph_dijkstra_type")
   val cmp_graph_a_star_type = Constructor("cmp_graph_a_star_type")
   val cmp_graph_vbi_type = Constructor("cmp_graph_vbi_type") // value based iteration
+  val cmp_graph_vcd_gaddFct_type = Constructor("cmp_graph_vcd_gaddFct_type")
+  val cmp_graph_mst_type = Constructor("cmp_graph_mst_type")
+
 
   val cmp_path_opt_var = Variable("cmp_path_opt_var")
   val cmp_teb_type = Constructor("cmp_teb_type") // time elastic band planner
@@ -41,19 +44,38 @@ trait CombinatorialMotionPlanning {
   val cmp_cd_lines = Constructor("cmp_cd_lines") // Decomposition result as lines
   val cmp_cd_cells = Constructor("cmp_cd_cells") // Decomposition result as cells
 
+  val triangle_centroidsFct_type = Constructor("triangle_centroidsFct_type")
+  val triangle_centroidsFctNd_type = Constructor("triangle_centroidsFctNd_type")
+  val triangle_gbuildNd_type = Constructor("triangle_gbuildNd_type")
+  val triangle_gbuildNdFast_type = Constructor("triangle_gbuildNdFast_type")
+  val triangle_gRefine_type = Constructor("triangle_gRefine_type")
+
+  val triangulation_path_prog_type = Constructor("triangulation_path_prog_type")
+
+  val cmp_sd_tetrahedra_type = Constructor("cmp_sd_tetrahedra_type")
+
   val dimensionality_var = Variable("dimensionality_var")
   val dimensionality_two_d_t = Constructor("dimensionality_two_d_t")
   val dimensionality_three_d_t = Constructor("dimensionality_three_d_t")
   val dimensionality_n_d_t = Constructor("dimensionality_n_d_t")
 
+//  val map = Map(
+//    cmp_decomposition_var -> Seq(
+//      cmp_vertical_cell_decomposition_type, cmp_wavefront_cell_decomposition_type, cmp_robot_decomposition_type),
+////    cmp_graph_shortest_path_var ->
+////      Seq(cmp_graph_dijkstra_type, cmp_graph_a_star_type, cmp_graph_vbi_type),
+//    dimensionality_var ->
+//      Seq(dimensionality_two_d_t, dimensionality_three_d_t, dimensionality_n_d_t),
+//    cmp_scene_triangulation_parameters ->
+//      Seq(sd_seg_triangles_para, sd_seg_triangles_simple))
   val map = Map(
     cmp_decomposition_var -> Seq(
-      cmp_vertical_cell_decomposition_type, cmp_wavefront_cell_decomposition_type, cmp_robot_decomposition_type),
+      cmp_vertical_cell_decomposition_type),
 //    cmp_graph_shortest_path_var ->
 //      Seq(cmp_graph_dijkstra_type, cmp_graph_a_star_type, cmp_graph_vbi_type),
     dimensionality_var ->
       Seq(dimensionality_two_d_t, dimensionality_three_d_t, dimensionality_n_d_t),
     cmp_scene_triangulation_parameters ->
-      Seq(sd_seg_triangles_para, sd_seg_triangles_simple))
+      Seq(sd_seg_triangles_simple, sd_seg_triangles_para))
   val kinding: Kinding = buildKinding(map)
 }

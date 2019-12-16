@@ -47,10 +47,10 @@ object RunGraphPathComposedFctInhabitation extends App {
   val ihCall4 = Gamma.inhabit[ PolySceneCellSegmentationCentroids => Graph[List[Float], WUnDiEdge]](
     sd_poly_scene_segmentation :&: sd_seg_centroid_cells =>: cmp_cell_graph)
   println("Cell Graph Done")
-  val ihCall5 = Gamma.inhabit[(PolySceneSegmentationGraph, MpTaskStartGoal) => PolySceneSegmentationGraph](Constructor("graphAdd") )
+  val ihCall5 = Gamma.inhabit[(PolySceneSegmentationGraph, MpTaskStartGoal) => PolySceneSegmentationGraph](cmp_graph_vcd_gaddFct_type )
   println("AddGraph Done")
   val ihCall6 = Gamma.inhabit[(Graph[List[Float], WUnDiEdge],MpTaskStartGoal) =>
-    (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)](Constructor("graphTraversalFct"))
+    (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)](cmp_graph_dijkstra_type)
   println("Traversal Done")
   val ihCall7 = Gamma.inhabit[(Scene, MpTaskStartGoal) => PolySceneSegmentationGraphPath](sd_unity_scene_type :&: mpt_start_goal_position_type :&: dimensionality_two_d_t =>:
     cmp_scene_graph_path :&: dimensionality_two_d_t)

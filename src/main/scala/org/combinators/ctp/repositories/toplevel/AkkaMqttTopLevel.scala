@@ -32,7 +32,7 @@ import scalax.collection.edge.WUnDiEdge
 
 
 trait AkkaMqttTopLevel extends LazyLogging with AkkaImplicits{
- @combinator object AkkaFlowSceneSeg2D {
+/* @combinator object AkkaFlowSceneSeg2D {
     def apply(p:Properties, sceneSource: Source[Scene, Future[Done]],
               composedFunction: Scene => PolySceneSegmentationGraph,
               sceneSink: Sink[MqttMessage, Future[Done]]): Unit = {
@@ -53,7 +53,7 @@ trait AkkaMqttTopLevel extends LazyLogging with AkkaImplicits{
       p_mqttAkkaSink_type :&: cmp_scene_graph :&: dimensionality_two_d_t =>:
       p_unitySceneAgent_type :&: cmp_vertical_cell_decomposition_type :&:
         dimensionality_two_d_t :&: p_unityResult_type :&: cmp_scene_graph
-  }
+  }*/
 
 
   @combinator object AkkaGraphSceneSeg2D {
@@ -83,7 +83,8 @@ trait AkkaMqttTopLevel extends LazyLogging with AkkaImplicits{
       })
       streamGraph.run()
 
-      logger.info(s"Listening: AkkaGraphSceneSeg2D asd")
+      logger.info(s"Shortest path motion planning via vertical cell decomposition.")
+      logger.info(s"Listening.")
       scala.io.StdIn.readLine()
       logger.info(s"Disconnecting from MqttClient")
     }
@@ -92,7 +93,7 @@ trait AkkaMqttTopLevel extends LazyLogging with AkkaImplicits{
       p_mqttAkkaSource_type :&: sd_unity_scene_type :&: dimensionality_two_d_t =>:
       p_mqttAkkaSource_type :&: mpt_start_goal_position_type :&: dimensionality_two_d_t =>:
       (sd_unity_scene_type :&: mpt_start_goal_position_type :&: dimensionality_two_d_t =>:
-        cmp_scene_graph_path :&: dimensionality_two_d_t) =>:
+        cmp_scene_graph_path :&: dimensionality_two_d_t):&: cmp_vertical_cell_decomposition_type =>:
       p_mqttAkkaSink_type :&: cmp_scene_graph_path :&: dimensionality_two_d_t =>:
       p_unitySceneAgent_type :&: cmp_vertical_cell_decomposition_type :&:
         dimensionality_two_d_t :&: p_unityResult_type :&: cmp_scene_graph_path
@@ -125,7 +126,7 @@ trait AkkaMqttTopLevel extends LazyLogging with AkkaImplicits{
       })
       streamGraph.run()
 
-      logger.info(s"Listening: AkkaGraphSceneSeg2D asd")
+      logger.info(s"Scene segmentation via parameterized triangulation, shortest path")
       scala.io.StdIn.readLine()
       logger.info(s"Disconnecting from MqttClient")
     }
@@ -133,9 +134,34 @@ trait AkkaMqttTopLevel extends LazyLogging with AkkaImplicits{
     val semanticType = p_unityConnectionProperties_type =>:
       p_mqttAkkaSource_type :&: sd_unity_scene_type :&: dimensionality_two_d_t =>:
       p_mqttAkkaSource_type :&: mpt_start_goal_position_type :&: dimensionality_two_d_t =>:
-      Constructor("tgp") :&:cmp_scene_triangulation_parameters=>:
+      triangulation_path_prog_type :&:cmp_scene_triangulation_parameters :&: mpt_start_goal_position_type=>:
       p_mqttAkkaSink_type :&: cmp_scene_graph_path :&: dimensionality_two_d_t =>:
-      p_unitySceneAgent_type :&: dimensionality_two_d_t :&: cmp_scene_graph_path :&: cmp_scene_triangulation_parameters
+      p_unitySceneAgent_type :&: dimensionality_two_d_t :&: cmp_scene_graph_path :&: cmp_scene_triangulation_parameters :&: mpt_start_goal_position_type
+  }
+
+  @combinator object AkkaGraphSceneSegTri2DMst {
+    def apply(p:Properties,
+              sceneSource: Source[Scene, Future[Done]],
+              composedFunction: (Scene) => TriangleSegPath,
+              sceneSink: Sink[MqttMessage, Future[Done]]): Unit = {
+      def toMqttMsg(s: TriangleSegPath) = {
+        val topic = p.getProperty("org.combinators.ctp.ctpSceneGraphPathFromScala2d")
+        MqttMessage(topic, ByteString(s.asJson.toString()))
+      }
+
+      sceneSource.map(i => toMqttMsg(composedFunction(i))).runWith(sceneSink)
+
+      logger.info(s"Listening: AkkaGraphSceneSeg2D Mst")
+      scala.io.StdIn.readLine()
+      logger.info(s"Disconnecting from MqttClient")
+    }
+
+    val semanticType = p_unityConnectionProperties_type =>:
+      p_mqttAkkaSource_type :&: sd_unity_scene_type :&: dimensionality_two_d_t =>:
+      triangulation_path_prog_type :&: cmp_scene_triangulation_parameters :&: cmp_graph_mst_type =>:
+      p_mqttAkkaSink_type :&: cmp_scene_graph_path :&: dimensionality_two_d_t =>:
+      p_unitySceneAgent_type :&: dimensionality_two_d_t :&:
+        cmp_scene_graph_path :&: cmp_scene_triangulation_parameters :&: cmp_graph_mst_type
   }
 
 
@@ -174,7 +200,7 @@ trait AkkaMqttTopLevel extends LazyLogging with AkkaImplicits{
     val semanticType = p_unityConnectionProperties_type =>:
       p_mqttAkkaSource_type :&: sd_unity_scene_type :&: dimensionality_three_d_t =>:
       p_mqttAkkaSource_type :&: mpt_start_goal_position_type :&: dimensionality_three_d_t =>:
-      Constructor("tet") =>:
+      cmp_sd_tetrahedra_type =>:
       p_mqttAkkaSink_type :&: cmp_scene_graph_path :&: dimensionality_three_d_t =>:
       p_unitySceneAgent_type :&: dimensionality_three_d_t :&: cmp_scene_graph_path
   }
@@ -208,7 +234,7 @@ trait AkkaMqttTopLevel extends LazyLogging with AkkaImplicits{
 //    val semanticType = p_unityConnectionProperties_type =>:
 //      p_mqttAkkaConnxSettings_type =>:
 //      (sd_unity_scene_type :&: dimensionality_two_d_t =>: cmp_scene_graph :&: dimensionality_two_d_t) =>:
-//      Constructor("graphTraversalFct") =>:
+//      cmp_graph_dijkstra_type =>:
 //      p_unitySceneAgent_type :&: cmp_vertical_cell_decomposition_type :&:
 //        dimensionality_two_d_t :&: p_unityResult_type :&: cmp_scene_graph_pathf
 //  }
@@ -266,7 +292,7 @@ trait AkkaMqttTopLevel extends LazyLogging with AkkaImplicits{
       p_mqttAkkaSource_type :&: sd_unity_scene_type :&: dimensionality_two_d_t =>:
       p_mqttAkkaSource_type :&: mpt_start_goal_position_type :&: dimensionality_two_d_t =>:
       (sd_unity_scene_type :&: dimensionality_two_d_t =>: cmp_scene_graph :&: dimensionality_two_d_t) =>:
-      Constructor("graphTraversalFct") =>:
+      cmp_graph_dijkstra_type =>:
       p_mqttAkkaSink_type :&: cmp_scene_graph :&: dimensionality_two_d_t =>:
       p_unitySceneAgent_type :&: cmp_vertical_cell_decomposition_type :&:
         dimensionality_two_d_t :&: p_unityResult_type :&: cmp_scene_graph_path

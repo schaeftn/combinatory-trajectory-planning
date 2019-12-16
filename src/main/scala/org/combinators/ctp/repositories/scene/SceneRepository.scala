@@ -17,6 +17,7 @@ import org.apache.commons.math3.linear.RealMatrix
 import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.parser.decode
+import org.locationtech.jts.geom.{Coordinate, Triangle}
 
 //@JsonCodec
 //case class Scene(boundaries: List[Float], obstacles: List[MqttCubeData]) {}
@@ -210,7 +211,7 @@ trait SceneRepository extends SceneDescription with CtpTaxonomy {
       pscs.withCentroids(centroids)
     }
 
-    val semanticType = Constructor("tCentroids")
+    val semanticType = triangle_centroidsFct_type
   }
 
   def avgForVertexCell(cell: List[List[Float]]) = {
@@ -237,7 +238,55 @@ trait SceneRepository extends SceneDescription with CtpTaxonomy {
       pscs.withCentroids(centroids)
     }
 
-    val semanticType = Constructor("tCentroidsNd")
+    val semanticType = triangle_centroidsFctNd_type
+    //celltype centroidberechnung id, centroid art
+  }
+
+  def tCentroidJts2D(triangle: List[List[Float]]): List[Float] = {
+    val coords = triangle.map { i =>
+      if (i.size == 2)
+        new Coordinate(i.head, i.last)
+      else
+        println(s"Warning Centroid JTS: invalid # of dimensions $i")
+      new Coordinate(0.0f, 0.0f)
+    }
+
+    val t = new Triangle(coords(0), coords(1), coords(2))
+    List(t.centroid().x, t.centroid().y).map(_.toFloat)
+  }
+
+  def tCentroidJts3D(triangle: List[List[Float]]): List[Float] = {
+    val coords = triangle.map { i =>
+      if (i.size == 3)
+        new Coordinate(i.head,i(1), i.last)
+      else
+        println(s"Warning Centroid JTS: invalid # of dimensions $i")
+      new Coordinate(0.0f, 0.0f,0.0f)
+    }
+
+    val t = new Triangle(coords(0), coords(1), coords(2))
+    List(t.centroid().x, t.centroid().y).map(_.toFloat)
+  }
+
+
+  @combinator object TriangleCentroidJts{
+    def apply: TriangleSeg => TriangleSegCentroids = { pscs =>
+      println("c1")
+      println(s"pscs $pscs")
+      println(s"freecells ${pscs.triangles}")
+      println(s"vertices ${pscs.vertices}")
+      val cellsV = pscs.triangles.map(i => i.map(pscs.vertices))
+      println("c2")
+      val centroids = cellsV.map(tCentroidJts2D)
+      //      val centroids = cellsV.map(cell => cell.map(vertex => vertex)
+      //        cell(vid).indices.map(dimension => cell(vid)(dimension)).sum / cell.size))
+      println("c3")
+      pscs.withCentroids(centroids)
+      println("c5")
+      pscs.withCentroids(centroids)
+    }
+
+    val semanticType = triangle_centroidsFctNd_type :&: dimensionality_two_d_t
   }
 
 

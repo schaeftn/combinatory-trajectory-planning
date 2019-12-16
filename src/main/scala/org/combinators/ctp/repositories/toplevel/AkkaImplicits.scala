@@ -3,6 +3,7 @@ package org.combinators.ctp.repositories.toplevel
 import akka.actor.ActorSystem
 import akka.stream.{ActorMaterializer, Materializer}
 import io.circe.{Encoder, Json}
+import org.combinators.ctp.repositories.graphsearch.TspData
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
 import scalax.collection.edge.Implicits._

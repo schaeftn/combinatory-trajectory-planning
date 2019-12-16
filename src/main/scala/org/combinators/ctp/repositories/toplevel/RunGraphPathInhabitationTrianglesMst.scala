@@ -15,14 +15,15 @@ import org.combinators.ctp.repositories.graphsearch.GraphSearchRepository
 import org.combinators.ctp.repositories.mptasks.MpTaskStartGoal
 import org.combinators.ctp.repositories.scene._
 import org.combinators.ctp.repositories.taxkinding.CombinatorialMotionPlanning
-import org.combinators.ctp.repositories.{cmp_cell_graph, cmp_scene_graph_path, dimensionality_two_d_t, sd_polygon_scene_type, sd_seg_centroid_cells, _}
+import org.combinators.ctp.repositories.toplevel.RunGraphPathInhabitationTrianglesParaSP.Gamma
+import org.combinators.ctp.repositories.{cmp_scene_graph_path, dimensionality_two_d_t, sd_polygon_scene_type, _}
 import org.locationtech.jts.util.Stopwatch
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
 
 import scala.concurrent.Future
 
-object RunGraphPathInhabitationTriangles extends App with LazyLogging with AkkaImplicits {
+object RunGraphPathInhabitationTrianglesMst extends App with LazyLogging with AkkaImplicits {
   //val ihCall  = InhabitationCall[InteropRepository, Properties](new InteropRepository{}, Constructor("p_unityConnectionProperties_type"))
 
   lazy val repository = new ListenerRepository with SceneRepository with GeometricRepository with AkkaMqttComponents
@@ -34,7 +35,7 @@ object RunGraphPathInhabitationTriangles extends App with LazyLogging with AkkaI
   println("kinding: " + Gamma.substitutionSpace.toString)
   println("Reflected Repository built, starting inhabitation")
 
-  println(s"Combinators ${Gamma.combinators.size}")
+  println(s"# of combinators: ${Gamma.combinators.size}")
   val watch:Stopwatch = new Stopwatch
   watch.start();
 
@@ -43,17 +44,17 @@ object RunGraphPathInhabitationTriangles extends App with LazyLogging with AkkaI
     .addJob[Scene => PolygonScene](sd_unity_scene_type =>: sd_polygon_scene_type)
     .addJob[PolygonScene => TriangleSeg](sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_cells :&: sd_seg_triangles_para)
     .addJob[TriangleSeg => TriangleSegCentroids](
-      Constructor("tCentroids"))
+      triangle_centroidsFct_type)
     .addJob[TriangleSegCentroids => Graph[List[Float], WUnDiEdge]](
       Constructor("tGraphbuild"))
     .addJob[(Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Graph[List[Float], WUnDiEdge]](
-      Constructor("tGraphAdd"))
+      triangle_gRefine_type)
     .addJob[(Graph[List[Float], WUnDiEdge], MpTaskStartGoal) =>
       (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)](
-      Constructor("graphTraversalFct"))
-    .addJob[(Scene, MpTaskStartGoal) => TriangleSegPath](Constructor("tgp"))
+      cmp_graph_dijkstra_type)
+    .addJob[(Scene, MpTaskStartGoal) => TriangleSegPath](triangulation_path_prog_type:&: cmp_graph_mst_type)
     .addJob[Sink[MqttMessage, Future[Done]]](p_mqttAkkaSink_type :&: cmp_scene_graph_path :&: dimensionality_two_d_t)
-    .addJob[Unit](p_unitySceneAgent_type :&: cmp_scene_graph_path :&: sd_seg_triangles_para)
+    .addJob[Unit](p_unitySceneAgent_type :&: cmp_scene_graph_path :&: cmp_graph_mst_type)
 
   def getResultList(b: Gamma.InhabitationBatchJob) = {
     @scala.annotation.tailrec
@@ -70,7 +71,7 @@ object RunGraphPathInhabitationTriangles extends App with LazyLogging with AkkaI
   watch.stop()
   println(s"elapsed time ${watch.getTimeString}")
 
-  l.map(i => println(i.target.toString() + "," + (if (i.isEmpty) "inhabitant not found" else "inhabitant found")))
+  l.map(i => println((if (i.isEmpty) "inhabitant not found" else "inhabitant found") + ", " +i.target.toString()))
 
   l.last.interpretedTerms.index(0)
 
