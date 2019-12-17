@@ -115,7 +115,10 @@ case class TriangleSegCentroids(vertices: List[List[Float]],
 case class TriangleSegPath(vertices: List[List[Float]],
                            freeCells: List[List[Int]],
                            graph: Graph[List[Float], WUnDiEdge],
-                           gpath: (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float))
+                           gpath: (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)){ self =>
+  def withPath(p: (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)) =
+    TriangleSegPath(self.vertices, self.freeCells, self.graph, p )
+}
 
 
 @JsonCodec

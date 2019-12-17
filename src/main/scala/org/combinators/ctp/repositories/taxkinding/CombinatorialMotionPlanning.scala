@@ -71,8 +71,9 @@ trait CombinatorialMotionPlanning {
   val map = Map(
     cmp_decomposition_var -> Seq(
       cmp_vertical_cell_decomposition_type),
-//    cmp_graph_shortest_path_var ->
-//      Seq(cmp_graph_dijkstra_type, cmp_graph_a_star_type, cmp_graph_vbi_type),
+    cmp_graph_shortest_path_var ->
+      Seq(cmp_graph_a_star_type),
+//      Seq(cmp_graph_dijkstra_type, cmp_graph_a_star_type),
     dimensionality_var ->
       Seq(dimensionality_two_d_t, dimensionality_three_d_t, dimensionality_n_d_t),
     cmp_scene_triangulation_parameters ->

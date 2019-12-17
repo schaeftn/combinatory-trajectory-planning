@@ -70,7 +70,6 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils{
         println(s"Task: $mpTask")
         val startNode = g.get(mpTask.startPosition)
         val endNode = g.get(mpTask.endPosition)
-
         println(s"startNode: $startNode endNode:$endNode")
         val result1 = startNode shortestPathTo endNode
         println("Done shortest path")
@@ -85,6 +84,101 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils{
     }
 
     val semanticType = cmp_graph_dijkstra_type
+  }
+
+  @combinator object AStarCombinator {
+    def apply: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) =>
+      (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float) = {
+      case ((g, mpTask)) =>
+        println("A Star combinator")
+        println(s"graph: $g")
+        println(s"Task: $mpTask")
+
+        graphToNxString(g)
+        val nodeList = g.nodes.toIndexedSeq
+        val startIndex = nodeList.map(_.toOuter).indexOf(mpTask.startPosition)
+        val goalIndex = nodeList.map(_.toOuter).indexOf(mpTask.endPosition)
+        println(s"NodeList ${nodeList.size}")
+        val connectionSettings = new Properties()
+        connectionSettings.load(getClass.getClassLoader.getResourceAsStream("pythoninterop.properties"))
+        val genfolder = connectionSettings.getProperty("org.combinators.ctp.python.aStarFolder")
+        val cdStartLocation = genfolder + connectionSettings.getProperty("org.combinators.ctp.python.aStarStartFile")
+        val templateLocation = genfolder + connectionSettings.getProperty("org.combinators.ctp.python.aStarTemplateFile")
+
+        def runPythonFile(s: (String, String, String)): List[Int] = {
+          println(s"Template Location: $templateLocation")
+          val templateSource = Source.fromFile(templateLocation)
+          val fileContents = templateSource.getLines.mkString("\n")
+          println(s"Got file contents $fileContents")
+          templateSource.close
+
+          println("template read")
+          //println("Replaced file contents: \n" + fileContents.replace("$substitute$", s))
+          val file = new File(cdStartLocation)
+          val bw = new BufferedWriter(new FileWriter(file))
+          bw.write(fileContents.
+            replace("$nodes$", s._1).
+            replace("$nodeIndices$", s._2).
+            replace("$edges$", s._3).
+            replace("$startIndex$", startIndex.toString).
+            replace("$goalIndex$", goalIndex.toString))
+
+          bw.close()
+          println("outFile written")
+
+          val foo = s"python3 $cdStartLocation"
+          val resultString = foo.lineStream_!.takeWhile(_ => true).
+            foldLeft("")((b, s) => b.concat(s))
+          println(s"Resultstring: ${resultString}")
+
+          resultString.
+            substring(1).
+            dropRight(1).
+            split(", ").toList.
+            map(_.toInt)
+        }
+
+        val str = graphToNxString(g)
+        println("computed astar str tuple")
+        val resultList = runPythonFile(str)
+        println(s"Found IntList $resultList")
+        (resultList.map(nodeList.map(_.toOuter)), Seq.empty, 0.0f)
+
+
+
+        /*println(s"startNode: $startNode endNode:$endNode")
+        val result1 = startNode shortestPathTo endNode //TODO parse result, translate to graph path
+        println("Done shortest path")
+        result1 match {
+          case Some(p) => println(s"Dijkstra found Path: $p")
+            (p.nodes.map(_.toOuter).toSeq,
+              p.edges.map(_.toOuter).toSeq,
+              p.weight.toFloat)
+          case _ => println(s"Dijkstra could not find a path")
+            (Seq.empty, Seq.empty, 0.0f)
+        }*/
+    }
+
+    val semanticType = cmp_graph_a_star_type
+  }
+
+  def graphToNxString(g: Graph[List[Float], WUnDiEdge]) :(String, String , String) = {
+    print("g to nx string")
+    val outerNodesSeq = g.nodes.toIndexedSeq.map(_.toOuter)
+    val nodeString = s"[${outerNodesSeq.map(i => s"""[${i.mkString(",")}]""").reduce(_ + ", " + _)}]"
+    println(s"nodeString: $nodeString")
+
+    val nodeIndexString = s"[${outerNodesSeq.indices.map(i => s"$i").reduce(_ + ", " + _)}]"
+    println(s"nodeString: $nodeIndexString")
+
+    def indexOf(n: List[Float]): Int = outerNodesSeq.indexOf(n)
+
+    val eString = g.edges.map(i => i.toOuter match {
+      case WUnDiEdge(n1,n2, w )=> s"            (${indexOf(n1)},${indexOf(n2)},$w)"
+    }).mkString(",\n")
+    print(s"eString: $eString")
+    print("g to nx string")
+    (nodeString, nodeIndexString, eString)
   }
 
   def findFreeCellTri: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => (Int, Int) = {
@@ -102,10 +196,10 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils{
   }
 
 
-  /*
-  Selects a free cell for an MPTaskStartGoal
-  //TODO Prüfen, ob als Combinator
- */
+
+/*  Selects a free cell for an MPTaskStartGoal
+  //TODO Prüfen, ob als Combinator*/
+
     def findFreeCell: (PolySceneSegmentationGraph, MpTaskStartGoal) => (Int, Int) = {
       case ((sSeg, mpTask)) => val geoFactory = new GeometryFactory()
         val startPoint: Point = geoFactory.createPoint(new Coordinate(mpTask.startPosition.head, mpTask.startPosition(1)))

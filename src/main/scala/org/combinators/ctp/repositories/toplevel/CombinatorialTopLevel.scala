@@ -1,13 +1,15 @@
 package org.combinators.ctp.repositories.toplevel
 
 import com.typesafe.scalalogging.LazyLogging
-
 import org.combinators.cls.interpreter.combinator
 import org.combinators.cls.types.Constructor
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.mptasks.MpTaskStartGoal
 import org.combinators.ctp.repositories.scene.{PolySceneSegmentationGraph, _}
+import org.locationtech.jts.algorithm.ConvexHull
+import org.locationtech.jts.geom.impl.CoordinateArraySequence
+import org.locationtech.jts.geom.{Coordinate, GeometryFactory, LineString}
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
 
@@ -71,9 +73,9 @@ trait CombinatorialTopLevel extends LazyLogging {
         (sd_poly_scene_segmentation :&: sd_seg_cells =>: sd_poly_scene_segmentation :&: sd_seg_centroid_cells) =>:
         (sd_poly_scene_segmentation :&: sd_seg_centroid_cells =>: cmp_cell_graph) =>:
         cmp_graph_vcd_gaddFct_type =>:
-        cmp_graph_dijkstra_type =>:
+        cmp_graph_shortest_path_var =>:
         (sd_unity_scene_type :&: mpt_start_goal_position_type :&: dimensionality_two_d_t =>:
-          cmp_scene_graph_path :&: dimensionality_two_d_t) :&: cmp_vertical_cell_decomposition_type
+          cmp_scene_graph_path :&: dimensionality_two_d_t) :&: cmp_vertical_cell_decomposition_type :&: cmp_graph_shortest_path_var
   }
 
 
@@ -104,7 +106,72 @@ trait CombinatorialTopLevel extends LazyLogging {
       println(s"path._2 ${path._2}")
       println(s"path._3 ${path._3}")
 
-      TriangleSegPath(centroidSegmentation.vertices, centroidSegmentation.triangles, graph, path)
+      val v = TriangleSegPath(centroidSegmentation.vertices, centroidSegmentation.triangles, graph, path)
+
+
+
+      println(s"obstacles :${pScene.obstacles}")
+      println(s"vertices :${pScene.vertices}")
+      println(s"vertices :${pScene.obstacles.map(i => i.map(pScene.vertices))}")
+
+
+      def scenePathRefinement(s: TriangleSegPath): TriangleSegPath = {
+        val vertexLists = pScene.obstacles.map(i => i.map(pScene.vertices))
+        val hulls = vertexLists.map { actualCoords =>
+          // generate convex hull for current batch of points
+          val coords = actualCoords.map(c => new Coordinate(c(0), c(1)))
+          val convexHull = new ConvexHull(coords.toArray, new GeometryFactory)
+          val hullGeometry = convexHull.getConvexHull
+          hullGeometry
+        }
+
+        println(s"Hulls size: ${hulls.size}")
+        println(s"Hulls: $hulls")
+        println("Hulls computed")
+
+        def cFreeLine(p1:Coordinate, p2:Coordinate):Boolean = {
+          val lineGeo = new LineString(new CoordinateArraySequence(Array(p1,p2)), new GeometryFactory())
+          val b = !hulls.exists(_.intersects(lineGeo))
+          println(s"Freeline: $p1, $p2: $b")
+          b
+        }
+
+        def getList(l: Seq[Coordinate], startIndex: Int, targetIndex: Int): Seq[Coordinate] = {
+          println(s"${l.size} startIndex: $startIndex, targetIndex: $targetIndex")
+          if (targetIndex >= l.size)
+            if(startIndex >= l.size)
+              return l
+            else
+              return getList(l, startIndex + 1, startIndex + 3)
+
+          println("^_^")
+          if (cFreeLine(l(startIndex), l(targetIndex))) {
+            println(s"l size: ${l.size}, takeRight: ${l.size - targetIndex}")
+            println("d")
+            val foo = l.take(startIndex+1)
+            val newList = foo ++ l.takeRight(l.size - targetIndex)
+            println("ff")
+            getList(newList, startIndex, startIndex + 2)
+          } else {
+            println("asdasdasd")
+            val asd = getList(l, startIndex, targetIndex + 1)
+            println("00")
+            asd
+          }
+        }
+
+
+        val coordList = s.gpath._1.map(i => new Coordinate(i(0), i(1)))
+        println("coordList computed")
+        val asdList = getList(coordList, 0, 2)
+        println("asdList computed")
+
+        val p = (asdList.map(i=> List(i.x.toFloat, i.y.toFloat)), Seq.empty, 0.0f)
+        println("p: asdList mapped")
+        s.withPath(p)
+      }
+
+      scenePathRefinement(v)
     }
 
     val semanticType =
@@ -113,8 +180,8 @@ trait CombinatorialTopLevel extends LazyLogging {
         triangle_centroidsFct_type =>:
         triangle_gbuildNd_type =>:
         triangle_gRefine_type =>:
-        cmp_graph_dijkstra_type =>:  //TODO variable for graph traversals
-        triangulation_path_prog_type :&: cmp_scene_triangulation_parameters :&: mpt_start_goal_position_type
+        cmp_graph_shortest_path_var =>:
+        triangulation_path_prog_type :&: cmp_scene_triangulation_parameters :&: mpt_start_goal_position_type :&:cmp_graph_shortest_path_var
   }
 
   //Constructor("graphTsp") =>:
@@ -196,7 +263,7 @@ trait CombinatorialTopLevel extends LazyLogging {
         triangle_centroidsFctNd_type =>:
         triangle_gbuildNdFast_type =>:
         triangle_gRefine_type =>:
-        cmp_graph_dijkstra_type =>:
-        cmp_sd_tetrahedra_type
+        cmp_graph_shortest_path_var =>:
+        cmp_sd_tetrahedra_type :&: cmp_graph_shortest_path_var
   }
 }
