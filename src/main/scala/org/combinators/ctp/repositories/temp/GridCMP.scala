@@ -1,12 +1,10 @@
 package org.combinators.ctp.repositories.temp
 
-import org.combinators.ctp.repositories.scene.{MqttCubeData, MqttTransform, PolygonScene, Scene}
 import io.circe.parser.decode
-import io.circe.generic.auto._
-import io.circe.syntax._
 import org.combinators.ctp.repositories.geometry.{GeometricRepository, PpVertexList}
+import org.combinators.ctp.repositories.scene.{MqttCubeData, MqttTransform, PolygonScene, Scene}
 import org.locationtech.jts.algorithm.ConvexHull
-import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
+import org.locationtech.jts.geom.{Coordinate, Geometry, GeometryFactory, Point}
 
 
 object GridCMP extends App with GeometricRepository{
@@ -16,6 +14,83 @@ object GridCMP extends App with GeometricRepository{
   // GGf JTS verwenden oder was eigenes überlegen.
   // Axis aligned bounding boxes (AABBs) evtl für grobe Einteilung
 
+  /**
+   *
+   * @param xDim horizontal dimension of bitmap
+   * @param yDim vertical dimension of bitmap
+   * @return 2-dimensional Array initialized with 0's
+   */
+  def defaultBitmap(xDim : Int, yDim : Int) : Array[Array[Int]] = {
+    val matrix = Array.ofDim[Int](xDim, yDim)
+    for {
+      x <- 0 until xDim
+      y <- 0 until yDim
+    }{
+      matrix(x)(y) = 0
+    }
+    matrix
+  }
+
+  /**
+   *
+   * @param bitmap
+   * @ prints the given bitmap
+   */
+  def printBitmap(bitmap : Array[Array[Int]]) : Unit = {
+    val xDim : Int = bitmap.length
+    val yDim : Int = bitmap.head.length
+    println("x - Dimension : "+xDim)
+    println("y - Dimension : "+yDim)
+    println()
+    for {
+      y <- (yDim - 1) to 0 by -1
+      x <- 0 until xDim
+      //j <- yDim - 1 to 0
+    }{
+      print(bitmap(x)(y) + " ")
+      if(x == xDim - 1) print("\n")
+    }
+  }
+
+  /**
+   *
+   * @param hulls list of convex hulls of polygon scene elements
+   * @param xDim x-boundary of polygon scene
+   * @param yDim y-boundary of polygon scene
+   * @return bitmap representation convex hulls in 2D with xDim and yDim boundaries
+   */
+  def computeBitmapFromHulls(hulls : List[Geometry], xDim : Int, yDim : Int) : Array[Array[Int]] = {
+    val bitmap = defaultBitmap(xDim,yDim)
+    for{
+      x <- 0 until xDim
+      y <- 0 until yDim
+    }{
+      val point : Point = new GeometryFactory().createPoint(new Coordinate(x - xDim/2,y - yDim/2))
+      if(hulls.exists(g => g.contains(point))) bitmap(x)(y) = 1
+    }
+    bitmap
+  }
+
+  /**
+   *
+   * @param polyScene polygon scene
+   * @return bitmap representation of polygon scene
+   */
+  def bitmapFromPolyScene(polyScene : PolygonScene) : Array[Array[Int]] = {
+    val vertexLists = polyScene.obstacles.map(i => i.map(polyScene.vertices))
+    val hulls: List[Geometry] = vertexLists.map { actualCoords =>
+      // generate convex hull for current batch of points
+      val coords = actualCoords.map(c => new Coordinate(c.head, c(1)))
+      val convexHull = new ConvexHull(coords.toArray, new GeometryFactory)
+      val hullGeometry = convexHull.getConvexHull
+      hullGeometry
+    }
+    val boundaries = polyScene.boundaries
+    computeBitmapFromHulls(hulls, boundaries.head.toInt, boundaries(1).toInt)
+  }
+
+
+  // Die folgenden Methoden und Attribute hat Tristan vorgegeben:
 
   def aTransform: (List[List[Float]], MqttTransform) => List[List[Float]] = {
     (p: List[List[Float]], tMatrix: MqttTransform) => {
@@ -43,10 +118,10 @@ object GridCMP extends App with GeometricRepository{
 
   def sceneTransform: Scene => PolygonScene = { s: Scene =>
 
-    print("scene to poly before: " + s.obstacles.foreach(print))
+    println("scene to poly before: " + s.obstacles.foreach(print))
     val obstacleVertexTuple = cubeTransform(s.obstacles)
 
-    print("scene to poly after: " + obstacleVertexTuple)
+    println("scene to poly after: " + obstacleVertexTuple)
 
     val (_, objList, globalVertices) = obstacleVertexTuple.
       foldLeft(0, List.empty[Range], List.empty[List[Float]]) {
@@ -66,14 +141,8 @@ object GridCMP extends App with GeometricRepository{
   val decScene: Scene = decode[Scene](sceneString).right.get
   val polyScene: PolygonScene = sceneTransform(decScene)
 
-  val vertexLists = polyScene.obstacles.map(i => i.map(polyScene.vertices))
-  val hulls = vertexLists.map { actualCoords =>
-    // generate convex hull for current batch of points
-    val coords = actualCoords.map(c => new Coordinate(c.head, c(1)))
-    val convexHull = new ConvexHull(coords.toArray, new GeometryFactory)
-    val hullGeometry = convexHull.getConvexHull
-    hullGeometry
-  }
-  hulls
+  //Nutzung meiner Methoden um Polygon Scene als Bitmap auszugeben
+
+  printBitmap(bitmapFromPolyScene(polyScene))
 
 }
