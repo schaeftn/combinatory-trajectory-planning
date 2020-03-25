@@ -18,6 +18,7 @@ val cmp_scene_triangulation_parameters = Variable("cmp_scene_triangulation_param
 
   val sd_polygon_scene_type = Constructor("sd_polygon_scene_type")
   val sd_unity_scene_type = Constructor("sd_unity_scene_type")
+  val sd_unity_scene_srt_type = Constructor("sd_unity_scene_srt_type")
   val sd_scene_segmentation = Constructor("sd_scene_segmentation")
   val sd_poly_scene_segmentation = Constructor("sd_poly_scene_segmentation")
   val sd_seg_lines = Constructor("sd_seg_lines")

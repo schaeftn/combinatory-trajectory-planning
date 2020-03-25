@@ -1,39 +1,24 @@
 package org.combinators.ctp.repositories.graphsearch
 
-
-import java.io.FileWriter
-import java.util.Properties
-
-import org.combinators.cls.interpreter._
 import org.combinators.cls.types.Constructor
-import org.combinators.cls.types.syntax._
-import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.geometry.GeometryUtils
 import org.combinators.ctp.repositories.mptasks.MpTaskStartGoal
-import org.combinators.ctp.repositories.scene.{PathPreds, PolyLineSegmentation, PolySceneCellSegmentation, PolySceneCellSegmentationCentroids, PolySceneLineSegmentation, PolySceneSegmentationGraph, PolygonScene, PythonTemplateUtils, Scene, TriangleSeg, TriangleSegCentroids}
+import org.combinators.ctp.repositories.scene.{PathPreds, PolySceneCellSegmentationCentroids, PolySceneSegmentationGraph, TriangleSegCentroids}
 import org.locationtech.jts.algorithm.ConvexHull
-import org.locationtech.jts.geom.{Coordinate, CoordinateFilter, CoordinateSequenceComparator, CoordinateSequenceFactory, CoordinateSequenceFilter, Envelope, Geometry, GeometryComponentFilter, GeometryFactory, GeometryFilter, Point}
-import scalax.collection.Graph
-import scalax.collection.edge.{WDiEdge, WUnDiEdge}
+import org.locationtech.jts.geom.{Coordinate, Geometry, GeometryFactory, Point}
+import scalax.collection.edge.WUnDiEdge
 import scalax.collection.Graph
 import scalax.collection.GraphPredef._
-import scalax.collection.GraphEdge._
 
 import scala.language.{higherKinds, postfixOps}
 import java.io.{BufferedWriter, File, FileWriter}
 import java.util.Properties
 
-import io.circe.Json
 import io.circe.parser.decode
-import io.circe.generic.auto._
-import io.circe.syntax._
 import org.combinators.cls.interpreter._
-import org.combinators.cls.types.Type
 import org.combinators.cls.types.syntax._
-import org.combinators.ctp.repositories.taxkinding._
 import org.combinators.ctp.repositories._
-import org.combinators.ctp.repositories.geometry.{PpAaBb2D, PpPolyhedronMesh, PpVertexList}
-import org.combinators.ctp.repositories.toplevel.AkkaImplicits
+import org.combinators.ctp.repositories.python_interop.PythonTemplateUtils
 
 import scala.sys.process._
 import scala.io.Source
@@ -86,107 +71,10 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils{
     val semanticType = cmp_graph_dijkstra_type
   }
 
-  @combinator object AStarCombinator {
-    def apply: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) =>
-      (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float) = {
-      case ((g, mpTask)) =>
-        println("A Star combinator")
-        println(s"graph: $g")
-        println(s"Task: $mpTask")
-
-        graphToNxString(g)
-        val nodeList = g.nodes.toIndexedSeq
-        val startIndex = nodeList.map(_.toOuter).indexOf(mpTask.startPosition)
-        val goalIndex = nodeList.map(_.toOuter).indexOf(mpTask.endPosition)
-        println(s"NodeList ${nodeList.size}")
-        val connectionSettings = new Properties()
-        connectionSettings.load(getClass.getClassLoader.getResourceAsStream("pythoninterop.properties"))
-        val genfolder = connectionSettings.getProperty("org.combinators.ctp.python.aStarFolder")
-        val cdStartLocation = genfolder + connectionSettings.getProperty("org.combinators.ctp.python.aStarStartFile")
-        val templateLocation = genfolder + connectionSettings.getProperty("org.combinators.ctp.python.aStarTemplateFile")
-
-        def runPythonFile(s: (String, String, String)): List[Int] = {
-          println(s"Template Location: $templateLocation")
-          val templateSource = Source.fromFile(templateLocation)
-          val fileContents = templateSource.getLines.mkString("\n")
-          println(s"Got file contents $fileContents")
-          templateSource.close
-
-          println("template read")
-          //println("Replaced file contents: \n" + fileContents.replace("$substitute$", s))
-          val file = new File(cdStartLocation)
-          val bw = new BufferedWriter(new FileWriter(file))
-          bw.write(fileContents.
-            replace("$nodes$", s._1).
-            replace("$nodeIndices$", s._2).
-            replace("$edges$", s._3).
-            replace("$startIndex$", startIndex.toString).
-            replace("$goalIndex$", goalIndex.toString))
-
-          bw.close()
-          println("outFile written")
-
-          val foo = s"python3 $cdStartLocation"
-          val resultString = foo.lineStream_!.takeWhile(_ => true).
-            foldLeft("")((b, s) => b.concat(s))
-          println(s"Resultstring: ${resultString}")
-
-          resultString.
-            substring(1).
-            dropRight(1).
-            split(", ").toList.
-            map(_.toInt)
-        }
-
-        val str = graphToNxString(g)
-        println("computed astar str tuple")
-        val resultList = runPythonFile(str)
-        println(s"Found IntList $resultList")
-        (resultList.map(nodeList.map(_.toOuter)), Seq.empty, 0.0f)
-
-
-
-        /*println(s"startNode: $startNode endNode:$endNode")
-        val result1 = startNode shortestPathTo endNode //TODO parse result, translate to graph path
-        println("Done shortest path")
-        result1 match {
-          case Some(p) => println(s"Dijkstra found Path: $p")
-            (p.nodes.map(_.toOuter).toSeq,
-              p.edges.map(_.toOuter).toSeq,
-              p.weight.toFloat)
-          case _ => println(s"Dijkstra could not find a path")
-            (Seq.empty, Seq.empty, 0.0f)
-        }*/
-    }
-
-    val semanticType = cmp_graph_a_star_type
-  }
-
-  def graphToNxString(g: Graph[List[Float], WUnDiEdge]) :(String, String , String) = {
-    print("g to nx string")
-    val outerNodesSeq = g.nodes.toIndexedSeq.map(_.toOuter)
-    val nodeString = s"[${outerNodesSeq.map(i => s"""[${i.mkString(",")}]""").reduce(_ + ", " + _)}]"
-    println(s"nodeString: $nodeString")
-
-    val nodeIndexString = s"[${outerNodesSeq.indices.map(i => s"$i").reduce(_ + ", " + _)}]"
-    println(s"nodeString: $nodeIndexString")
-
-    def indexOf(n: List[Float]): Int = outerNodesSeq.indexOf(n)
-
-    val eString = g.edges.map(i => i.toOuter match {
-      case WUnDiEdge(n1,n2, w )=> s"            (${indexOf(n1)},${indexOf(n2)},$w)"
-    }).mkString(",\n")
-    print(s"eString: $eString")
-    print("g to nx string")
-    (nodeString, nodeIndexString, eString)
-  }
-
   def findFreeCellTri: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => (Int, Int) = {
     case ((g, mpTask)) =>
-
       val startPoint = mpTask.startPosition
       val endPoint = mpTask.endPosition
-
       val n = g.nodes.toOuter.toIndexedSeq
       val startDistances = n.map(distance(_, startPoint))
       val endDistances = n.map(distance(_, endPoint))
@@ -228,7 +116,6 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils{
               refineGraphConnectionStartEnd(
                 refineGraphStartGoal1(sSeg, mpTask)
                 , mpTask), mpTask), mpTask), mpTask)
-
     }
 
     val semanticType = cmp_graph_vcd_gaddFct_type
@@ -242,9 +129,10 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils{
 
         val newNodes = g.nodes.toOuter.toList :+ mpTask.startPosition :+ mpTask.endPosition
         val newEdges = g.edges.toOuter.toList ++ List(
-          WUnDiEdge(mpTask.startPosition, g.nodes.toOuter.toIndexedSeq(sIndex))(distance(mpTask.startPosition, g.nodes.toOuter.toIndexedSeq(sIndex))),
-          WUnDiEdge(mpTask.endPosition, g.nodes.toOuter.toIndexedSeq(eIndex))(distance(mpTask.endPosition, g.nodes.toOuter.toIndexedSeq(eIndex)))
-        )
+          WUnDiEdge(mpTask.startPosition, g.nodes.toOuter.toIndexedSeq(sIndex))
+          (distance(mpTask.startPosition, g.nodes.toOuter.toIndexedSeq(sIndex))),
+          WUnDiEdge(mpTask.endPosition, g.nodes.toOuter.toIndexedSeq(eIndex))
+          (distance(mpTask.endPosition, g.nodes.toOuter.toIndexedSeq(eIndex))))
 
         Graph.from(newNodes, newEdges)
     }
@@ -405,7 +293,6 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils{
     val semanticType = sd_poly_scene_segmentation :&: sd_seg_centroid_cells =>: cmp_cell_graph
   }
 
-
   @combinator object CellCentroidSceneToScalaGraphTri {
     def apply: TriangleSegCentroids => Graph[List[Float], WUnDiEdge] = { csc =>
       val segmentationLines = for (freeCell1 <- csc.triangles.indices;
@@ -417,7 +304,6 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils{
       println("FilteredLinesOut")
       filteredLines.foreach(println)
       println("FilteredLinesDone")
-
 
       val centroids = csc.centroids
       val edges: IndexedSeq[WUnDiEdge[List[Float]]] = filteredLines.flatMap {
@@ -438,194 +324,6 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils{
 
     val semanticType = Constructor("tGraphbuild")
   }
-//
-//    @combinator object GraphTsp {
-//      def apply: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) =>
-//        (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float) = {
-//        case ((g, mpTask)) =>
-//          println("TSP")
-//          val nodeList = g.nodes.toOuter.toList
-//          val connectionSettings = new Properties()
-//          connectionSettings.load(getClass.getClassLoader.getResourceAsStream("pythoninterop.properties"))
-//          val genfolder = connectionSettings.getProperty("org.combinators.ctp.python.tspFolder")
-//          val cdStartLocation = genfolder + connectionSettings.getProperty("org.combinators.ctp.python.tspStartFile")
-//          val templateLocation = genfolder + connectionSettings.getProperty("org.combinators.ctp.python.tspTemplateFile")
-//
-//          val distanceInit:List[List[Float]] = List.fill(nodeList.size)(List.fill(nodeList.size)(-1.0f))
-//
-//          def distanceForNode(n: g.NodeT): String = {
-//            val filteredG = g filter g.having(edge = _.hasSource(n))
-//            println(s"current id: ${nodeList.indexOf(n)}")
-//            println(s"Number of edges: ${filteredG.edges.size}")
-//            val adjacentList = filteredG.edges.map(a =>
-//              (nodeList.indexOf(a._2), a.weight)
-//            )
-//            //println(s"adjacent list: ${adjacentList}")
-//            val str = adjacentList.toList.sortBy(_._1).foldLeft((0, "")) {
-//              case ((index, str), (b, c)) if str.nonEmpty =>
-//                (b, (str +: List.fill(b - index)("999.99") :+  c).mkString(", "))
-//              case ((index, str), (b, c)) =>
-//                (b, (List.fill(b - index)("999.99") :+  c).mkString(", "))
-//            }
-//            val rString = str._2 + "," + List.fill(nodeList.size - str._1)("999.99").mkString(",")
-//            "[" + rString + "]"
-//          }
-//
-//          val startIndex:Int = g.nodes.toOuter.toList.indexOf(mpTask.startPosition)
-//          val locationString: String = s"""    data['locations'] = ${listToPythonArray(g.nodes.toOuter.toList.map(listToPythonArray))}\n"""
-//          //println(s"locationString: $locationString")
-//          val distanceString: String = s"""    data['distances'] = ${listToPythonArray(g.nodes.toList.map(distanceForNode))}\n"""
-//          //println(s"distanceString: $distanceString")
-//          val vehiclesString: String = s"""    data['num_vehicles'] = 1\n"""
-//          val startNodeString: String = s"""    data['depot'] = 0\n"""
-//
-//          val s = ( locationString + distanceString + vehiclesString + startNodeString)
-//
-//          //println(s"TSP String: \n $s")
-//
-//          def runCdFile(s: String): List[Int] = {
-//            println(s"Template Location: $templateLocation")
-//            val templateSource = Source.fromFile(templateLocation)
-//            val fileContents = templateSource.getLines.mkString("\n")
-//            println(s"Got file contents $fileContents")
-//            templateSource.close
-//
-//            println("template read")
-//            //println("Replaced file contents: \n" + fileContents.replace("$substitute$", s))
-//            val file = new File(cdStartLocation)
-//            val bw = new BufferedWriter(new FileWriter(file))
-//            bw.write(fileContents.replace("$substitute$", s))
-//            bw.close()
-//            println("outFile written")
-//
-//            val foo = s"python3 $cdStartLocation"
-//            val resultString = foo.lineStream_!.takeWhile(_ => true).
-//              foldLeft("")((b, s) => b.concat(s))
-//            println(s"Resultstring: ${resultString}")
-//            resultString.substring(resultString.indexOf(s"$startIndex -> ")).
-//              split(" -> ").toList.map(_.replace(" ", "").toInt)
-//          }
-//
-//          val resultList = runCdFile(s)
-//          println(s"Found IntList $resultList")
-//          (resultList.map(nodeList), Seq.empty, 0.0f)
-//      }
-//
-//      val semanticType = Constructor("graphTsp")
-//    }
-
-
-  @combinator object GraphMst {
-    def apply: Graph[List[Float], WUnDiEdge] =>
-      (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float) = {
-      g =>
-        println("MST")
-        val nodeList = g.nodes.toIndexedSeq
-        println(s"NodeList ${nodeList.size}")
-        val connectionSettings = new Properties()
-        connectionSettings.load(getClass.getClassLoader.getResourceAsStream("pythoninterop.properties"))
-        val genfolder = connectionSettings.getProperty("org.combinators.ctp.python.mstFolder")
-        val cdStartLocation = genfolder + connectionSettings.getProperty("org.combinators.ctp.python.mstStartFile")
-        val templateLocation = genfolder + connectionSettings.getProperty("org.combinators.ctp.python.mstTemplateFile")
-
-        def distanceForNode(n: g.NodeT): String = {
-          val filteredG = g filter g.having(edge = _.hasSource(n))
-          val nodeId = nodeList.indexOf(n)
-          println(s"current id: $nodeId")
-          println(s"Number of edges: ${filteredG.edges.size}")
-          val adjacentList = filteredG.edges.map(a =>
-            if (nodeList.indexOf(a._2) == nodeId)
-              (nodeList.indexOf(a._1), a.weight)
-            else
-              (nodeList.indexOf(a._2), a.weight)
-          )
-          if (adjacentList.size == 3)
-            println(s"adjacent list: ${adjacentList}")
-          val str = adjacentList.toList.sortBy(_._1).foldLeft((0, "")) {
-            case ((0, str), (b, c)) if str.isEmpty =>
-              (b, (List.fill(b)("0.0") :+ c).mkString(", "))
-            case ((index, str), (b, c)) if str.nonEmpty =>
-              (b, (str +: List.fill(b - index - 1)("0.0") :+ c).mkString(", "))
-          }
-          val rString = str._2 + List.fill(nodeList.size - str._1 - 1)(", 0.0").mkString("")
-          s"[$rString]"
-        }
-
-        val distanceString: String = s"""    ${listToPythonArray(nodeList.map(distanceForNode).toList)}\n"""
-
-        def runCdFile(s: String): PathPreds = {
-          println(s"Template Location: $templateLocation")
-          val templateSource = Source.fromFile(templateLocation)
-          val fileContents = templateSource.getLines.mkString("\n")
-          println(s"Got file contents $fileContents")
-          templateSource.close
-
-          println("template read")
-          //println("Replaced file contents: \n" + fileContents.replace("$substitute$", s))
-          val file = new File(cdStartLocation)
-          val bw = new BufferedWriter(new FileWriter(file))
-          bw.write(fileContents.replace("$substitute$", s))
-          bw.close()
-          println("outFile written")
-
-          val foo = s"python3 $cdStartLocation"
-          val resultString = foo.lineStream_!.takeWhile(_ => true).
-            foldLeft("")((b, s) => b.concat(s))
-          println(s"Resultstring: ${resultString}")
-
-          decode[PathPreds](resultString).right.get
-        }
-
-
-        val resultList = runCdFile(distanceString)
-        println(s"Found IntList $resultList")
-        val preds = resultList.preds
-
-        def fullPath(a: Int): List[Int] =
-          if(preds(a)== -9999)
-            List(a)
-          else
-            fullPath(preds(a)) :+ a
-
-        def addList(currentPath:List[Int], a: Int, b: Int): List[Int] =
-          if(preds(b)==a)
-            currentPath :+ b
-          else {
-            currentPath ++
-              (fullPath(a) diff fullPath(b)).reverse.tail ++
-              List((fullPath(a) intersect fullPath(b)).last) ++
-              (fullPath(b) diff fullPath(a))
-          }
-
-
-        println(s"nodes: ${resultList.nodes}")
-        println(s"preds: ${resultList.preds}")
-        val path = resultList.nodes.foldLeft((List.empty[Int], 0)) {
-          case ((cl, a), b) if (b != 0) =>
-          (addList(cl, a, b), b)
-          case _ => (List(0), 0)
-        }
-
-        println(s"computed path: $path")
-
-        val l= path._1.reduce(
-          (a: Int, b: Int) =>
-          if (preds(b) != a && resultList.nodes.indexOf(b) - resultList.nodes.indexOf(a) != 1) -5 else 1
-        )
-
-        println(s"l: $l")
-
-        val rList = path._1.map(i => nodeList(i).toOuter)
-
-        println(s"return")
-        println(s"rList: $rList")
-        (rList, Seq.empty, 0.0f)
-    }
-
-    val semanticType = cmp_graph_mst_type
-  }
-
-
 
   @combinator object CellCentroidToScalaGraphTet {
     def apply: TriangleSegCentroids => Graph[List[Float], WUnDiEdge] = { csc =>
@@ -682,8 +380,6 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils{
   }
 
 
-
-
   // (Seq[N],Seq[E[N]],Float)
   //Dijkstra shortest path, returns
 /*  @combinator object ShortestPathDijkstra {
@@ -723,11 +419,4 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils{
     }
     val semanticType = 'graph_traversal =>: 'gt_dfs
   }*/
-
-
-
-
-
-
-
 }

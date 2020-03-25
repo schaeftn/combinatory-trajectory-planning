@@ -21,4 +21,8 @@ trait GeometryUtils {
     val t = new EuclideanDistance()
     t.compute(v1.map(_.toDouble).toArray, v2.map(_.toDouble).toArray).toFloat
   }
+
+  def tMatrixToRigidBodyTransformation(tMatrix: List[List[Float]]) = {
+    //print(s"Translation: ${tMatrix.}")
+  }
 }

@@ -4,11 +4,12 @@ import java.io.{BufferedWriter, File, FileWriter}
 
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.toplevel.{CtpCdMessageListener, CtpMessageListener}
-import io.circe.Decoder
-import io.circe.syntax._
 import java.util.Properties
 
+import io.circe.Decoder
+import io.circe.syntax._
 import io.circe.generic.JsonCodec
+import org.combinators.ctp.repositories.python_interop.PythonTemplateUtils
 
 import scala.sys.process._
 import org.eclipse.paho.client.mqttv3.MqttClient
@@ -29,33 +30,7 @@ trait CtpSceneConnectionValues3d {
   val decoder = Decoder[Scene]
 }
 
-trait PythonTemplateUtils {
-  def resultToByteArray: String => Array[Byte] = { outputTy =>
-    println(s"outString: ${outputTy.asJson.asString.get}")
-    outputTy.asJson.asString.get.getBytes
-  }
 
-  def commaSeparated(list: List[Any]): String = list.mkString(", ")
-
-  def listToNpArray(l: List[Any]):String = {
-    s"np.array(${listToPythonArray(l)})"
-  }
-
-  def listToPythonArray(l: List[Any]): String = {
-    s"[${commaSeparated(l)}]"
-  }
-
-  //TODO with parser
-  def stringForMatrix(matrix: List[List[Float]]): String = {
-    println(s"Matrix: $matrix")
-
-    val fooList = for {
-      v <- matrix
-    } yield s"[${commaSeparated(v)}]"
-    println(s"Matrix, comma-separated: ${commaSeparated(fooList)}")
-    s"np.array([${commaSeparated(fooList)}])"
-  }
-}
 
 // location vcd file
 // location vcd template

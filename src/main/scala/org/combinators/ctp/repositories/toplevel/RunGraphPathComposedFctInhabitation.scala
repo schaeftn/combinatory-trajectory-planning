@@ -23,7 +23,7 @@ import scala.concurrent.Future
 object RunGraphPathComposedFctInhabitation extends App {
   //val ihCall  = InhabitationCall[InteropRepository, Properties](new InteropRepository{}, Constructor("p_unityConnectionProperties_type"))
 
-  lazy val repository = new ListenerRepository with SceneRepository with GeometricRepository with AkkaMqttComponents with CombinatorialTopLevel
+  lazy val repository = new ListenerRepository with SceneRepository with GeometricRepository with AkkaMqttComponents with CmpTopLevel
     with AkkaMqttTopLevel with CellDecompRepository with GeometryUtils with GraphSearchRepository{}
   lazy val asd = new CombinatorialMotionPlanning{}
   println("asdasd")

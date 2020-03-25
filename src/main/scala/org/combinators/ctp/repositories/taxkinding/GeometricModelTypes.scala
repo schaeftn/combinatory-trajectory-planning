@@ -65,7 +65,7 @@ trait GeometricModelTypes {
 
   type vertexPairType = (vertexType, vertexType)
 
-  type tMatrixType = List[Float]
+  type tMatrixType = List[List[Float]]
 
   trait CellProperties{
     val cp_convexCells: Type = 'convexCells

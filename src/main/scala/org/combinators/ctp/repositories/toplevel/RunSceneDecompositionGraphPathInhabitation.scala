@@ -16,7 +16,7 @@ object RunSceneDecompositionGraphPathInhabitation extends App {
   //val ihCall  = InhabitationCall[InteropRepository, Properties](new InteropRepository{}, Constructor("p_unityConnectionProperties_type"))
 
   lazy val repository = new ListenerRepository with SceneRepository with CellDecompRepository with AkkaMqttComponents
-    with GeometryUtils with GeometricRepository with CombinatorialTopLevel with AkkaMqttTopLevel with GraphSearchRepository {}
+    with GeometryUtils with GeometricRepository with CmpTopLevel with AkkaMqttTopLevel with GraphSearchRepository {}
 
   lazy val asd = new CombinatorialMotionPlanning{}
   println("vcd + graph + path")

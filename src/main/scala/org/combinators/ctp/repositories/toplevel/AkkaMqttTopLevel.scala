@@ -139,6 +139,46 @@ trait AkkaMqttTopLevel extends LazyLogging with AkkaImplicits{
       p_unitySceneAgent_type :&: dimensionality_two_d_t :&: cmp_scene_graph_path :&: cmp_scene_triangulation_parameters :&: mpt_start_goal_position_type :&: cmp_graph_shortest_path_var
   }
 
+  @combinator object AkkaGraphSceneSegTri2DTsp {
+    def apply(p:Properties,
+              sceneSource: Source[Scene, Future[Done]],
+              taskSource: Source[MpTaskStartGoal, Future[Done]],
+              composedFunction: (Scene, MpTaskStartGoal) => TriangleSegPath,
+              sceneSink: Sink[MqttMessage, Future[Done]]): Unit = {
+      def toMqttMsg(s: TriangleSegPath) = {
+        val topic = p.getProperty("org.combinators.ctp.ctpSceneGraphPathFromScala2d")
+        MqttMessage(topic, ByteString(s.asJson.toString()))
+      }
+
+      val streamGraph: RunnableGraph[NotUsed] = RunnableGraph.fromGraph(GraphDSL.create() { implicit b =>
+        val zip = b.add(Zip[Scene, MpTaskStartGoal])
+        sceneSource ~> zip.in0
+        taskSource ~> zip.in1
+        zip.out.map {
+          case ((a, b)) =>
+            logger.info("running composedfct")
+            val result = composedFunction(a, b)
+            logger.info("post composedfct")
+            println(toMqttMsg(result))
+            toMqttMsg(result)
+        } ~> sceneSink
+        ClosedShape
+      })
+      streamGraph.run()
+
+      logger.info(s"Scene segmentation via triangulation, tsp")
+      scala.io.StdIn.readLine()
+      logger.info(s"Disconnecting from MqttClient")
+    }
+
+    val semanticType = p_unityConnectionProperties_type =>:
+      p_mqttAkkaSource_type :&: sd_unity_scene_type :&: dimensionality_two_d_t =>:
+      p_mqttAkkaSource_type :&: mpt_start_goal_position_type :&: dimensionality_two_d_t =>:
+      triangulation_path_prog_type :&: cmp_scene_triangulation_parameters :&: Constructor("graphTsp") =>:
+      p_mqttAkkaSink_type :&: cmp_scene_graph_path :&: dimensionality_two_d_t =>:
+      p_unitySceneAgent_type :&: dimensionality_two_d_t :&: cmp_scene_graph_path :&: cmp_scene_triangulation_parameters :&: Constructor("graphTsp")
+  }
+
   @combinator object AkkaGraphSceneSegTri2DMst {
     def apply(p:Properties,
               sceneSource: Source[Scene, Future[Done]],
@@ -205,6 +245,49 @@ trait AkkaMqttTopLevel extends LazyLogging with AkkaImplicits{
       p_unitySceneAgent_type :&: dimensionality_three_d_t :&: cmp_scene_graph_path :&: cmp_graph_shortest_path_var
   }
 
+
+  @combinator object SampleBasedMpAkka {
+    def apply(p:Properties,
+              sceneSource: Source[SceneSRT, Future[Done]],
+              taskSource: Source[MpTaskStartGoal, Future[Done]],
+              composedFunction: (SceneSRT, MpTaskStartGoal) => List[List[Float]],
+              sceneSink: Sink[MqttMessage, Future[Done]]): Unit = {
+      logger.info(s"SampleBasedAkka Start")
+
+      def toMqttMsg(s: List[List[Float]]) = {
+        val topic = p.getProperty("org.combinators.ctp.ctpPathfromScala3d")
+        MqttMessage(topic, ByteString(s.asJson.toString()))
+      }
+
+
+      val streamGraph: RunnableGraph[NotUsed] = RunnableGraph.fromGraph(GraphDSL.create() { implicit b =>
+        val zip = b.add(Zip[SceneSRT, MpTaskStartGoal])
+        sceneSource ~> zip.in0
+        taskSource ~> zip.in1
+        zip.out.map {
+          case ((a, b)) =>
+            logger.info("running composedfct")
+            val result = composedFunction(a, b)
+            logger.info("post composedfct")
+            logger.info(s"Result: $result")
+            toMqttMsg(result)
+        } ~> sceneSink
+        ClosedShape
+      })
+      streamGraph.run()
+
+      logger.info(s"Sample-based planning. Listening: SceneSRT and TaskStartGoal3D")
+      scala.io.StdIn.readLine()
+      logger.info(s"Disconnecting from MqttClient")
+    }
+
+    val semanticType =p_unityConnectionProperties_type =>:
+      p_mqttAkkaSource_type :&: sd_unity_scene_srt_type :&: dimensionality_three_d_t =>:
+        p_mqttAkkaSource_type :&: mpt_start_goal_position_type :&: dimensionality_three_d_t =>:
+        Constructor("sampleCombinatorTop") =>:
+        p_mqttAkkaSink_type :&: cmp_path_only :&: dimensionality_three_d_t =>:
+        Constructor("sampleAkka")
+  }
 // @combinator object AkkaFlowSceneSeg2DPath2 {
 //    def apply(p: Properties,
 //              mc: MqttConnectionSettings,

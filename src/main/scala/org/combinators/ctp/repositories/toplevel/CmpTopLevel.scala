@@ -13,7 +13,7 @@ import org.locationtech.jts.geom.{Coordinate, GeometryFactory, LineString}
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
 
-trait CombinatorialTopLevel extends LazyLogging {
+trait CmpTopLevel extends LazyLogging {
   @combinator object SceneToSegGraphFunction {
     def apply(transformToPoly: Scene => PolygonScene,
               run: PolygonScene => PolySceneLineSegmentation,
@@ -77,6 +77,49 @@ trait CombinatorialTopLevel extends LazyLogging {
         (sd_unity_scene_type :&: mpt_start_goal_position_type :&: dimensionality_two_d_t =>:
           cmp_scene_graph_path :&: dimensionality_two_d_t) :&: cmp_vertical_cell_decomposition_type :&: cmp_graph_shortest_path_var
   }
+
+
+//  @combinator object SceneShortestPathArrows {
+//    def apply(transformToPoly: (Scene, MpTaskStartGoal) => (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float), run: PolygonScene => PolySceneLineSegmentation,
+//              toCellSegmentation: PolySceneLineSegmentation => PolySceneCellSegmentation,
+//              toCentroids: PolySceneCellSegmentation => PolySceneCellSegmentationCentroids,
+//              toGraph: PolySceneCellSegmentationCentroids => Graph[List[Float], WUnDiEdge],
+//              addGraph: (PolySceneSegmentationGraph, MpTaskStartGoal) => PolySceneSegmentationGraph,
+//              toGraphPathFct: (Graph[List[Float], WUnDiEdge],MpTaskStartGoal) =>
+//                (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)):
+//    ((Scene, MpTaskStartGoal) => PolySceneSegmentationGraphPath) = { (scene: Scene, mpt: MpTaskStartGoal) =>
+//      val centroidSegmentation = toCentroids(toCellSegmentation(run(transformToPoly(scene))))
+//      println("computed segmentation and centroids")
+//
+//      val graph = toGraph(centroidSegmentation)
+//      println("graph built")
+//      val segGraph = PolySceneSegmentationGraph(centroidSegmentation.vertices, centroidSegmentation.obstacles,
+//        centroidSegmentation.boundaries, centroidSegmentation.freeCells, centroidSegmentation.centroids, graph)
+//      println(s"mpt: ${mpt}")
+//      val graphSeg = addGraph(segGraph, mpt)
+//      println(s"Graph refinement: ${graphSeg.graph}")
+//      val path = toGraphPathFct(graphSeg.graph, mpt)
+//
+//      println(s"path._1 ${path._1}")
+//      println(s"path._2 ${path._2}")
+//      println(s"path._3 ${path._3}")
+//
+//      graphSeg.withPath(path)
+///*      PolySceneSegmentationGraphPath(centroidSegmentation.vertices, centroidSegmentation.obstacles,
+//        centroidSegmentation.boundaries, centroidSegmentation.freeCells, graphSeg.graph, path)*/
+//    }
+//
+//    val semanticType =
+//      (sd_unity_scene_type =>: sd_polygon_scene_type) :&:dimensionality_two_d_t =>:
+//        (sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&:sd_seg_lines) =>:
+//        (sd_seg_lines :&: sd_poly_scene_segmentation =>: sd_seg_cells :&: sd_poly_scene_segmentation) =>:
+//        (sd_poly_scene_segmentation :&: sd_seg_cells =>: sd_poly_scene_segmentation :&: sd_seg_centroid_cells) =>:
+//        (sd_poly_scene_segmentation :&: sd_seg_centroid_cells =>: cmp_cell_graph) =>:
+//        cmp_graph_vcd_gaddFct_type =>:
+//        cmp_graph_shortest_path_var =>:
+//        (sd_unity_scene_type :&: mpt_start_goal_position_type :&: dimensionality_two_d_t =>:
+//          cmp_scene_graph_path :&: dimensionality_two_d_t) :&: cmp_vertical_cell_decomposition_type :&: cmp_graph_shortest_path_var
+//  }
 
 
   @combinator object SceneTaskToGraphPathFctTriangulation {
@@ -184,7 +227,6 @@ trait CombinatorialTopLevel extends LazyLogging {
         triangulation_path_prog_type :&: cmp_scene_triangulation_parameters :&: mpt_start_goal_position_type :&:cmp_graph_shortest_path_var
   }
 
-  //Constructor("graphTsp") =>:
 
   @combinator object SceneTaskToGraphPathFctTriangulationMst {
     def apply(toPolygonScene: Scene => PolygonScene,
@@ -224,6 +266,47 @@ trait CombinatorialTopLevel extends LazyLogging {
         //cmp_graph_dijkstra_type =>:  //TODO quick and dirty
         cmp_graph_mst_type =>:
         triangulation_path_prog_type :&: cmp_scene_triangulation_parameters :&: cmp_graph_mst_type
+  }
+
+  @combinator object SceneTaskToGraphPathFctTriangulationTsp {
+    def apply(toPolygonScene: Scene => PolygonScene,
+              run: PolygonScene => TriangleSeg,
+              toCentroids: TriangleSeg => TriangleSegCentroids,
+              toGraph: TriangleSegCentroids => Graph[List[Float], WUnDiEdge],
+              //gGraphAdd: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Graph[List[Float], WUnDiEdge],
+              toGraphPathFct: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) =>
+                (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)):
+    (Scene, MpTaskStartGoal) => TriangleSegPath = { (scene: Scene, mpTaskStartGoal: MpTaskStartGoal) =>
+      val pScene = toPolygonScene(scene)
+      println("Scene transformed")
+
+      val centroidSegmentation = toCentroids(run(pScene))
+      println("computed segmentation and centroids")
+
+   //   val graph = gGraphAdd(toGraph(centroidSegmentation), mpt)
+      val graph = toGraph(centroidSegmentation)
+      println("graph built and refined")
+
+      println(s"addGraph: ${graph}")
+      val path: (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float) = toGraphPathFct(graph, mpTaskStartGoal)
+
+      println(s"path._1 ${path._1}")
+      println(s"path._2 ${path._2}")
+      println(s"path._3 ${path._3}")
+
+      TriangleSegPath(centroidSegmentation.vertices, centroidSegmentation.triangles, graph, path)
+    }
+
+    val semanticType =
+      (sd_unity_scene_type =>: sd_polygon_scene_type) :&: dimensionality_two_d_t =>:
+        (sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_cells :&: cmp_scene_triangulation_parameters) =>:
+        triangle_centroidsFct_type =>:
+        triangle_gbuildNd_type =>:
+       // triangle_gRefine_type =>: //TODO q&d
+        //cmp_graph_dijkstra_type =>:  //TODO quick and dirty
+        Constructor("graphTsp") =>:
+        triangulation_path_prog_type :&: cmp_scene_triangulation_parameters :&:  Constructor("graphTsp")
+
   }
 
 
@@ -266,4 +349,31 @@ trait CombinatorialTopLevel extends LazyLogging {
         cmp_graph_shortest_path_var =>:
         cmp_sd_tetrahedra_type :&: cmp_graph_shortest_path_var
   }
+
+  @combinator object SceneSample1 {
+    def apply(run: String => Unit):
+    (SceneSRT, MpTaskStartGoal) => List[List[Float]] = { (scene: SceneSRT, mpt: MpTaskStartGoal) =>
+      println(s"starting. mpTask: ${mpt.startPosition} to ${mpt.endPosition}")
+      println("fasfasd")
+      val pScene: String = new SceneUtils{}.sceneSRTtoFclPythonString(scene)
+      run(pScene)
+      println("run, returning empty List")
+      List.empty[List[Float]]
+      //Samplers, return Path
+    }
+
+    val semanticType =
+      Constructor("runSample") =>:
+        Constructor("sampleCombinatorTop")//TODO Planner, sampler info in type expression
+  }
+
+
+@combinator object RunSampleBased{
+  // Welcher sampler, Welcher Planner, welche configspace? Wo wird der wie definiert?
+  // Über Problembeschreibung verschiedene vordefinierte probleme oder fn: configspace => collision
+  def apply: String => Unit = (sceneString: String) => print(s"RunSampleBased sceneString: $sceneString")
+  val semanticType = Constructor("runSample")
+}
+
+
 }

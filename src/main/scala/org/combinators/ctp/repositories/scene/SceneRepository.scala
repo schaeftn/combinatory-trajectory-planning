@@ -26,12 +26,6 @@ import org.locationtech.jts.geom.{Coordinate, Triangle}
 //case class PolygonScene(vertices: List[List[Float]], obstacles: List[List[Int]], boundaries: List[Float]) {}
 
 trait SceneRepository extends SceneDescription with CtpTaxonomy {
-
-  //TODO check with Commons
-  // val asd = s.obstacles.map(_.tMatrix.map(_.map(_.toDouble).toArray).toArray)
-  // val realMatrix = asd.map { tMat => MatrixUtils.createRealMatrix(tMat) }
-  // val obstacleVertexTuple = (for {i <- s.obstacles} yield (i, affTransform(getVertices(i.cubeSize), i.tMatrix)))
-
   @combinator object SceneToScenePoly {
     def apply(cubeToVList: List[MqttCubeData] => List[PpVertexList]): Scene => PolygonScene = { s: Scene =>
 
@@ -55,6 +49,11 @@ trait SceneRepository extends SceneDescription with CtpTaxonomy {
     val semanticType = gm_CubeToPoly :&: dimensionality_var =>:
       (sd_unity_scene_type =>: sd_polygon_scene_type) :&: dimensionality_var
   }
+
+//  @combinator object SceneTransform {
+//
+//    val semanticType = (scene_arrow_alpha =>: scene_arrow_beta) =>: (scene_arrow_beta =>: scene_arrow_gamma) =>: (scene_arrow_alpha =>: scene_arrow_gamma) // ergibt es Sinn?
+//  }
 
 
   @combinator object TranslResult {
@@ -189,21 +188,45 @@ trait SceneRepository extends SceneDescription with CtpTaxonomy {
     val semanticType = sd_poly_scene_segmentation :&: sd_seg_cells =>: sd_poly_scene_segmentation :&: sd_seg_centroid_cells
   }
 
-  @combinator object CellToCentroidCellTriangles {
+  @combinator object CellToCentroidCellJTSCentroids {
     def apply: TriangleSeg => TriangleSegCentroids = { pscs =>
       println("c1")
       println(s"pscs $pscs")
       println(s"freecells ${pscs.triangles}")
       println(s"vertices ${pscs.vertices}")
-      val xvals = pscs.triangles.map(i => i.map(vid => pscs.vertices(vid).head))
-      val yvals = pscs.triangles.map(i => i.map(vid => pscs.vertices(vid)(1)))
-      println("c2")
+      val vertices = pscs.triangles.map(i => i.map(vid => pscs.vertices(vid)))
 
-      val xIntervalList: List[Float] = xvals.map(i => (i.min + i.max)/2)
-      val yInvervalList: List[Float] = yvals.map(i => (i.min + i.max)/2)
-      println("c3")
+      val coordObjects = vertices.map(a => Triangle.centroid(
+        new Coordinate(a(0)(0), a(0)(1)),
+        new Coordinate(a(1)(0), a(1)(1)),
+        new Coordinate(a(2)(0), a(2)(1))))
 
-      val centroids = xIntervalList.zip(yInvervalList).map { case ((a, b)) => List(a, b) }
+      val centroids = coordObjects.map(coord => List(coord.x.toFloat, coord.y.toFloat))
+      println("c4")
+
+      pscs.withCentroids(centroids)
+      println("c5")
+      pscs.withCentroids(centroids)
+    }
+
+    val semanticType = triangle_centroidsFct_type :&: Constructor("jts_centroids")
+  }
+
+/*  Circumcenter of the Triangle, not necessarily inside Triangle*/
+  @combinator object CellToCentroidCellJTSIncentre  {
+    def apply: TriangleSeg => TriangleSegCentroids = { pscs =>
+      println("c1")
+      println(s"pscs $pscs")
+      println(s"freecells ${pscs.triangles}")
+      println(s"vertices ${pscs.vertices}")
+      val vertices = pscs.triangles.map(i => i.map(vid => pscs.vertices(vid)))
+
+      val coordObjects = vertices.map(a => Triangle.inCentre(
+        new Coordinate(a(0)(0), a(0)(1)),
+        new Coordinate(a(1)(0), a(1)(1)),
+        new Coordinate(a(2)(0), a(2)(1))))
+
+      val centroids = coordObjects.map(coord => List(coord.x.toFloat, coord.y.toFloat))
       println("c4")
 
       pscs.withCentroids(centroids)
@@ -213,6 +236,8 @@ trait SceneRepository extends SceneDescription with CtpTaxonomy {
 
     val semanticType = triangle_centroidsFct_type
   }
+
+
 
   def avgForVertexCell(cell: List[List[Float]]) = {
     cell.reduceLeft { (a, b) =>
@@ -288,8 +313,6 @@ trait SceneRepository extends SceneDescription with CtpTaxonomy {
 
     val semanticType = triangle_centroidsFctNd_type :&: dimensionality_two_d_t
   }
-
-
   /*
 Combinator to apply affine 2d transformation to 2d structure for a single vertex.
 */

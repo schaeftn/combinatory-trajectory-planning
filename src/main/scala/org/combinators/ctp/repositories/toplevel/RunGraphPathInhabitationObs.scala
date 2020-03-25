@@ -25,7 +25,7 @@ object RunGraphPathInhabitationObs extends LazyLogging with AkkaImplicits {
   //val ihCall  = InhabitationCall[InteropRepository, Properties](new InteropRepository{}, Constructor("p_unityConnectionProperties_type"))
 
   lazy val repository = new ListenerRepository with SceneRepository with GeometricRepository with AkkaMqttComponents
-    with CombinatorialTopLevel with AkkaMqttTopLevel with CellDecompRepository with GeometryUtils
+    with CmpTopLevel with AkkaMqttTopLevel with CellDecompRepository with GeometryUtils
     with GraphSearchRepository{}
   lazy val cmpRepository = new CombinatorialMotionPlanning{}
   lazy val Gamma = ReflectedRepository(repository, substitutionSpace = cmpRepository.kinding)

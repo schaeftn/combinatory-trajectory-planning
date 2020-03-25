@@ -11,7 +11,7 @@ import org.combinators.cls.types.Constructor
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories.celldecomposition.CellDecompRepository
 import org.combinators.ctp.repositories.geometry.{GeometricRepository, GeometryUtils}
-import org.combinators.ctp.repositories.graphsearch.GraphSearchRepository
+import org.combinators.ctp.repositories.graphsearch.{GraphSearchPyRepository, GraphSearchRepository}
 import org.combinators.ctp.repositories.mptasks.MpTaskStartGoal
 import org.combinators.ctp.repositories.scene._
 import org.combinators.ctp.repositories.taxkinding.CombinatorialMotionPlanning
@@ -26,8 +26,8 @@ object RunGraphPathInhabitationTrianglesParaSP extends App with LazyLogging with
   //val ihCall  = InhabitationCall[InteropRepository, Properties](new InteropRepository{}, Constructor("p_unityConnectionProperties_type"))
 
   lazy val repository = new ListenerRepository with SceneRepository with GeometricRepository with AkkaMqttComponents
-    with CombinatorialTopLevel with AkkaMqttTopLevel with CellDecompRepository with GeometryUtils
-    with GraphSearchRepository{}
+    with CmpTopLevel with AkkaMqttTopLevel with CellDecompRepository with GeometryUtils
+    with GraphSearchRepository with GraphSearchPyRepository{}
   lazy val cmpRepository = new CombinatorialMotionPlanning{}
   lazy val Gamma = ReflectedRepository(repository, substitutionSpace = cmpRepository.kinding)
 

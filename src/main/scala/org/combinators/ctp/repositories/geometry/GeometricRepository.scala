@@ -11,6 +11,7 @@ import org.combinators.ctp.repositories.scene.{MqttCubeData, MqttTransform}
 
 import math._
 
+//TODO remove combiantors
 trait GeometricRepository extends GeometryUtils {
   @combinator object AabbGen2D {
     def apply(): PpVertexList => PpAaBb2D = { a =>
