@@ -13,6 +13,8 @@ import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories.python_interop.PythonTemplateUtils
 import org.combinators.ctp.repositories.toplevel.ListenerTupleTest.getClass
 import org.combinators.ctp.repositories.scene.{CtpSceneConnectionValues, CtpSceneConnectionValues2d, CtpSceneConnectionValues3d, CtpSceneConnectionValuesVcd, CtpSceneListener, CtpSceneListenerVcd, CtpSceneListenerVcd2, CtpSceneUtils2D, PolySceneCellSegmentation, PolySceneCellSegmentationCentroids, PolySceneLineSegmentation, PolygonScene, Scene, SegmentationLines2d}
+//import org.combinators.ctp.repositories.toplevel.ListenerTupleTest.getClass
+import org.combinators.ctp.repositories.scene.{CtpSceneConnectionValues, CtpSceneConnectionValues2d, CtpSceneConnectionValues3d, CtpSceneConnectionValuesVcd, CtpSceneListener, CtpSceneListenerVcd, CtpSceneListenerVcd2, CtpSceneUtils2D, PolySceneCellSegmentation, PolySceneCellSegmentationCentroids, PolySceneLineSegmentation, PolygonScene, PythonTemplateUtils, Scene, SegmentationLines2d}
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import org.eclipse.paho.client.mqttv3.{IMqttMessageListener, MqttClient, MqttConnectOptions, MqttMessage => MqttPahoMessage}
 import scalax.collection.Graph

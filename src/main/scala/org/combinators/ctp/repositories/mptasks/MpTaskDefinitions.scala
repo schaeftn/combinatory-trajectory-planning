@@ -1,7 +1,7 @@
 package org.combinators.ctp.repositories.mptasks
 
 import io.circe.generic.JsonCodec
-import org.combinators.ctp.repositories.geometricrepresentation.vertexType
+//import org.combinators.ctp.repositories.geometricrepresentation.vertexType
 
 @JsonCodec
 case class MpTaskStartGoal(startPosition: List[Float], endPosition: List[Float]) {}

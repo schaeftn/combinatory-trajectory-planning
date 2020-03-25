@@ -1,27 +1,20 @@
 package org.combinators.ctp.repositories.toplevel
 
-import java.time.Duration
 import java.util.Properties
 
 import akka.Done
-import akka.stream.alpakka.mqtt.scaladsl.{MqttFlow, MqttSink, MqttSource}
+import akka.stream.alpakka.mqtt.scaladsl.{MqttSink, MqttSource}
 import akka.stream.alpakka.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
 import akka.stream.scaladsl.{Sink, Source}
 import com.typesafe.scalalogging.LazyLogging
-import io.circe.syntax._
-import io.circe.generic.auto._
 import io.circe.parser.decode
-import io.circe.{Decoder, Encoder, HCursor, Json}
 import org.combinators.cls.interpreter.combinator
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
+import org.combinators.ctp.repositories.mptasks.MpTaskStartGoal
 import org.combinators.ctp.repositories.scene._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
-import scalax.collection.Graph
-import scalax.collection.edge.WUnDiEdge
-import scalax.collection.io.json._
-import org.combinators.ctp.repositories.mptasks.{MpTaskStartGoal, MpTaskStartGoalPose}
-import org.combinators.ctp.repositories.toplevel.ListenerTupleTest.getClass
+//import org.combinators.ctp.repositories.toplevel.ListenerTupleTest.getClass
 
 import scala.concurrent.Future
 
