@@ -18,7 +18,7 @@ import scalax.collection.edge.WUnDiEdge
 
 import scala.concurrent.Future
 
-trait ListenerRepository extends LazyLogging with PythonTemplateUtils{
+trait ConnectionPropertiesRepository extends LazyLogging with PythonTemplateUtils{
 
 /*  @combinator object SceneAgentMqtt {
     def apply(c: MqttClient, v: CtpSceneConnectionValues3d): Unit = {
@@ -34,8 +34,8 @@ trait ListenerRepository extends LazyLogging with PythonTemplateUtils{
     val semanticType = p_mqttClient_type =>: p_unitySceneConnectionValues_three_d_type =>:
       p_unitySceneAgent_type :&: cmp_tetrahedralization_cd_type :&: dimensionality_three_d_t :&: p_unityResult_type
   }*/
-
-  @combinator object SceneAgentMqttVcdToCells {
+//TODO to Akka
+ @combinator object SceneAgentMqttVcdToCells {
     def apply(c: MqttClient, v: CtpSceneConnectionValues2d,
               transformToPoly: Scene => PolygonScene, run: PolygonScene => PolySceneLineSegmentation,
               translateResult: PolySceneLineSegmentation => PolySceneCellSegmentation): Unit = {
@@ -79,6 +79,7 @@ trait ListenerRepository extends LazyLogging with PythonTemplateUtils{
       p_unitySceneAgent_type :&: cmp_vertical_cell_decomposition_type :&: dimensionality_two_d_t :&: p_unityResult_type :&: cmp_cd_cells
   }
 
+/*
 
   @combinator object SceneAgentMqttVcdToGraph {
     def apply(c: MqttClient, v: CtpSceneConnectionValues2d,
@@ -171,6 +172,7 @@ trait ListenerRepository extends LazyLogging with PythonTemplateUtils{
       Constructor("foo") =>:
       p_unitySceneAgent_type :&: cmp_vertical_cell_decomposition_type :&: dimensionality_two_d_t :&: p_unityResult_type :&: cmp_cd_lines
   }
+*/
 
 
   /*
@@ -282,10 +284,4 @@ trait ListenerRepository extends LazyLogging with PythonTemplateUtils{
 
     val semanticType = p_unityConnectionProperties_type
   }
-
-// TODO combinator für utils
-  //Combinator für scene connector objects
-/*
-  @combinator object
-*/
 }

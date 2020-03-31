@@ -248,3 +248,4 @@ Session.vim
 tags
 
 # End of https://www.gitignore.io/api/sbt,vim,java,scala,emacs,ensime,eclipse,intellij+all
+/src/main/scala/org/combinators/ctp/repositories/toplevel/obs/

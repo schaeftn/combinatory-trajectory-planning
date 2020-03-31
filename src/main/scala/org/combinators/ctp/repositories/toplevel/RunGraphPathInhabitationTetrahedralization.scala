@@ -11,7 +11,7 @@ import org.combinators.cls.types.Constructor
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories.celldecomposition.CellDecompRepository
 import org.combinators.ctp.repositories.geometry.{GeometricRepository, GeometryUtils}
-import org.combinators.ctp.repositories.graphsearch.GraphSearchRepository
+import org.combinators.ctp.repositories.graphsearch.{GraphSearchPyRepository, GraphSearchRepository}
 import org.combinators.ctp.repositories.mptasks.MpTaskStartGoal
 import org.combinators.ctp.repositories.scene._
 import org.combinators.ctp.repositories.taxkinding.CombinatorialMotionPlanning
@@ -25,9 +25,8 @@ import scala.concurrent.Future
 object RunGraphPathInhabitationTetrahedralization extends App with LazyLogging with AkkaImplicits {
   //val ihCall  = InhabitationCall[InteropRepository, Properties](new InteropRepository{}, Constructor("p_unityConnectionProperties_type"))
 
-  lazy val repository = new ListenerRepository with SceneRepository with GeometricRepository with AkkaMqttComponents
-    with CmpTopLevel with AkkaMqttTopLevel with CellDecompRepository with GeometryUtils
-    with GraphSearchRepository{}
+  lazy val repository =  new SceneRepository  with CmpTopLevel with AkkaMqttTopLevel with CellDecompRepository
+    with GraphSearchRepository {}
   lazy val cmpRepository = new CombinatorialMotionPlanning{}
   lazy val Gamma = ReflectedRepository(repository, substitutionSpace = cmpRepository.kinding)
 
@@ -50,7 +49,7 @@ object RunGraphPathInhabitationTetrahedralization extends App with LazyLogging w
     .addJob[(Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Graph[List[Float], WUnDiEdge]](
       triangle_gRefine_type)
     .addJob[ (Graph[List[Float], WUnDiEdge],MpTaskStartGoal) =>
-      (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)](cmp_graph_dijkstra_type)
+      Seq[List[Float]]](cmp_graph_dijkstra_type)
     .addJob[(Scene, MpTaskStartGoal) => TriangleSegPath](cmp_sd_tetrahedra_type)
     .addJob[Unit]( p_unitySceneAgent_type :&: dimensionality_three_d_t :&: cmp_scene_graph_path)
 

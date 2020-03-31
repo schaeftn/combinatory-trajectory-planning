@@ -31,7 +31,7 @@ import org.combinators.cls.types.syntax._
 import scalax.collection.edge.WUnDiEdge
 
 
-trait AkkaMqttTopLevel extends LazyLogging with AkkaImplicits{
+trait AkkaMqttTopLevel extends LazyLogging with AkkaImplicits with AkkaMqttComponents with ConnectionPropertiesRepository {
 /* @combinator object AkkaFlowSceneSeg2D {
     def apply(p:Properties, sceneSource: Source[Scene, Future[Done]],
               composedFunction: Scene => PolySceneSegmentationGraph,

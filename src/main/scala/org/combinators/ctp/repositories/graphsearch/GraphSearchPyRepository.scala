@@ -6,7 +6,7 @@ import org.combinators.cls.types.Constructor
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.geometry.GeometryUtils
 import org.combinators.ctp.repositories.mptasks.MpTaskStartGoal
-import org.combinators.ctp.repositories.python_interop.{PythonTemplateUtils, PythonWrapper, TemplatingScheme}
+import org.combinators.ctp.repositories.python_interop.{PythonTemplateUtils, PythonWrapper, SubstitutionScheme}
 import org.combinators.ctp.repositories.scene.PathPreds
 
 import scalax.collection.Graph
@@ -17,7 +17,7 @@ import scala.language.{higherKinds, postfixOps}
 trait GraphSearchPyRepository extends GeometryUtils with PythonTemplateUtils{
   @combinator object AStarCombinator {
     def apply: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) =>
-      (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float) = {
+      Seq[List[Float]] = {
       case (g, mpTask) =>
         val nodeList = g.nodes.toIndexedSeq
         val startIndex = nodeList.map(_.toOuter).indexOf(mpTask.startPosition)
@@ -26,11 +26,11 @@ trait GraphSearchPyRepository extends GeometryUtils with PythonTemplateUtils{
 
         val str = graphToNxString(g)
 
-        val parseResult = (resultString: String) => (resultString.
+        val parseResult = (resultString: String) => resultString.
           substring(1).
           dropRight(1).
           split(", ").toList.
-          map(_.toInt).map(nodeList.map(_.toOuter)), Seq.empty, 0.0f)
+          map(_.toInt).map(nodeList.map(_.toOuter))
 
         val fileMap = Map(aStarTemplateFile -> aStarStartFile)
         val substMap = Map("$nodes$" -> str._1,
@@ -38,7 +38,7 @@ trait GraphSearchPyRepository extends GeometryUtils with PythonTemplateUtils{
           "$edges$" -> str._3,
           "$startIndex$" -> startIndex.toString,
           "$goalIndex$" -> goalIndex.toString)
-        val t = TemplatingScheme(fileMap, substMap)
+        val t = SubstitutionScheme(fileMap, substMap)
 
         val pWrapper = PythonWrapper.apply(t, aStarStartFile, parseResult)
         pWrapper.computeResult
@@ -48,8 +48,7 @@ trait GraphSearchPyRepository extends GeometryUtils with PythonTemplateUtils{
   }
 
   @combinator object GraphTsp {
-    def apply: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) =>
-    (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float) = {
+    def apply: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Seq[List[Float]] = {
       case (g, mpTask) =>
         println("TSP")
         val nodeList = g.nodes.toIndexedSeq
@@ -97,7 +96,7 @@ trait GraphSearchPyRepository extends GeometryUtils with PythonTemplateUtils{
             split(" -> ").toList.map(_.filterNot((x: Char) => x.isWhitespace).toInt)
 
           println("resultList: $resultList")
-          (resultList.map(nodeList.map(_.toOuter)), Seq.empty, 0.0f)
+          resultList.map(nodeList.map(_.toOuter))
         }
 
         val testStr = """0
@@ -106,11 +105,10 @@ trait GraphSearchPyRepository extends GeometryUtils with PythonTemplateUtils{
                         | 0 -> 7 -> 78 -> 24 -> 55 -> 54 -> 41 -> 31 -> 4 -> 15 -> 19 -> 74 -> 76 -> 36 -> 12 -> 27 -> 1 -> 71 -> 25 -> 56 -> 33 -> 26 -> 77 -> 79 -> 37 -> 44 -> 13 -> 73 -> 67 -> 45 -> 14 -> 21 -> 64 -> 65 -> 80 -> 30 -> 62 -> 17 -> 32 -> 39 -> 57 -> 61 -> 53 -> 60 -> 16 -> 29 -> 9 -> 3 -> 75 -> 10 -> 42 -> 69 -> 52 -> 40 -> 66 -> 38 -> 58 -> 6 -> 8 -> 72 -> 2 -> 28 -> 5 -> 68 -> 63 -> 49 -> 34 -> 35 -> 48 -> 46 -> 11 -> 70 -> 59 -> 20 -> 18 -> 50 -> 23 -> 51 -> 47 -> 43 -> 22 -> 0
                         |""".stripMargin
         println("testrun")
-        val asdtest=parseResult(testStr)
         print(s"asdtest")
         val fileMap = Map(tspTemplateLocation -> tspStartLocation)
         val substMap = Map("$substitute$" -> s)
-        val t = TemplatingScheme(fileMap, substMap)
+        val t = SubstitutionScheme(fileMap, substMap)
 
         val pWrapper = PythonWrapper.apply(t, tspStartLocation, parseResult)
         pWrapper.computeResult
@@ -121,7 +119,7 @@ trait GraphSearchPyRepository extends GeometryUtils with PythonTemplateUtils{
 
   @combinator object GraphMst {
     def apply: Graph[List[Float], WUnDiEdge] =>
-      (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float) = {
+      Seq[List[Float]] = {
       g =>
         println("MST")
         val nodeList = g.nodes.toIndexedSeq
@@ -152,7 +150,7 @@ trait GraphSearchPyRepository extends GeometryUtils with PythonTemplateUtils{
 
         val distanceString: String = s"""    ${listToPythonArray(nodeList.map(distanceForNode).toList)}\n"""
 
-        def parseResult = {
+        def parseResult: String => List[List[Float]] = {
           resultString: String =>
             val resultList = decode[PathPreds](resultString).right.get
             println(s"Found IntList $resultList")
@@ -196,12 +194,12 @@ trait GraphSearchPyRepository extends GeometryUtils with PythonTemplateUtils{
 
             println(s"return")
             println(s"rList: $rList")
-            (rList, Seq.empty[WUnDiEdge[List[Float]]], 0.0f)
+            rList
         }
 
         val fileMap = Map(mstTemplateFile -> mstStartLocation)
         val substMap = Map("$substitute$" -> distanceString)
-        val t = TemplatingScheme(fileMap, substMap)
+        val t = SubstitutionScheme(fileMap, substMap)
 
         val pWrapper = PythonWrapper.apply(t, mstStartLocation, parseResult)
         pWrapper.computeResult

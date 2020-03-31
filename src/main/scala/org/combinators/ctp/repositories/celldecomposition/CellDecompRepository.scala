@@ -7,7 +7,7 @@ import org.combinators.cls.interpreter._
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.geometry.{PpAaBb2D, PpVertexList}
-import org.combinators.ctp.repositories.python_interop.{PythonTemplateUtils, PythonWrapper, TemplatingScheme}
+import org.combinators.ctp.repositories.python_interop.{PythonTemplateUtils, PythonWrapper, SubstitutionScheme}
 import org.combinators.ctp.repositories.scene.{ PolySceneLineSegmentation, PolygonScene, TriangleSeg}
 import org.combinators.ctp.repositories.toplevel.AkkaImplicits
 
@@ -35,15 +35,15 @@ trait CellDecompRepository extends PythonTemplateUtils with AkkaImplicits {
           s"    scene_size = [${scene.boundaries.mkString(", ")}]"
       }
 
-      def decodeString: String => PolySceneLineSegmentation =
-        (s: String) => decode[PolySceneLineSegmentation](s).right.get
+      def decodeString: (PolygonScene, String) => PolySceneLineSegmentation =
+        (_:PolygonScene, s: String) => decode[PolySceneLineSegmentation](s).right.get
 
       val fileMap = Map(cdPolyTemplateLocation -> cdPolyStartLocation)
       val substMap = Map("$substitute$" -> pythonSceneString(polygonScene))
-      val t = TemplatingScheme(fileMap, substMap)
+      val t = SubstitutionScheme(fileMap, substMap)
 
       val pWrapper = PythonWrapper.apply(t,cdPolyStartLocation,decodeString)
-      pWrapper.computeResult
+      pWrapper.computeResultAndModifyInput(polygonScene)
     }
 
     val semanticType = gm_aaBbGenFct :&: dimensionality_two_d_t =>: (sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_lines)
@@ -65,13 +65,13 @@ trait CellDecompRepository extends PythonTemplateUtils with AkkaImplicits {
           s"    scene_size = [${scene.boundaries.mkString(", ")}]"
       }
 
-      val decodeFct = (resultString: String) => decode[TriangleSeg](resultString).right.get
+      val decodeFct = (_:PolygonScene, resultString: String) => decode[TriangleSeg](resultString).right.get
       val fileMap = Map(cdTemplateLocationTri -> cdStartLocationTri)
       val substMap = Map("$substitute$" -> pythonSceneString(polyScene))
-      val t = TemplatingScheme(fileMap, substMap)
+      val t = SubstitutionScheme(fileMap, substMap)
 
       val pWrapper = PythonWrapper.apply(t, cdStartLocationTri, decodeFct)
-      pWrapper.computeResult
+      pWrapper.computeResultAndModifyInput(polyScene)
     }
 
     val semanticType = (sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_cells :&: sd_seg_triangles_simple)
@@ -90,7 +90,7 @@ trait CellDecompRepository extends PythonTemplateUtils with AkkaImplicits {
           s"    scene_size = [${scene.boundaries.mkString(", ")}]"
       }
 
-      val decodeFct = (resultString: String) => decode[TriangleSeg](resultString) match {
+      val decodeFct = (_:PolygonScene, resultString: String) => decode[TriangleSeg](resultString) match {
         case Left(s) =>
           println(s"error while decoding")
           println(s"${resultString}")
@@ -100,10 +100,10 @@ trait CellDecompRepository extends PythonTemplateUtils with AkkaImplicits {
 
       val fileMap = Map(cdTemplateLocationTriPara -> cdStartLocationTriPara)
       val substMap = Map("$substitute$" -> pythonSceneString(polyScene))
-      val t = TemplatingScheme(fileMap, substMap)
+      val t = SubstitutionScheme(fileMap, substMap)
 
       val pWrapper = PythonWrapper.apply(t, cdStartLocationTriPara, decodeFct)
-      pWrapper.computeResult
+      pWrapper.computeResultAndModifyInput(polyScene)
     }
 
     val semanticType = (sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_cells :&: sd_seg_triangles_para)
@@ -124,15 +124,14 @@ trait CellDecompRepository extends PythonTemplateUtils with AkkaImplicits {
           s"    scene_size = [${scene.boundaries.mkString(", ")}]"
       }
 
-
-      val decodeFct = (resultString: String) => decode[TriangleSeg](resultString).right.get
+      val decodeFct = (_:PolygonScene,resultString: String) => decode[TriangleSeg](resultString).right.get
 
       val fileMap = Map(cdTemplateLocationTet -> cdStartLocationTet)
       val substMap = Map("$substitute$" -> pythonSceneString(polyScene))
-      val t = TemplatingScheme(fileMap, substMap)
+      val t = SubstitutionScheme(fileMap, substMap)
 
       val pWrapper = PythonWrapper.apply(t, cdStartLocationTet, decodeFct)
-      pWrapper.computeResult
+      pWrapper.computeResultAndModifyInput(polyScene)
     }
 
     val semanticType = (sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_cells) :&:

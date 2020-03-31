@@ -43,7 +43,7 @@ trait CmpTopLevel extends LazyLogging {
               toGraph: PolySceneCellSegmentationCentroids => Graph[List[Float], WUnDiEdge],
               addGraph: (PolySceneSegmentationGraph, MpTaskStartGoal) => PolySceneSegmentationGraph,
               toGraphPathFct: (Graph[List[Float], WUnDiEdge],MpTaskStartGoal) =>
-                (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)):
+                Seq[List[Float]]):
     ((Scene, MpTaskStartGoal) => PolySceneSegmentationGraphPath) = { (scene: Scene, mpt: MpTaskStartGoal) =>
       val centroidSegmentation = toCentroids(toCellSegmentation(run(transformToPoly(scene))))
       println("computed segmentation and centroids")
@@ -57,9 +57,8 @@ trait CmpTopLevel extends LazyLogging {
       println(s"Graph refinement: ${graphSeg.graph}")
       val path = toGraphPathFct(graphSeg.graph, mpt)
 
-      println(s"path._1 ${path._1}")
-      println(s"path._2 ${path._2}")
-      println(s"path._3 ${path._3}")
+      println(s"path._1 ${path}")
+
 
       graphSeg.withPath(path)
 /*      PolySceneSegmentationGraphPath(centroidSegmentation.vertices, centroidSegmentation.obstacles,
@@ -128,8 +127,7 @@ trait CmpTopLevel extends LazyLogging {
               toCentroids: TriangleSeg => TriangleSegCentroids,
               toGraph: TriangleSegCentroids => Graph[List[Float], WUnDiEdge],
               gGraphAdd: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Graph[List[Float], WUnDiEdge],
-              toGraphPathFct: (Graph[List[Float], WUnDiEdge],MpTaskStartGoal) =>
-                (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)):
+              toGraphPathFct: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Seq[List[Float]]):
     (Scene, MpTaskStartGoal) => TriangleSegPath = { (scene: Scene, mpt: MpTaskStartGoal) =>
       val pScene = toPolygonScene(scene)
       println("scene transformed")
@@ -143,15 +141,10 @@ trait CmpTopLevel extends LazyLogging {
 
       println(s"mpt: ${mpt}")
       println(s"addGraph: ${graph}")
-      val path: (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float) = toGraphPathFct(graph, mpt)
-
-      println(s"path._1 ${path._1}")
-      println(s"path._2 ${path._2}")
-      println(s"path._3 ${path._3}")
+      val path: Seq[List[Float]] = toGraphPathFct(graph, mpt)
+      println(s"path._1 ${path}")
 
       val v = TriangleSegPath(centroidSegmentation.vertices, centroidSegmentation.triangles, graph, path)
-
-
 
       println(s"obstacles :${pScene.obstacles}")
       println(s"vertices :${pScene.vertices}")
@@ -203,13 +196,12 @@ trait CmpTopLevel extends LazyLogging {
           }
         }
 
-
-        val coordList = s.gpath._1.map(i => new Coordinate(i(0), i(1)))
+        val coordList = s.gpath.map(i => new Coordinate(i(0), i(1)))
         println("coordList computed")
         val asdList = getList(coordList, 0, 2)
         println("asdList computed")
 
-        val p = (asdList.map(i=> List(i.x.toFloat, i.y.toFloat)), Seq.empty, 0.0f)
+        val p = asdList.map(i=> List(i.x.toFloat, i.y.toFloat))
         println("p: asdList mapped")
         s.withPath(p)
       }
@@ -217,6 +209,7 @@ trait CmpTopLevel extends LazyLogging {
       scenePathRefinement(v)
     }
 
+    //TODO CHECK
     val semanticType =
       (sd_unity_scene_type =>: sd_polygon_scene_type) :&: dimensionality_two_d_t =>:
         (sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_cells :&: cmp_scene_triangulation_parameters) =>:
@@ -235,7 +228,7 @@ trait CmpTopLevel extends LazyLogging {
               toGraph: TriangleSegCentroids => Graph[List[Float], WUnDiEdge],
               //gGraphAdd: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Graph[List[Float], WUnDiEdge],
               toGraphPathFct: (Graph[List[Float], WUnDiEdge]) =>
-                (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)):
+                Seq[List[Float]]):
     Scene => TriangleSegPath = { (scene: Scene) =>
       val pScene = toPolygonScene(scene)
       println("Scene transformed")
@@ -248,11 +241,10 @@ trait CmpTopLevel extends LazyLogging {
       println("graph built and refined")
 
       println(s"addGraph: ${graph}")
-      val path: (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float) = toGraphPathFct(graph)
+      val path: Seq[List[Float]] = toGraphPathFct(graph)
 
-      println(s"path._1 ${path._1}")
-      println(s"path._2 ${path._2}")
-      println(s"path._3 ${path._3}")
+      println(s"path._1 ${path}")
+
 
       TriangleSegPath(centroidSegmentation.vertices, centroidSegmentation.triangles, graph, path)
     }
@@ -274,8 +266,7 @@ trait CmpTopLevel extends LazyLogging {
               toCentroids: TriangleSeg => TriangleSegCentroids,
               toGraph: TriangleSegCentroids => Graph[List[Float], WUnDiEdge],
               //gGraphAdd: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Graph[List[Float], WUnDiEdge],
-              toGraphPathFct: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) =>
-                (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)):
+              toGraphPathFct: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Seq[List[Float]]):
     (Scene, MpTaskStartGoal) => TriangleSegPath = { (scene: Scene, mpTaskStartGoal: MpTaskStartGoal) =>
       val pScene = toPolygonScene(scene)
       println("Scene transformed")
@@ -288,11 +279,10 @@ trait CmpTopLevel extends LazyLogging {
       println("graph built and refined")
 
       println(s"addGraph: ${graph}")
-      val path: (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float) = toGraphPathFct(graph, mpTaskStartGoal)
+      val path: Seq[List[Float]] = toGraphPathFct(graph, mpTaskStartGoal)
 
-      println(s"path._1 ${path._1}")
-      println(s"path._2 ${path._2}")
-      println(s"path._3 ${path._3}")
+      println(s"path: ${path}")
+
 
       TriangleSegPath(centroidSegmentation.vertices, centroidSegmentation.triangles, graph, path)
     }
@@ -316,8 +306,7 @@ trait CmpTopLevel extends LazyLogging {
               toCentroids: TriangleSeg => TriangleSegCentroids,
               toGraph: TriangleSegCentroids => Graph[List[Float], WUnDiEdge],
               gGraphAdd: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Graph[List[Float], WUnDiEdge],
-              toGraphPathFct: (Graph[List[Float], WUnDiEdge],MpTaskStartGoal) =>
-                (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)):
+              toGraphPathFct: (Graph[List[Float], WUnDiEdge],MpTaskStartGoal) => Seq[List[Float]]):
     (Scene, MpTaskStartGoal) => TriangleSegPath = { (scene: Scene, mpt: MpTaskStartGoal) =>
       println(s"starting. mpTask: ${mpt.startPosition} to ${mpt.endPosition}")
       val pScene = toPolygonScene(scene)
@@ -331,11 +320,9 @@ trait CmpTopLevel extends LazyLogging {
 
       println(s"mpt: ${mpt}")
       println(s"addGraph: ${graph}")
-      val path: (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float) = toGraphPathFct(graph, mpt)
+      val path: Seq[List[Float]] = toGraphPathFct(graph, mpt)
 
-      println(s"3d path._1 ${path._1}")
-      println(s"3d path._2 ${path._2}")
-      println(s"3d path._3 ${path._3}")
+      println(s"3d path._1 ${path}")
 
       TriangleSegPath(centroidSegmentation.vertices, centroidSegmentation.triangles, graph, path)
     }

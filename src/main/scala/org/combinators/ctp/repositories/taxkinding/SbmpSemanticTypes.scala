@@ -3,7 +3,7 @@ package org.combinators.ctp.repositories.taxkinding
 import org.combinators.cls.types.{Constructor, Kinding, Variable}
 import org.combinators.ctp.repositories._
 
-trait SampleBasedMotionPlanning {
+trait SbmpSemanticTypes {
   val sbmp_planner_var = Variable("sbmp_planner_var")
   val sbmp_planner_PRM = Constructor("sbmp_planner_PRM")
   val sbmp_planner_PRMStar = Constructor("sbmp_planner_PRMStar")
@@ -20,17 +20,17 @@ trait SampleBasedMotionPlanning {
   val sbmp_gaussian_valid_state_sampler = Constructor("sbmp_gaussian_valid_state_sampler")
   val sbmp_max_clearance_valid_state_sampler = Constructor("sbmp_max_clearance_valid_state_sampler")
 
-  val sbmp_state_validator = Variable("sbmp_state_validator")
-  val sbmp_fcl_validator = Variable("sbmp_fcl_validator")
-  val sbmp_cgal_validator = Variable("sbmp_cgal_validator")
-  val sbmp_m5a_validator = Variable("sbmp_m5a_validator")
+  val sbmp_state_validator_var = Variable("sbmp_state_validator_var")
+  val sbmp_fcl_validator = Constructor("sbmp_fcl_validator")
+  val sbmp_cgal_validator = Constructor("sbmp_cgal_validator")
+  val sbmp_m5a_validator = Constructor("sbmp_m5a_validator")
 
-  val sbmp_motion_validator = Variable("sbmp_motion_validator")
-  val sbmp_fcl_motion_validator = Variable("sbmp_fcl_motion_validator")
-  val sbmp_discrete_motion_validator = Variable("sbmp_discrete_motion_validator")
-  val sbmp_m5a_motion_validator = Variable("sbmp_m5a_motion_validator") // TBD, Problemspezifisches Validieren möglich?
+  val sbmp_motion_validator_var = Variable("sbmp_motion_validator_var")
+  val sbmp_fcl_motion_validator = Constructor("sbmp_fcl_motion_validator")
+  val sbmp_discrete_motion_validator = Constructor("sbmp_discrete_motion_validator")
+  val sbmp_m5a_motion_validator = Constructor("sbmp_m5a_motion_validator") // TBD, Problemspezifisches Validieren möglich?
 
-  val sbmp_optimization_var = Variable("sbmp_motion_validator")
+  val sbmp_optimization_objective_var = Variable("sbmp_optimization_objective_var")
   val sbmp_opt_path_length = Constructor("sbmp_path_length")
   val sbmp_opt_path_clearance = Constructor("sbmp_path_clearance")
   val sbmp_opt_path_smoothness = Constructor("sbmp_path_smoothness")
@@ -38,10 +38,17 @@ trait SampleBasedMotionPlanning {
   val sbmp_m5a_integral_fct = Constructor("sbmp_m5a_integral_fct")
 
   val sbmp_cost_var = Variable("sbmp_cost_var")
-  val sbmp_cost_state_var = Variable("sbmp_cost_state_var")
-  val sbmp_cost_state_change_var = Variable("sbmp_cost_state_change_var")
-  val sbmp_cost_state_change_weighted_var = Variable("sbmp_cost_state_change_weighted_var")
-  val sbmp_cost_state_acceleration_var = Variable("sbmp_cost_state_acceleration_var")
+  val sbmp_default_cost_state = Constructor("sbmp_default_cost_state")
+  val sbmp_cost_state_change = Constructor("sbmp_cost_state_change")
+  val sbmp_cost_state_change_weighted = Constructor("sbmp_cost_state_change_weighted")
+  val sbmp_cost_state_acceleration = Constructor("sbmp_cost_state_acceleration")
+
+
+  //TODO Ompl Simplification
+  // val sbmp_simplification_splines
+
+  val sbmp_input_data = Constructor("sbmp_input_data")
+  val sbmp_planning_algorithm = Constructor("sbmp_planning_algorithm")
 
 //  val map = Map(
 //    cmp_cell_decomposition_var -> Seq(

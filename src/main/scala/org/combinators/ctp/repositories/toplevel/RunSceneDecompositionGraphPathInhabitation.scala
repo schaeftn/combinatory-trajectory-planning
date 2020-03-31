@@ -5,7 +5,7 @@ import org.combinators.cls.types.Constructor
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories.celldecomposition.CellDecompRepository
 import org.combinators.ctp.repositories.geometry.{GeometricRepository, GeometryUtils, PpVertexList}
-import org.combinators.ctp.repositories.graphsearch.GraphSearchRepository
+import org.combinators.ctp.repositories.graphsearch.{GraphSearchPyRepository, GraphSearchRepository}
 import org.combinators.ctp.repositories.scene._
 import org.combinators.ctp.repositories.taxkinding.CombinatorialMotionPlanning
 import org.combinators.ctp.repositories.{cmp_cd_cells, cmp_cell_graph, dimensionality_two_d_t, sd_poly_scene_segmentation, sd_polygon_scene_type, sd_seg_cells, sd_seg_centroid_cells, sd_seg_lines, _}
@@ -15,8 +15,9 @@ import scalax.collection.edge.WUnDiEdge
 object RunSceneDecompositionGraphPathInhabitation extends App {
   //val ihCall  = InhabitationCall[InteropRepository, Properties](new InteropRepository{}, Constructor("p_unityConnectionProperties_type"))
 
-  lazy val repository = new ListenerRepository with SceneRepository with CellDecompRepository with AkkaMqttComponents
-    with GeometryUtils with GeometricRepository with CmpTopLevel with AkkaMqttTopLevel with GraphSearchRepository {}
+  lazy val repository = new ConnectionPropertiesRepository with SceneRepository with CellDecompRepository with AkkaMqttComponents
+    with GeometryUtils with GeometricRepository with CmpTopLevel with AkkaMqttTopLevel with GraphSearchRepository
+    with GraphSearchPyRepository {}
 
   lazy val asd = new CombinatorialMotionPlanning{}
   println("vcd + graph + path")
@@ -54,12 +55,10 @@ object RunSceneDecompositionGraphPathInhabitation extends App {
     f"5b: ${ihCall5b.isEmpty}, 5: ${ihCall5.isEmpty}")
 
   ihCall5.size match {
-    case Some(_) => {
+    case Some(_) =>
       println(ihCall5.terms.index(0))
       println(ihCall5.grammar)
-
       ihCall5.interpretedTerms.index(0)
-    }
     case None => ()
   }
 }

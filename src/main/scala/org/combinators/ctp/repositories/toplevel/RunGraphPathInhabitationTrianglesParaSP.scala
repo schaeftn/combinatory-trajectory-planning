@@ -25,7 +25,7 @@ import scala.concurrent.Future
 object RunGraphPathInhabitationTrianglesParaSP extends App with LazyLogging with AkkaImplicits {
   //val ihCall  = InhabitationCall[InteropRepository, Properties](new InteropRepository{}, Constructor("p_unityConnectionProperties_type"))
 
-  lazy val repository = new ListenerRepository with SceneRepository with GeometricRepository with AkkaMqttComponents
+  lazy val repository = new ConnectionPropertiesRepository with SceneRepository with GeometricRepository with AkkaMqttComponents
     with CmpTopLevel with AkkaMqttTopLevel with CellDecompRepository with GeometryUtils
     with GraphSearchRepository with GraphSearchPyRepository{}
   lazy val cmpRepository = new CombinatorialMotionPlanning{}
@@ -50,8 +50,7 @@ object RunGraphPathInhabitationTrianglesParaSP extends App with LazyLogging with
     .addJob[(Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Graph[List[Float], WUnDiEdge]](
       triangle_gRefine_type)
     .addJob[(Graph[List[Float], WUnDiEdge], MpTaskStartGoal) =>
-      (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)](
-      cmp_graph_dijkstra_type)
+      Seq[List[Float]]](cmp_graph_dijkstra_type)
     .addJob[(Scene, MpTaskStartGoal) => TriangleSegPath](triangulation_path_prog_type:&: sd_seg_triangles_para :&: mpt_start_goal_position_type)
     .addJob[Sink[MqttMessage, Future[Done]]](p_mqttAkkaSink_type :&: cmp_scene_graph_path :&: dimensionality_two_d_t)
     .addJob[Unit](p_unitySceneAgent_type :&: cmp_scene_graph_path :&: sd_seg_triangles_para :&: mpt_start_goal_position_type :&: cmp_graph_a_star_type)

@@ -41,7 +41,7 @@ trait CtpSceneUtils2DPolyScene extends PythonTemplateUtils{
   def runCdFile(s: String): Unit = {
     val connectionSettings = new Properties()
     connectionSettings.load(getClass.getClassLoader.getResourceAsStream("pythoninterop.properties"))
-    val genfolder = connectionSettings.getProperty("org.combinators.ctp.python.genfolder")
+    val genfolder = connectionSettings.getProperty("org.combinators.ctp.python.cdGenfolder")
     val cdStartLocation = genfolder + connectionSettings.getProperty("org.combinators.ctp.python.cdStartLocationVcdPoly")
     val templateLocation =  genfolder + connectionSettings.getProperty("org.combinators.ctp.python.cdTemplateLocationVcdPoly")
 

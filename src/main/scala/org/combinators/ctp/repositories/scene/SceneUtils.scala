@@ -22,7 +22,6 @@ trait SceneUtils extends SceneDescription with PythonTemplateUtils {
     }
   }
 
-
   val cubeVertices: List[List[Float]] = List(
     List(-0.5f, -0.5f, -0.5f),
     List(0.5f, -0.5f, -0.5f),

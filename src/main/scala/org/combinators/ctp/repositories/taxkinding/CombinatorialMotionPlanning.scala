@@ -18,7 +18,6 @@ trait CombinatorialMotionPlanning {
   val cmp_graph_vcd_gaddFct_type = Constructor("cmp_graph_vcd_gaddFct_type")
   val cmp_graph_mst_type = Constructor("cmp_graph_mst_type")
 
-
   val cmp_path_opt_var = Variable("cmp_path_opt_var")
   val cmp_teb_type = Constructor("cmp_teb_type") // time elastic band planner
 

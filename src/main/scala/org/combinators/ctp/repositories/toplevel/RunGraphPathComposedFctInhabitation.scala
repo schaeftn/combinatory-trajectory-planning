@@ -10,7 +10,7 @@ import org.combinators.cls.types.Constructor
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories.celldecomposition.CellDecompRepository
 import org.combinators.ctp.repositories.geometry.{GeometricRepository, GeometryUtils, PpVertexList}
-import org.combinators.ctp.repositories.graphsearch.GraphSearchRepository
+import org.combinators.ctp.repositories.graphsearch.{GraphSearchPyRepository, GraphSearchRepository}
 import org.combinators.ctp.repositories.mptasks.MpTaskStartGoal
 import org.combinators.ctp.repositories.scene._
 import org.combinators.ctp.repositories.taxkinding.CombinatorialMotionPlanning
@@ -23,8 +23,8 @@ import scala.concurrent.Future
 object RunGraphPathComposedFctInhabitation extends App {
   //val ihCall  = InhabitationCall[InteropRepository, Properties](new InteropRepository{}, Constructor("p_unityConnectionProperties_type"))
 
-  lazy val repository = new ListenerRepository with SceneRepository with GeometricRepository with AkkaMqttComponents with CmpTopLevel
-    with AkkaMqttTopLevel with CellDecompRepository with GeometryUtils with GraphSearchRepository{}
+  lazy val repository = new SceneRepository with CmpTopLevel with AkkaMqttTopLevel with CellDecompRepository
+    with GraphSearchRepository{}
   lazy val asd = new CombinatorialMotionPlanning{}
   println("asdasd")
 
@@ -50,7 +50,7 @@ object RunGraphPathComposedFctInhabitation extends App {
   val ihCall5 = Gamma.inhabit[(PolySceneSegmentationGraph, MpTaskStartGoal) => PolySceneSegmentationGraph](cmp_graph_vcd_gaddFct_type )
   println("AddGraph Done")
   val ihCall6 = Gamma.inhabit[(Graph[List[Float], WUnDiEdge],MpTaskStartGoal) =>
-    (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)](cmp_graph_dijkstra_type)
+    Seq[List[Float]]](cmp_graph_dijkstra_type)
   println("Traversal Done")
   val ihCall7 = Gamma.inhabit[(Scene, MpTaskStartGoal) => PolySceneSegmentationGraphPath](sd_unity_scene_type :&: mpt_start_goal_position_type :&: dimensionality_two_d_t =>:
     cmp_scene_graph_path :&: dimensionality_two_d_t)

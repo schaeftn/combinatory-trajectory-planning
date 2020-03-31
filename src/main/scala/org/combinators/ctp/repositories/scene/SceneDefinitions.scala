@@ -69,7 +69,7 @@ case class PolySceneSegmentationGraph(vertices: List[List[Float]],
   def withGraph(g: Graph[List[Float], WUnDiEdge]): PolySceneSegmentationGraph =
     PolySceneSegmentationGraph(self.vertices, self.obstacles, self.boundaries, self.freeCells, self.centroids, g)
 
-  def withPath(p:(Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)): PolySceneSegmentationGraphPath =
+  def withPath(p:Seq[List[Float]]): PolySceneSegmentationGraphPath =
     PolySceneSegmentationGraphPath(self.vertices, self.obstacles, self.boundaries, self.freeCells,self.graph, p)
 }
 
@@ -79,17 +79,17 @@ case class PolySceneSegmentationGraphPath(
                                            boundaries: List[Float],
                                            freeCells: List[List[Int]],
                                            graph: Graph[List[Float], WUnDiEdge],
-                                           gpath: (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)) {
+                                           gpath: Seq[List[Float]]) {
   self =>
 
-  def withPath(p: (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)): PolySceneSegmentationGraphPath =
+  def withPath(p: Seq[List[Float]]): PolySceneSegmentationGraphPath =
     PolySceneSegmentationGraphPath(self.vertices, self.obstacles, self.boundaries, self.freeCells, self.graph, p)
 
   def withGraph(g: Graph[List[Float], WUnDiEdge]): PolySceneSegmentationGraphPath =
     PolySceneSegmentationGraphPath(self.vertices, self.obstacles, self.boundaries, self.freeCells, g, self.gpath)
 
   def empty:PolySceneSegmentationGraphPath = PolySceneSegmentationGraphPath(List.empty, List.empty, List.empty,
-    List.empty, Graph.empty, (Seq.empty, Seq.empty, 0.0f))
+    List.empty, Graph.empty, Seq.empty[List[Float]])
 }
 
 @JsonCodec
@@ -124,8 +124,8 @@ case class TriangleSegCentroids(vertices: List[List[Float]],
 case class TriangleSegPath(vertices: List[List[Float]],
                            freeCells: List[List[Int]],
                            graph: Graph[List[Float], WUnDiEdge],
-                           gpath: (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)){ self =>
-  def withPath(p: (Seq[List[Float]], Seq[WUnDiEdge[List[Float]]], Float)) =
+                           gpath: Seq[List[Float]]){ self =>
+  def withPath(p: Seq[List[Float]]) =
     TriangleSegPath(self.vertices, self.freeCells, self.graph, p )
 }
 
@@ -144,11 +144,6 @@ case class MqttObstacleSRT(primitive: Int, srt: MqttTransformSRT)
 
 @JsonCodec
 case class MqttTransformSRT(localScale: List[Float], localRot: List[Float], localTranslate: List[Float])
-
-
-
-
-
 
 @JsonCodec
 case class PathPreds(nodes: List[Int], preds: List[Int])

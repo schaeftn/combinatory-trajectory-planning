@@ -25,7 +25,7 @@ import org.locationtech.jts.geom.{Coordinate, Triangle}
 //@JsonCodec
 //case class PolygonScene(vertices: List[List[Float]], obstacles: List[List[Int]], boundaries: List[Float]) {}
 
-trait SceneRepository extends SceneDescription with CtpTaxonomy {
+trait SceneRepository extends SceneDescription with CtpTaxonomy with GeometricRepository{
   @combinator object SceneToScenePoly {
     def apply(cubeToVList: List[MqttCubeData] => List[PpVertexList]): Scene => PolygonScene = { s: Scene =>
 

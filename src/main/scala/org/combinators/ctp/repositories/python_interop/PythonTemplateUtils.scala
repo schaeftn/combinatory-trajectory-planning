@@ -22,12 +22,18 @@ trait PythonTemplateUtils {
     getProperty("org.combinators.ctp.python.samplingStartFile")
   val samplingStartFileTemplate: String = samplingFolder + pythonSettings.
     getProperty("org.combinators.ctp.python.samplingStartFileTemplate")
-  val fclSamplingTemplateFile: String = samplingFolder + pythonSettings.
-    getProperty("org.combinators.ctp.python.fclSamplingTemplateFile")
-  val fclSamplingGenFile: String = samplingFolder + pythonSettings.
-    getProperty("org.combinators.ctp.python.fclSamplingGenFile")
 
-  val cdGenFolder = pythonSettings.getProperty("org.combinators.ctp.python.genfolder")
+  val sbmpGenFolder: String = samplingFolder + pythonSettings.
+    getProperty("org.combinators.ctp.python.sbmpGenFolder")
+  val sbmpTemplateFolder: String = samplingFolder + pythonSettings.
+    getProperty("org.combinators.ctp.python.sbmpTemplateFolder")
+
+  val fclSceneDataFile: String = sbmpGenFolder + pythonSettings.
+    getProperty("org.combinators.ctp.python.fclSceneDataFile")
+  val fclSceneDataTemplate: String = sbmpTemplateFolder + pythonSettings.
+    getProperty("org.combinators.ctp.python.fclSceneDataTemplate")
+
+  val cdGenFolder = pythonSettings.getProperty("org.combinators.ctp.python.cdGenfolder")
 
   val cdPolyStartLocation = cdGenFolder + pythonSettings.
     getProperty("org.combinators.ctp.python.cdStartLocationVcdPoly")
@@ -66,6 +72,8 @@ trait PythonTemplateUtils {
     getProperty("org.combinators.ctp.python.mstStartFile")
   val mstTemplateFile = mstFolder + pythonSettings.
     getProperty("org.combinators.ctp.python.mstTemplateFile")
+
+
 
 
   def substituteStringsInFile(templateLocation: String, outFileLocation: String,
