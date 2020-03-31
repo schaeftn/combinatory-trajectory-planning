@@ -174,7 +174,7 @@ Function to apply affine 3d transformation to 3d structure for a single vertex.
 
   //Todo check if math commons is occasionally faster: MatrixUtils.create
   def mult(a: List[List[Float]], b: List[Float]): List[Float] = for (row <- a) yield
-    (row zip b).map { case ((matElem, coordinate)) => matElem * coordinate }.sum
+    (row zip b).map { case (matElem, coordinate) => matElem * coordinate }.sum
 
   def multList(a: List[List[Float]], b: List[List[Float]]): List[List[Float]] =
     for (p <- b) yield mult(a, p)

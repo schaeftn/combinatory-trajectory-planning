@@ -74,7 +74,7 @@ trait CellDecompRepository extends PythonTemplateUtils with AkkaImplicits {
       pWrapper.computeResultAndModifyInput(polyScene)
     }
 
-    val semanticType = (sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_cells :&: sd_seg_triangles_simple)
+    val semanticType = sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_cells :&: sd_seg_triangles_simple
   }
 
   @combinator object TriangulatePolyParametrized {
@@ -91,9 +91,9 @@ trait CellDecompRepository extends PythonTemplateUtils with AkkaImplicits {
       }
 
       val decodeFct = (_:PolygonScene, resultString: String) => decode[TriangleSeg](resultString) match {
-        case Left(s) =>
+        case Left(_) =>
           println(s"error while decoding")
-          println(s"${resultString}")
+          println(s"$resultString")
           TriangleSeg(List.empty[List[Float]], List.empty[List[Int]])
         case Right(s) => s
       }
@@ -106,7 +106,7 @@ trait CellDecompRepository extends PythonTemplateUtils with AkkaImplicits {
       pWrapper.computeResultAndModifyInput(polyScene)
     }
 
-    val semanticType = (sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_cells :&: sd_seg_triangles_para)
+    val semanticType = sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_cells :&: sd_seg_triangles_para
   }
 
   @combinator object TetPoly {
@@ -141,7 +141,7 @@ trait CellDecompRepository extends PythonTemplateUtils with AkkaImplicits {
   def boundVerts(b: List[Float]): List[List[Float]] =
     {
       println(s"bounds: b")
-      val (xBound, yBound) = ((b(0)/2),(b(1)/2))
+      val (xBound, yBound) = (b.head/2, b(1)/2)
       List(
         List(-xBound, yBound),
         List(xBound, yBound),

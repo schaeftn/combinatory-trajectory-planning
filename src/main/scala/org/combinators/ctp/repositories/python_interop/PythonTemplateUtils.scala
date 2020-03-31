@@ -78,7 +78,7 @@ trait PythonTemplateUtils {
 
   def substituteStringsInFile(templateLocation: String, outFileLocation: String,
                               substituteMap: Map[String, String]): Unit = {
-    println(s"Attempting to open file: ${templateLocation}")
+    println(s"Attempting to open file: $templateLocation")
     val templateSource = Source.fromFile(templateLocation)
     val fileContents = templateSource.getLines.mkString("\n")
     println(s"Got file contents $fileContents")
@@ -86,7 +86,7 @@ trait PythonTemplateUtils {
 
     println("template read")
     val fc = substituteMap.foldLeft(fileContents) { case (fc, (s1, s2)) => fc.replace(s1, s2) }
-    println(s"new file contents: ${fc}")
+    println(s"new file contents: $fc")
 
     println("Replaced file contents: \n" + fc)
     val file = new File(outFileLocation)

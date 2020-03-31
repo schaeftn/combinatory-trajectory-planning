@@ -17,8 +17,8 @@ trait SceneUtils extends SceneDescription with PythonTemplateUtils {
 
   def getFclObstacleString(globalScale: List[Float], o: MqttObstacleSRT): String = {
     o.primitive match {
-      case 0 => s"fcl.Box(${o.srt.localScale(0)*globalScale(0)},${o.srt.localScale(1)*globalScale(1)},${o.srt.localScale(2)*globalScale(2)})"
-      case 1 => s"fcl.Sphere(${o.srt.localScale(0)})"
+      case 0 => s"fcl.Box(${o.srt.localScale.head*globalScale.head},${o.srt.localScale(1)*globalScale(1)},${o.srt.localScale(2)*globalScale(2)})"
+      case 1 => s"fcl.Sphere(${o.srt.localScale.head})"
     }
   }
 
@@ -51,7 +51,7 @@ trait SceneUtils extends SceneDescription with PythonTemplateUtils {
       listToPythonArray(i.map(scene.vertices).
         map(coords => f"""Point_2(${coords.mkString(",")})"""))
     }
-    val obstacleString = obstacleVertexStrings.zip(obstacleVertexStrings.indices.map(index => f"obstacle$index")).map { case (i, oIdentifier) => f"$oIdentifier=i" }
+    val obstacleString = obstacleVertexStrings.zip(obstacleVertexStrings.indices.map(index => f"obstacle$index")).map { case (i, oIdentifier) => f"$oIdentifier=$i" }
     val polygonList: List[String] = obstacleVertexStrings.indices.map(i => f"Polygon_2(obstacle$i)").toList
     val obstaclesList = f"obstacles = ${listToPythonArray(polygonList)}"
     obstacleString.mkString("\r\n") + "\r\n" + obstaclesList
@@ -82,16 +82,16 @@ trait SceneUtils extends SceneDescription with PythonTemplateUtils {
     t.primitive match {
       case 0 => //Cube
         val cubeV = cubeVertices.map(_ zip t.srt.localScale).map {
-          _.map { case ((a, b)) => a * b }
+          _.map { case (a, b) => a * b }
         }
-        val q = QuaternionRotation.of(t.srt.localRot(0), t.srt.localRot(1), t.srt.localRot(2), t.srt.localRot(3)) // w, x, y ,z
-        val afterQ = cubeV.map(_.map(_.toDouble)).map(a => Vector3D.of(a(0), a(1), a(2))).map(v => q.apply(v))
-        val translateVector: Vector3D = Vector3D.of(t.srt.localTranslate(0), t.srt.localTranslate(1), t.srt.localTranslate(2))
+        val q = QuaternionRotation.of(t.srt.localRot.head, t.srt.localRot(1), t.srt.localRot(2), t.srt.localRot(3)) // w, x, y ,z
+        val afterQ = cubeV.map(_.map(_.toDouble)).map(a => Vector3D.of(a.head, a(1), a(2))).map(v => q.apply(v))
+        val translateVector: Vector3D = Vector3D.of(t.srt.localTranslate.head, t.srt.localTranslate(1), t.srt.localTranslate(2))
         val vertexVectors = afterQ.map { a =>
-          Vector3D.of(a.getX() + translateVector.getX(),
-            a.getY() + translateVector.getY(), a.getZ() + translateVector.getZ())
+          Vector3D.of(a.getX + translateVector.getX,
+            a.getY + translateVector.getY, a.getZ + translateVector.getZ)
         }
-        val vertexString = s"""np.array([${vertexVectors.map(a => s"[${a.getX()}, ${a.getY()}, ${a.getZ()}]").mkString(",\r\n")}])"""
+        val vertexString = s"""np.array([${vertexVectors.map(a => s"[${a.getX}, ${a.getY}, ${a.getZ}]").mkString(",\r\n")}])"""
         val idListStrings = cubeTriangles.map(idList => s"""[${idList.mkString(", ")}]""")
         val triString = listToNpArray(idListStrings)
         s"""($vertexString,
@@ -109,7 +109,7 @@ trait SceneUtils extends SceneDescription with PythonTemplateUtils {
 
   def sceneSRTtoFclModelString(scene: SceneSRT): String = {
     val idList = scene.obstacles.indices zip scene.obstacles
-    val instantiationStr = idList.map { case (a, b) => s"${indentStr}(verts$a, tris$a)=${getBvModelString(a, scene.boundaries, b)}" }.mkString("\r\n")
+    val instantiationStr = idList.map { case (a, b) => s"$indentStr(verts$a, tris$a)=${getBvModelString(a, scene.boundaries, b)}" }.mkString("\r\n")
     val vLength = scene.obstacles.map(o => vertexTriCount(o.primitive)).map(_._1).sum
     val triLength = scene.obstacles.map(o => vertexTriCount(o.primitive)).map(_._2).sum
 
@@ -127,8 +127,8 @@ ${scene.obstacles.indices.map(id => s"    mesh.addSubModel(verts$id, tris$id)").
     val idList = scene.obstacles.indices zip scene.obstacles
     val instantiationStr = idList.map { case (a, b) => s"${indentStr}obstacle$a=${getFclObstacleString(scene.boundaries, b)}" }.mkString("\r\n")
     val transformStr = idList.map { case (a, b) => getFclSRTString(a, scene.boundaries, b) }.mkString("\r\n")
-    val colObjStr = idList.map { case (a, b) => getCollisionObjString(a) }.mkString("\r\n")
-    val coArray = s"${indentStr}objs = ${listToPythonArray(idList.map { case (a, b) => s"colObj$a" }.toList)}"
+    val colObjStr = idList.map { case (a, _) => getCollisionObjString(a) }.mkString("\r\n")
+    val coArray = s"${indentStr}objs = ${listToPythonArray(idList.map { case (a, _) => s"colObj$a" }.toList)}"
     List(instantiationStr, transformStr, colObjStr, coArray).mkString("\r\n")
   }
 

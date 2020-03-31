@@ -40,12 +40,11 @@ object RunSceneDecompositionCellsInhabitation extends App {
   println(f"1: ${ihCall.isEmpty}, 2: ${ihCall2.isEmpty}, 2a: ${ihCall2a.isEmpty}, 3: ${ihCall3.isEmpty}, 4: ${ihCall4.isEmpty}, 5a: ${ihCall5a.isEmpty}, 5: ${ihCall5.isEmpty}")
 
   ihCall5.size match {
-    case Some(_) => {
+    case Some(_) =>
       println(ihCall5.terms.index(0))
       println(ihCall5.grammar)
 
       ihCall5.interpretedTerms.index(0)
-    }
     case None => ()
   }
 }

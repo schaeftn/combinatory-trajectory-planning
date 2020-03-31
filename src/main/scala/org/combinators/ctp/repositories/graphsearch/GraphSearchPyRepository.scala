@@ -53,7 +53,7 @@ trait GraphSearchPyRepository extends GeometryUtils with PythonTemplateUtils{
         println("TSP")
         val nodeList = g.nodes.toIndexedSeq
         println("a11111234432")
-        val distanceInit: List[List[Float]] = List.fill(nodeList.size)(List.fill(nodeList.size)(-1.0f))
+        //val distanceInit: List[List[Float]] = List.fill(nodeList.size)(List.fill(nodeList.size)(-1.0f))
 
         def distanceForNode(n: g.NodeT): String = {
           val filteredG = g filter g.having(edge = e => e.hasSource(n) || e.hasTarget(n))
@@ -82,7 +82,7 @@ trait GraphSearchPyRepository extends GeometryUtils with PythonTemplateUtils{
         val vehiclesString: String = s"""    data['num_vehicles'] = 1\n"""
         val startNodeString: String = s"""    data['depot'] = 0\n"""
         println("asd1")
-        val s = (locationString + distanceString + vehiclesString + startNodeString)
+        val s = locationString + distanceString + vehiclesString + startNodeString
 
         val parseResult = (resultString: String) => {
           println("attempting to parse")

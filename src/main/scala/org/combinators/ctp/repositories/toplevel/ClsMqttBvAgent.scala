@@ -27,8 +27,8 @@ object ClsMqttBvAgent extends App  {
   println(s"Receiving tasks from topic: $bsRequestTopic")
   println(s"Receiving tasks from topic: $bbRequestTopic")
 
-  CtpBbListener(client).subscribe
-  CtpBsListener(client).subscribe
+  CtpBbListener(client).subscribe()
+  CtpBsListener(client).subscribe()
 
   println("Press <Enter> to exit.")
   scala.io.StdIn.readLine()

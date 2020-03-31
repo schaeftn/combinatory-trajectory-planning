@@ -20,7 +20,7 @@ trait CmpTopLevel extends LazyLogging {
               toCellSegmentation: PolySceneLineSegmentation => PolySceneCellSegmentation,
               toCentroids: PolySceneCellSegmentation => PolySceneCellSegmentationCentroids,
               toGraph: PolySceneCellSegmentationCentroids => Graph[List[Float], WUnDiEdge]):
-    (Scene => PolySceneSegmentationGraph) = { scene: Scene =>
+    Scene => PolySceneSegmentationGraph = { scene: Scene =>
       val centroidSegmentation = toCentroids(toCellSegmentation(run(transformToPoly(scene))))
       val graph = toGraph(centroidSegmentation)
       PolySceneSegmentationGraph(centroidSegmentation.vertices, centroidSegmentation.obstacles,
@@ -44,7 +44,7 @@ trait CmpTopLevel extends LazyLogging {
               addGraph: (PolySceneSegmentationGraph, MpTaskStartGoal) => PolySceneSegmentationGraph,
               toGraphPathFct: (Graph[List[Float], WUnDiEdge],MpTaskStartGoal) =>
                 Seq[List[Float]]):
-    ((Scene, MpTaskStartGoal) => PolySceneSegmentationGraphPath) = { (scene: Scene, mpt: MpTaskStartGoal) =>
+    (Scene, MpTaskStartGoal) => PolySceneSegmentationGraphPath = { (scene: Scene, mpt: MpTaskStartGoal) =>
       val centroidSegmentation = toCentroids(toCellSegmentation(run(transformToPoly(scene))))
       println("computed segmentation and centroids")
 
@@ -52,12 +52,12 @@ trait CmpTopLevel extends LazyLogging {
       println("graph built")
       val segGraph = PolySceneSegmentationGraph(centroidSegmentation.vertices, centroidSegmentation.obstacles,
         centroidSegmentation.boundaries, centroidSegmentation.freeCells, centroidSegmentation.centroids, graph)
-      println(s"mpt: ${mpt}")
+      println(s"mpt: $mpt")
       val graphSeg = addGraph(segGraph, mpt)
       println(s"Graph refinement: ${graphSeg.graph}")
       val path = toGraphPathFct(graphSeg.graph, mpt)
 
-      println(s"path._1 ${path}")
+      println(s"path._1 $path")
 
 
       graphSeg.withPath(path)
@@ -139,10 +139,10 @@ trait CmpTopLevel extends LazyLogging {
    //   val graph = toGraph(centroidSegmentation)
       println("graph built and refined")
 
-      println(s"mpt: ${mpt}")
-      println(s"addGraph: ${graph}")
+      println(s"mpt: $mpt")
+      println(s"addGraph: $graph")
       val path: Seq[List[Float]] = toGraphPathFct(graph, mpt)
-      println(s"path._1 ${path}")
+      println(s"path._1 $path")
 
       val v = TriangleSegPath(centroidSegmentation.vertices, centroidSegmentation.triangles, graph, path)
 
@@ -155,7 +155,7 @@ trait CmpTopLevel extends LazyLogging {
         val vertexLists = pScene.obstacles.map(i => i.map(pScene.vertices))
         val hulls = vertexLists.map { actualCoords =>
           // generate convex hull for current batch of points
-          val coords = actualCoords.map(c => new Coordinate(c(0), c(1)))
+          val coords = actualCoords.map(c => new Coordinate(c.head, c(1)))
           val convexHull = new ConvexHull(coords.toArray, new GeometryFactory)
           val hullGeometry = convexHull.getConvexHull
           hullGeometry
@@ -196,7 +196,7 @@ trait CmpTopLevel extends LazyLogging {
           }
         }
 
-        val coordList = s.gpath.map(i => new Coordinate(i(0), i(1)))
+        val coordList = s.gpath.map(i => new Coordinate(i.head, i(1)))
         println("coordList computed")
         val asdList = getList(coordList, 0, 2)
         println("asdList computed")
@@ -227,9 +227,9 @@ trait CmpTopLevel extends LazyLogging {
               toCentroids: TriangleSeg => TriangleSegCentroids,
               toGraph: TriangleSegCentroids => Graph[List[Float], WUnDiEdge],
               //gGraphAdd: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Graph[List[Float], WUnDiEdge],
-              toGraphPathFct: (Graph[List[Float], WUnDiEdge]) =>
+              toGraphPathFct: Graph[List[Float], WUnDiEdge] =>
                 Seq[List[Float]]):
-    Scene => TriangleSegPath = { (scene: Scene) =>
+    Scene => TriangleSegPath = { scene: Scene =>
       val pScene = toPolygonScene(scene)
       println("Scene transformed")
 
@@ -240,10 +240,10 @@ trait CmpTopLevel extends LazyLogging {
       val graph = toGraph(centroidSegmentation)
       println("graph built and refined")
 
-      println(s"addGraph: ${graph}")
+      println(s"addGraph: $graph")
       val path: Seq[List[Float]] = toGraphPathFct(graph)
 
-      println(s"path._1 ${path}")
+      println(s"path._1 $path")
 
 
       TriangleSegPath(centroidSegmentation.vertices, centroidSegmentation.triangles, graph, path)
@@ -278,10 +278,10 @@ trait CmpTopLevel extends LazyLogging {
       val graph = toGraph(centroidSegmentation)
       println("graph built and refined")
 
-      println(s"addGraph: ${graph}")
+      println(s"addGraph: $graph")
       val path: Seq[List[Float]] = toGraphPathFct(graph, mpTaskStartGoal)
 
-      println(s"path: ${path}")
+      println(s"path: $path")
 
 
       TriangleSegPath(centroidSegmentation.vertices, centroidSegmentation.triangles, graph, path)
@@ -318,11 +318,11 @@ trait CmpTopLevel extends LazyLogging {
       val graph = gGraphAdd(toGraph(centroidSegmentation), mpt)
       println("graph built and refined")
 
-      println(s"mpt: ${mpt}")
-      println(s"addGraph: ${graph}")
+      println(s"mpt: $mpt")
+      println(s"addGraph: $graph")
       val path: Seq[List[Float]] = toGraphPathFct(graph, mpt)
 
-      println(s"3d path._1 ${path}")
+      println(s"3d path._1 $path")
 
       TriangleSegPath(centroidSegmentation.vertices, centroidSegmentation.triangles, graph, path)
     }

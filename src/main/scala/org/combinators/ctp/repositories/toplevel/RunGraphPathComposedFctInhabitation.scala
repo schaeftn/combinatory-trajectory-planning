@@ -60,12 +60,11 @@ object RunGraphPathComposedFctInhabitation extends App {
     f"4: ${ihCall4.isEmpty}, 5: ${ihCall5.isEmpty}, 6: ${ihCall6.isEmpty}, 7: ${ihCall7.isEmpty}")
 
   ihCall7.size match {
-    case Some(_) => {
+    case Some(_) =>
       println(ihCall7.terms.index(0))
       println(ihCall7.grammar)
 
       ihCall7.interpretedTerms.index(0)
-    }
     case None => ()
   }
 }

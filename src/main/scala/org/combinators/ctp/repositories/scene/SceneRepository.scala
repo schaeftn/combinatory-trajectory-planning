@@ -68,7 +68,7 @@ trait SceneRepository extends SceneDescription with CtpTaxonomy with GeometricRe
   @combinator object SegmentationLinesToCells {
     //Adds lines if obstacle has a vertex on bottom or top boundary
     def addUtilityLines(ls: PolySceneLineSegmentation): PolySceneLineSegmentation = {
-      val i_lines = (ls.topVertices.union(ls.bottomVertices)).intersect(ls.obstacles.flatten).map(i => List(i, i))
+      val i_lines = ls.topVertices.union(ls.bottomVertices).intersect(ls.obstacles.flatten).map(i => List(i, i))
       val newLines = (ls.lines ++ i_lines).map { i => i.zip(i.map(a => indexToVertex(a, ls))) }.map(o => if (o.head._2(1) > o(1)._2(1)) o.map(_._1) else o.map(_._1).reverse)
       PolySceneLineSegmentation(ls.vertices, ls.obstacles, ls.boundaries, ls.topVertices, ls.bottomVertices, newLines)
     }
@@ -119,7 +119,7 @@ trait SceneRepository extends SceneDescription with CtpTaxonomy with GeometricRe
         val down_comb = List.empty[Int] +: (for (i <- downExt.indices) yield downExt.take(i + 1)).toList
 
         (for (i <- up_comb;
-              j <- down_comb) yield (i ++ cl ++ j)).distinct
+              j <- down_comb) yield i ++ cl ++ j).distinct
       }
 
       def findXLines(x: Float): List[List[Int]] = {
@@ -161,7 +161,7 @@ trait SceneRepository extends SceneDescription with CtpTaxonomy with GeometricRe
     def apply: PolySceneLineSegmentation =>  PolySceneCellSegmentation = { ls =>
       val ls_var = addBoundaryLines(ls)
       val cells = for (i <- ls_var.lines.indices;
-                       cellLines = findRightCell(i, ls_var, ls_var.vertices(ls_var.lines(i).head).head);
+                       cellLines = findRightCell(i, ls_var, ls_var.vertices(ls_var.lines(i).head).head)
                        if cellLines._2.nonEmpty) yield {
         cellLines._1 ++ cellLines._2
       }
@@ -180,7 +180,7 @@ trait SceneRepository extends SceneDescription with CtpTaxonomy with GeometricRe
       val xIntervalList: List[Float] = xvals.map(i => (i.min + i.max)/2)
       val yInvervalList: List[Float] = yvals.map(i => (i.min + i.max)/2)
 
-      val centroids = xIntervalList.zip(yInvervalList).map { case ((a, b)) => List(a, b) }
+      val centroids = xIntervalList.zip(yInvervalList).map { case (a, b) => List(a, b) }
 
       PolySceneCellSegmentationCentroids(pscs.vertices, pscs.obstacles, pscs.boundaries, pscs.freeCells, centroids)
     }
@@ -197,9 +197,9 @@ trait SceneRepository extends SceneDescription with CtpTaxonomy with GeometricRe
       val vertices = pscs.triangles.map(i => i.map(vid => pscs.vertices(vid)))
 
       val coordObjects = vertices.map(a => Triangle.centroid(
-        new Coordinate(a(0)(0), a(0)(1)),
-        new Coordinate(a(1)(0), a(1)(1)),
-        new Coordinate(a(2)(0), a(2)(1))))
+        new Coordinate(a.head.head, a.head(1)),
+        new Coordinate(a(1).head, a(1)(1)),
+        new Coordinate(a(2).head, a(2)(1))))
 
       val centroids = coordObjects.map(coord => List(coord.x.toFloat, coord.y.toFloat))
       println("c4")
@@ -222,9 +222,9 @@ trait SceneRepository extends SceneDescription with CtpTaxonomy with GeometricRe
       val vertices = pscs.triangles.map(i => i.map(vid => pscs.vertices(vid)))
 
       val coordObjects = vertices.map(a => Triangle.inCentre(
-        new Coordinate(a(0)(0), a(0)(1)),
-        new Coordinate(a(1)(0), a(1)(1)),
-        new Coordinate(a(2)(0), a(2)(1))))
+        new Coordinate(a.head.head, a.head(1)),
+        new Coordinate(a(1).head, a(1)(1)),
+        new Coordinate(a(2).head, a(2)(1))))
 
       val centroids = coordObjects.map(coord => List(coord.x.toFloat, coord.y.toFloat))
       println("c4")
@@ -276,7 +276,7 @@ trait SceneRepository extends SceneDescription with CtpTaxonomy with GeometricRe
       new Coordinate(0.0f, 0.0f)
     }
 
-    val t = new Triangle(coords(0), coords(1), coords(2))
+    val t = new Triangle(coords.head, coords(1), coords(2))
     List(t.centroid().x, t.centroid().y).map(_.toFloat)
   }
 
@@ -289,7 +289,7 @@ trait SceneRepository extends SceneDescription with CtpTaxonomy with GeometricRe
       new Coordinate(0.0f, 0.0f,0.0f)
     }
 
-    val t = new Triangle(coords(0), coords(1), coords(2))
+    val t = new Triangle(coords.head, coords(1), coords(2))
     List(t.centroid().x, t.centroid().y).map(_.toFloat)
   }
 

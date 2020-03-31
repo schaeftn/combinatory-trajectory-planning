@@ -72,7 +72,7 @@ trait AkkaMqttTopLevel extends LazyLogging with AkkaImplicits with AkkaMqttCompo
         sceneSource ~> zip.in0
         taskSource ~> zip.in1
         zip.out.map {
-          case ((a, b)) =>
+          case (a, b) =>
             logger.info("running composedfct")
             val result = composedFunction(a, b)
             logger.info("post composedfct")
@@ -115,7 +115,7 @@ trait AkkaMqttTopLevel extends LazyLogging with AkkaImplicits with AkkaMqttCompo
         sceneSource ~> zip.in0
         taskSource ~> zip.in1
         zip.out.map {
-          case ((a, b)) =>
+          case (a, b) =>
             logger.info("running composedfct")
             val result = composedFunction(a, b)
             logger.info("post composedfct")
@@ -155,7 +155,7 @@ trait AkkaMqttTopLevel extends LazyLogging with AkkaImplicits with AkkaMqttCompo
         sceneSource ~> zip.in0
         taskSource ~> zip.in1
         zip.out.map {
-          case ((a, b)) =>
+          case (a, b) =>
             logger.info("running composedfct")
             val result = composedFunction(a, b)
             logger.info("post composedfct")
@@ -182,7 +182,7 @@ trait AkkaMqttTopLevel extends LazyLogging with AkkaImplicits with AkkaMqttCompo
   @combinator object AkkaGraphSceneSegTri2DMst {
     def apply(p:Properties,
               sceneSource: Source[Scene, Future[Done]],
-              composedFunction: (Scene) => TriangleSegPath,
+              composedFunction: Scene => TriangleSegPath,
               sceneSink: Sink[MqttMessage, Future[Done]]): Unit = {
       def toMqttMsg(s: TriangleSegPath) = {
         val topic = p.getProperty("org.combinators.ctp.ctpSceneGraphPathFromScala2d")
@@ -221,7 +221,7 @@ trait AkkaMqttTopLevel extends LazyLogging with AkkaImplicits with AkkaMqttCompo
         sceneSource ~> zip.in0
         taskSource ~> zip.in1
         zip.out.map {
-          case ((a, b)) =>
+          case (a, b) =>
             logger.info("running composedfct")
             val result = composedFunction(a, b)
             logger.info("post composedfct")
@@ -265,7 +265,7 @@ trait AkkaMqttTopLevel extends LazyLogging with AkkaImplicits with AkkaMqttCompo
         sceneSource ~> zip.in0
         taskSource ~> zip.in1
         zip.out.map {
-          case ((a, b)) =>
+          case (a, b) =>
             logger.info("running composedfct")
             val result = composedFunction(a, b)
             logger.info("post composedfct")

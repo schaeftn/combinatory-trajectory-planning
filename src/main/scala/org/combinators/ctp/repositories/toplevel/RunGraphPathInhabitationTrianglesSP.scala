@@ -37,7 +37,7 @@ object RunGraphPathInhabitationTrianglesSP extends App with LazyLogging with Akk
 
   println(s"# of combinators: ${Gamma.combinators.size}")
   val watch:Stopwatch = new Stopwatch
-  watch.start();
+  watch.start()
 
   val ihBatch = Gamma.InhabitationBatchJob[Properties](p_unityConnectionProperties_type)
     .addJob[Source[Scene, Future[Done]]](p_mqttAkkaSource_type :&: sd_unity_scene_type :&: dimensionality_two_d_t)

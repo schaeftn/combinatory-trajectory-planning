@@ -44,7 +44,7 @@ trait ConnectionPropertiesRepository extends LazyLogging with PythonTemplateUtil
         c.publish(v.ctpScenePublishTopic, resultToByteArray(resultData), 2, true)
       }
 
-      def onMessage: IMqttMessageListener = (topic: String, message: MqttPahoMessage) => {
+      def onMessage: IMqttMessageListener = (_: String, message: MqttPahoMessage) => {
         logger.info("Received Payload: " + new String(message.getPayload))
         val decoded = decode[scene_type_2d_n](new String(message.getPayload))
         logger.info("decoded payload")

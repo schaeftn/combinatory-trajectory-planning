@@ -34,7 +34,7 @@ object GeoTests extends App{
     val te:List[Double] = List(arr(0), arr(5), arr(10))
     val test: List[Double]  = te.map(1.0/_)
 
-    val shouldBeOne: AffineTransformMatrix3D = tMatrix.scale(test(0), test(1), test(2))
+    val shouldBeOne: AffineTransformMatrix3D = tMatrix.scale(test.head, test(1), test(2))
    // print(s"shouldBeOne: ${shouldBeOne}")
     (shouldBeOne, te.map(_.toFloat))
   }
@@ -125,7 +125,7 @@ class AffineTransformMatrix3DAccessor(val affineTransform: AffineTransformMatrix
       z = 0.25 * s
       w = (m10 - m01) * sinv
     }
-    return QuaternionRotation.of(w, x, y, z)
+    QuaternionRotation.of(w, x, y, z)
   }
 
   //input matrix: output: rotation and quarternion

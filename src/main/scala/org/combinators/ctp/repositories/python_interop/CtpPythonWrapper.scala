@@ -55,7 +55,7 @@ abstract class PythonWrapper[B](t: SubstitutionScheme, startFile: String) extend
   }
 }
 
-abstract case class SimplePythonWrapper[B]( val t: SubstitutionScheme, val startFile: String)
+abstract case class SimplePythonWrapper[B](t: SubstitutionScheme, startFile: String)
   extends PythonWrapper[B](t, startFile) {
   def parseResult: String => B
 
@@ -63,7 +63,7 @@ abstract case class SimplePythonWrapper[B]( val t: SubstitutionScheme, val start
     generateFiles()
     val resultString: String = executePythonFile()
     println(s"ResultString (computeResult): ")
-    println(s"${resultString}")
+    println(s"$resultString")
     parseResult(resultString)
   }
 }

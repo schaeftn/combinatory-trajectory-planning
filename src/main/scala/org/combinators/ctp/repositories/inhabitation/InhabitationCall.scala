@@ -6,10 +6,10 @@ import org.combinators.cls.types._
 class InhabitationCall[R, S](repository: R, kinding: Kinding, taxonomy: Taxonomy, t: Type) {
   lazy val rr = ReflectedRepository[R](repository, taxonomy, kinding)
 
-  def getIhResult[S]: InhabitationResult[S] = rr.inhabit[S](t)
+  def getIhResult: InhabitationResult[S] = rr.inhabit[S](t)
 
   def getResult(i: Int = 0): Option[S] = {
-    val result = getIhResult[S]
+    val result = getIhResult
     if (result.isEmpty) None else Some(result.interpretedTerms.index(i))
   }
 }

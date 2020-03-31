@@ -87,7 +87,7 @@ trait SbmpTopLevelRepository extends SceneUtils with PythonTemplateUtils with Sb
 
 
   trait EmptyTemplateScheme[A] {
-    def apply: (A => SubstitutionScheme) = (_: A) => SubstitutionScheme(
+    def apply: A => SubstitutionScheme = (_: A) => SubstitutionScheme(
       Map.empty[String, String], //no files
       Map.empty[String, String], //no substitutions
     )

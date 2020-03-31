@@ -24,7 +24,7 @@ object ClsMqttSceneAgent extends App  {
 
   println(s"Receiving tasks from topic: $ctpSceneRequest")
 
-  CtpSceneListener(client, CtpSceneConnectionValues(ctpSceneRequest, ctpSceneResponse)).subscribe
+  CtpSceneListener(client, CtpSceneConnectionValues(ctpSceneRequest, ctpSceneResponse)).subscribe()
 
   println("Press <Enter> to exit.")
   scala.io.StdIn.readLine()

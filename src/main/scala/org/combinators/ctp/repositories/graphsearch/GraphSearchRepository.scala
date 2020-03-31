@@ -46,7 +46,7 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils with 
 
   @combinator object DijkstraSpCombinator {
     def apply: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Seq[List[Float]] = {
-      case ((g, mpTask)) =>
+      case (g, mpTask) =>
         println(s"graph: $g")
         println(s"Task: $mpTask")
         val startNode = g.get(mpTask.startPosition)
@@ -83,13 +83,13 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils with 
     //TODO Prüfen, ob als Combinator*/
 
   def findFreeCell: (PolySceneSegmentationGraph, MpTaskStartGoal) => (Int, Int) = {
-    case ((sSeg, mpTask)) => val geoFactory = new GeometryFactory()
+    case (sSeg, mpTask) => val geoFactory = new GeometryFactory()
       val startPoint: Point = geoFactory.createPoint(new Coordinate(mpTask.startPosition.head, mpTask.startPosition(1)))
       val endPoint: Point = geoFactory.createPoint(new Coordinate(mpTask.endPosition.head, mpTask.endPosition(1)))
 
       val polygons: List[Geometry] = sSeg.freeCells.
         map(i => i.map(pid => sSeg.vertices(pid)).
-          map(p => new Coordinate(p(0), p(1)))).
+          map(p => new Coordinate(p.head, p(1)))).
         map { cl =>
           val ch = new ConvexHull(cl.toArray, geoFactory)
           ch.getConvexHull
@@ -140,7 +140,7 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils with 
   //combinator adds centroid connection for start endpoint
   */
   def refineGraphStartGoal1: (PolySceneSegmentationGraph, MpTaskStartGoal) => PolySceneSegmentationGraph = {
-    case ((sSeg, mpTask)) =>
+    case (sSeg, mpTask) =>
       val (startIndex, endIndex) = findFreeCell(sSeg,mpTask)
       val startCentroid = sSeg.centroids(startIndex)
       val endCentroid = sSeg.centroids(endIndex)
@@ -158,7 +158,7 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils with 
 
   //combinator adds connectionpoints for start endpoint
   def refineGraphConnectionStartEnd: (PolySceneSegmentationGraph, MpTaskStartGoal) => PolySceneSegmentationGraph = {
-    case ((sSeg, mpTask)) => {
+    case (sSeg, mpTask) =>
       val g = sSeg.graph
       val startCentroidNode = g.find(mpTask.startPosition).get
       val endCentroidNode = g.find(mpTask.endPosition).get
@@ -170,12 +170,11 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils with 
         otherEndNodes.nodes.map(_.toOuter).map { i => WUnDiEdge(i, mpTask.endPosition)(distance(i, mpTask.endPosition)) }
 
       sSeg.withGraph(Graph.from(sSeg.graph.nodes, sSeg.graph.edges.toOuter ++ newEdgesConnxPoints))
-    }
   }
 
   //combinator adds all freeCell points for start endpoint
   def refineGraphConnectionFreeCellStartEnd: (PolySceneSegmentationGraph, MpTaskStartGoal) => PolySceneSegmentationGraph = {
-    case (sSeg, mpTask) => {
+    case (sSeg, mpTask) =>
       val g = sSeg.graph
       val (startNodeCellIndex, endNodeCellIndex) = findFreeCell(sSeg, mpTask)
       val startCell = sSeg.freeCells(startNodeCellIndex)
@@ -189,13 +188,12 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils with 
         endCellValues.map{ i => WUnDiEdge(i, mpTask.endPosition)(distance(i, mpTask.endPosition)) }
 
       sSeg.withGraph(Graph.from(newNodes, sSeg.graph.edges.toOuter ++ newEdges))
-    }
   }
 
 
   //Combinator adds direct connection between Connection points with different x values
   def refineGraphConnectionBridge: (PolySceneSegmentationGraph, MpTaskStartGoal) => PolySceneSegmentationGraph = {
-    case (sSeg, mpTask) => {
+    case (sSeg, _) =>
       val g = sSeg.graph
       val nEdges = g.edges.toOuter ++ sSeg.centroids.flatMap(c => {
         val centroidNode = (g find c).get
@@ -209,21 +207,20 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils with 
       })
 
       sSeg.withGraph(Graph.from(g.nodes.toOuter, nEdges))
-    }
   }
 
 
 
   // Combinator adds all free cell vertices (i.e. also obstacle vertices) and edges
   def refineGraphAllCellVertices: (PolySceneSegmentationGraph, MpTaskStartGoal) => PolySceneSegmentationGraph = {
-    case ((sSeg, _)) => {
+    case (sSeg, _) =>
       val g = sSeg.graph
       val newNodes = sSeg.freeCells.flatMap(vertexIndices => vertexIndices.map {
         vId => sSeg.vertices(vId)
       })
 
       val newEdges = (sSeg.freeCells zip sSeg.centroids).map{case (cell, centroid) =>
-        val f1 = (for (j <- cell;
+        val f1 = for (j <- cell;
                        k <- cell;
                        v1 = sSeg.vertices(j);
                        v2 = sSeg.vertices(k)
@@ -231,7 +228,6 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils with 
                          && v1.last.abs != sSeg.boundaries(1) / 2
                          && v2.last.abs != sSeg.boundaries(1) / 2))
           yield WUnDiEdge(v1, v2)(distance(v1, v2))
-          )
         val f2 = (for (vid <- cell;
                        v = sSeg.vertices(vid);
                        cp <- (g filter g.having(edge = _.hasSource(centroid))).nodes.toOuter
@@ -242,7 +238,6 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils with 
       }.reduce(_ ++ _)
       println(s"new edges: $newEdges")
       sSeg.withGraph(Graph.from(g.nodes.toOuter ++ newNodes,g.edges.toOuter ++ newEdges))
-    }
   }
 
 
@@ -252,7 +247,7 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils with 
     def apply: PolySceneCellSegmentationCentroids => Graph[List[Float], WUnDiEdge] = { csc =>
       val segmentationLines = for (freeCell1 <- csc.freeCells.indices;
                                    freeCell2 <- csc.freeCells.indices;
-                                   i = csc.freeCells(freeCell1).intersect(csc.freeCells(freeCell2));
+                                   i = csc.freeCells(freeCell1).intersect(csc.freeCells(freeCell2))
                                    if i.nonEmpty && freeCell1 != freeCell2)
         yield (i, freeCell1, freeCell2)
       val filteredLines = segmentationLines.filter(i => i._2 < i._3)
@@ -267,11 +262,11 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils with 
             leftCell, rightCell)
       }
 
-      println(s"connectionPoints ${connectionPoints}")
+      println(s"connectionPoints $connectionPoints")
       val nodes = csc.centroids
       val otherNodes = connectionPoints.map(_._1)
       val edges = connectionPoints.withFilter(t => t match {
-        case (cp, leftCellId, rightCellId) => true
+        case (_, _, _) => true
         case _ => false
       }).map {
         case (cp, leftCellId, rightCellId) =>
@@ -279,7 +274,7 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils with 
             WUnDiEdge(cp, nodes(rightCellId))(distance(cp, nodes(rightCellId))))
       }.flatten
 
-      val foo = Graph.from(nodes ++ otherNodes, edges)
+      // val foo = Graph.from(nodes ++ otherNodes, edges)
       println("Returning Cell Graph")
       Graph.from(nodes ++ otherNodes, edges)
     }
@@ -291,8 +286,8 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils with 
     def apply: TriangleSegCentroids => Graph[List[Float], WUnDiEdge] = { csc =>
       val segmentationLines = for (freeCell1 <- csc.triangles.indices;
                                    freeCell2 <- csc.triangles.indices;
-                                   i = csc.triangles(freeCell1).intersect(csc.triangles(freeCell2));
-                                   if (i.nonEmpty && freeCell1 != freeCell2))
+                                   i = csc.triangles(freeCell1).intersect(csc.triangles(freeCell2))
+                                   if i.nonEmpty && freeCell1 != freeCell2)
         yield (i, freeCell1, freeCell2)
       val filteredLines = segmentationLines.filter(i => i._2 < i._3)
       println("FilteredLinesOut")
@@ -301,16 +296,14 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils with 
 
       val centroids = csc.centroids
       val edges: IndexedSeq[WUnDiEdge[List[Float]]] = filteredLines.flatMap {
-        case (cp: List[Int], leftCellId: Int, rightCellId: Int) => {
+        case (cp: List[Int], leftCellId: Int, rightCellId: Int) =>
           val v1 = csc.vertices(cp.head)
           val v2 = csc.vertices(cp.last)
           List(WUnDiEdge(v1, centroids(leftCellId))(distance(v1, centroids(leftCellId))),
             WUnDiEdge(v2, centroids(rightCellId))(distance(v2, centroids(rightCellId))))
-        }
       }
 
-      val foo = Graph.from(centroids, edges)
-
+      // val foo = Graph.from(centroids, edges)
       //TODO AddNodes, Find Start end Cells, Add Edges
       println("Returning Cell Graph")
       Graph.from(centroids, edges)
@@ -324,10 +317,10 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils with 
       println("tGraphbuildNd")
       val segmentationObjects = for (freeCell1 <- csc.triangles.indices;
                                      freeCell2 <- csc.triangles.indices;
-                                     i = csc.triangles(freeCell1).intersect(csc.triangles(freeCell2));
-                                     if (i.nonEmpty && i.size >= 2 &&
+                                     i = csc.triangles(freeCell1).intersect(csc.triangles(freeCell2))
+                                     if i.nonEmpty && i.size >= 2 &&
                                        csc.triangles(freeCell1).size == csc.triangles(freeCell2).size &&
-                                       freeCell1 != freeCell2))
+                                       freeCell1 != freeCell2)
         yield (i, freeCell1, freeCell2)
       val filteredSegObjects = segmentationObjects.filter(i => i._2 < i._3)
       println("FilteredLinesOut")
@@ -338,13 +331,11 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils with 
       centroids.filter(i => i.size != 3).foreach(k => println(s"Warn: Centroid length != 3. ${k.toString}"))
 
       val edges: IndexedSeq[WUnDiEdge[List[Float]]] = filteredSegObjects.map {
-        case (cp: List[Int], leftCellId: Int, rightCellId: Int) => {
+        case (_: List[Int], leftCellId: Int, rightCellId: Int) =>
           WUnDiEdge(centroids(rightCellId), centroids(leftCellId))(distance(centroids(rightCellId), centroids(leftCellId)))
-        }
       }
 
-      val foo = Graph.from(centroids, edges)
-
+      //val foo = Graph.from(centroids, edges)
       //TODO AddNodes, Find Start end Cells, Add Edges
       println("Returning Cell Graph")
       Graph.from(centroids, edges)
@@ -358,13 +349,12 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils with 
     def apply: TriangleSegCentroids => Graph[List[Float], WUnDiEdge] = { csc =>
       println("tGraphbuildNdFast")
 
-      val edges = (csc.triangles.map { tri =>
+      val edges = csc.triangles.map { tri =>
         val triList = tri.combinations(2).toList //check Performance filter anstatt Verwendung Scala Graph Set Edge
         triList.map(i => WUnDiEdge(csc.vertices(i.head), csc.vertices(i.last))(distance(csc.vertices(i.head), csc.vertices(i.last))))
-      }).reduce(_ ++ _)
+      }.reduce(_ ++ _)
 
-      val foo = Graph.from(csc.vertices, edges)
-
+      // val foo = Graph.from(csc.vertices, edges)
       //TODO AddNodes, Find Start end Cells, Add Edges
       println("Returning Cell Graph")
       Graph.from(csc.vertices, edges)

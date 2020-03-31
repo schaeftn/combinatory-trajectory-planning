@@ -35,7 +35,7 @@ object RunGraphPathInhabitationTetrahedralization extends App with LazyLogging w
 
   println(s"Combinators ${Gamma.combinators.size}")
   val watch:Stopwatch = new Stopwatch
-  watch.start();
+  watch.start()
 
   val ihBatch = Gamma.InhabitationBatchJob[Properties](p_unityConnectionProperties_type)
     .addJob[Scene => PolygonScene](

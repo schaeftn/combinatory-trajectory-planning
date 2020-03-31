@@ -18,6 +18,7 @@ import scala.reflect.runtime.universe._
  * R: Native type of Scene
  * S: Native type of Scene
  */
+//TODO Remove
 trait CtpCdMessageListener[R, S] extends LazyLogging {
   val decoder: Decoder[R]
   val responseTopic: String

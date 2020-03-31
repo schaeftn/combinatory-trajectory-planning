@@ -40,7 +40,7 @@ abstract class CptInhabitationMessageListener[R, S, T] extends LazyLogging {
     result.interpretedTerms.index(0)(a)
   }
 
-  def onMessage: IMqttMessageListener = (topic: String, message: MqttPahoMessage) => {
+  def onMessage: IMqttMessageListener = (_: String, message: MqttPahoMessage) => {
     implicit val decodeEvent: Decoder[R] = decoder
 
     logger.info("Received Payload: " + new String(message.getPayload))
