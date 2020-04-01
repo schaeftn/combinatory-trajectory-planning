@@ -49,9 +49,9 @@ object RunComplete extends App {
     .addJob[Unit](p_unitySceneAgent_type :&: cmp_scene_graph_path :&: sd_seg_triangles_simple :&:
       mpt_start_goal_position_type)
     .addJob[Unit](p_unitySceneAgent_type :&: cmp_scene_graph_path :&: sd_seg_triangles_para :&: Constructor("graphTsp"))
-    .addJob[Unit](p_unitySceneAgent_type :&: cmp_cd_cells)
     .addJob[Unit](p_unitySceneAgent_type :&: cmp_scene_graph_path :&: cmp_vertical_cell_decomposition_type)
-    .addJob[(SceneSRT, MpTaskStartGoal) => List[List[Float]]](sbmp_planning_algorithm)
+    .addJob[Unit](p_unitySceneAgent_type :&: dimensionality_two_d_t :&: cmp_path_only :&: Constructor("sampleAkka"))
+    .addJob[Unit](p_unitySceneAgent_type :&: dimensionality_three_d_t :&: cmp_path_only :&: Constructor("sampleAkka"))
 
 
   def getResultList(b: Gamma.InhabitationBatchJob) = {

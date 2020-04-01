@@ -11,19 +11,16 @@ case class SubstitutionScheme(f: Map[String, String], substitutes: Map[String,St
   self =>
   def executeTemplating() = {
     f.map{case (template, target) =>
-      val templateFile = new File(template)
-      assert(templateFile.exists)
-      assert(templateFile.getAbsolutePath.length > 0)
-      val templateSource = Source.fromFile(templateFile)
+      println(s"Trying to read template file: $template")
+      val templateSource = Source.fromFile(template)
       val content = templateSource.getLines.mkString("\n")
       assert(content.length > 0)
       templateSource.close
       val newContent = substitutes.foldLeft(content) { case (a: String, (b: String, c: String)) => a.replace(b, c) }
       println(s"Template file $template read")
       println("Replaced file contents: \n" + newContent)
-      val outFile = new File(target)
-      assert(outFile.exists)
-      val bw = new BufferedWriter(new FileWriter(outFile))
+      println(s"Attempting to write file $target")
+      val bw = new BufferedWriter(new FileWriter(target))
       bw.write(newContent)
       bw.close()
       println("outFile written")
@@ -71,6 +68,7 @@ abstract case class SimplePythonWrapper[B](t: SubstitutionScheme, startFile: Str
 abstract case class PythonWrapperModifier[A, B]( t: SubstitutionScheme, startFile: String)
   extends PythonWrapper[B](t, startFile) {
   def computeResultAndModifyInput: A => B = { input: A =>
+    println(s"Generating files... ")
     generateFiles()
     val resultString: String = executePythonFile()
     println(s"ResultString (computeResult): ")

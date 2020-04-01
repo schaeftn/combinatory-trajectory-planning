@@ -23,8 +23,6 @@ import scalax.collection.edge.WUnDiEdge
 import scala.concurrent.Future
 
 object RunGraphPathInhabitationTetrahedralization extends App with LazyLogging with AkkaImplicits {
-  //val ihCall  = InhabitationCall[InteropRepository, Properties](new InteropRepository{}, Constructor("p_unityConnectionProperties_type"))
-
   lazy val repository =  new SceneRepository  with CmpTopLevel with AkkaMqttTopLevel with CellDecompRepository
     with GraphSearchRepository {}
   lazy val cmpRepository = new CombinatorialMotionPlanning{}
@@ -53,7 +51,6 @@ object RunGraphPathInhabitationTetrahedralization extends App with LazyLogging w
     .addJob[(Scene, MpTaskStartGoal) => TriangleSegPath](cmp_sd_tetrahedra_type)
     .addJob[Unit]( p_unitySceneAgent_type :&: dimensionality_three_d_t :&: cmp_scene_graph_path)
 
-
   def getResultList(b: Gamma.InhabitationBatchJob) = {
     @scala.annotation.tailrec
     def getElements(l: List[InhabitationResult[Any]], bnew: b.ResultType):List[InhabitationResult[Any]] =
@@ -65,12 +62,10 @@ object RunGraphPathInhabitationTetrahedralization extends App with LazyLogging w
   }
 
   val l = getResultList(ihBatch)
-
   watch.stop()
   println(s"elapsed time ${watch.getTimeString}")
 
   l.map(i => println(i.target.toString() + "," + (if (i.isEmpty) "inhabitant not found" else "inhabitant found")))
-
   l.last.interpretedTerms.index(0)
 
   println("Done")

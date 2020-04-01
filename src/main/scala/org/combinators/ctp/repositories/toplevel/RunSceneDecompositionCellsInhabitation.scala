@@ -11,7 +11,7 @@ import org.combinators.ctp.repositories.taxkinding.CombinatorialMotionPlanning
 object RunSceneDecompositionCellsInhabitation extends App {
   //val ihCall  = InhabitationCall[InteropRepository, Properties](new InteropRepository{}, Constructor("p_unityConnectionProperties_type"))
 
-  lazy val repository = new ConnectionPropertiesRepository with SceneRepository with GeometricRepository with AkkaMqttComponents
+  lazy val repository = new SceneRepository with GeometricRepository with AkkaMqttComponents
     with CmpTopLevel with AkkaMqttTopLevel with CellDecompRepository with GeometryUtils
   lazy val asd = new CombinatorialMotionPlanning{}
 

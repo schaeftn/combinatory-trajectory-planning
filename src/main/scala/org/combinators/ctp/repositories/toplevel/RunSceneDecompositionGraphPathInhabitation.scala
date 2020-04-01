@@ -15,7 +15,7 @@ import scalax.collection.edge.WUnDiEdge
 object RunSceneDecompositionGraphPathInhabitation extends App {
   //val ihCall  = InhabitationCall[InteropRepository, Properties](new InteropRepository{}, Constructor("p_unityConnectionProperties_type"))
 
-  lazy val repository = new ConnectionPropertiesRepository with SceneRepository with CellDecompRepository with AkkaMqttComponents
+  lazy val repository = new SceneRepository with CellDecompRepository with AkkaMqttComponents
     with GeometryUtils with GeometricRepository with CmpTopLevel with AkkaMqttTopLevel with GraphSearchRepository
     with GraphSearchPyRepository {}
 

@@ -1,8 +1,6 @@
 package org.combinators.ctp.repositories.python_interop
 import java.util.Properties
 
-import org.combinators.ctp.repositories.toplevel.ClsMqttSceneAgent.getClass
-
 import scala.sys.process._
 
 object run_python_tetrahedralize extends App {

@@ -12,7 +12,8 @@ trait SbmpInputDataRepository extends SceneUtils with PythonTemplateUtils {
   @combinator object SceneSrtToFclSceneData{
     def apply: (SceneSRT, MpTaskStartGoal) => SubstitutionScheme = {
       (scene: SceneSRT, task: MpTaskStartGoal) =>
-        val fileMapping:Map[String,String] = Map(samplingStartFileTemplate->samplingStartFile)
+        val fileMapping: Map[String, String] = Map(sbmpStartTemplate -> sbmpMainStartFile,
+          fclSceneDataTemplate -> fclSceneDataFile)
         val substituteMap: Map[String, String] = {
           Map("$fcl_scene_data.data$" -> sceneSRTtoFclPythonString(scene),
           "$sbmp_main.startstop$"-> taskGoalStartToPythonOMPLString(task))}

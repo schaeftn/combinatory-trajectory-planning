@@ -31,7 +31,7 @@ import org.combinators.cls.types.syntax._
 import scalax.collection.edge.WUnDiEdge
 
 
-trait AkkaMqttTopLevel extends LazyLogging with AkkaImplicits with AkkaMqttComponents with ConnectionPropertiesRepository {
+trait AkkaMqttTopLevel extends LazyLogging with AkkaImplicits with AkkaMqttComponents {
 /* @combinator object AkkaFlowSceneSeg2D {
     def apply(p:Properties, sceneSource: Source[Scene, Future[Done]],
               composedFunction: Scene => PolySceneSegmentationGraph,
@@ -276,17 +276,21 @@ trait AkkaMqttTopLevel extends LazyLogging with AkkaImplicits with AkkaMqttCompo
       })
       streamGraph.run()
 
-      logger.info(s"Sample-based planning. Listening: SceneSRT and TaskStartGoal3D")
+      logger.info(s"Sample-based planning. Listening: SceneSRT and TaskStartGoal")
       scala.io.StdIn.readLine()
       logger.info(s"Disconnecting from MqttClient")
     }
 
-    val semanticType =p_unityConnectionProperties_type =>:
-      p_mqttAkkaSource_type :&: sd_unity_scene_srt_type :&: dimensionality_three_d_t =>:
-        p_mqttAkkaSource_type :&: mpt_start_goal_position_type :&: dimensionality_three_d_t =>:
-        Constructor("sampleCombinatorTop") =>:
-        p_mqttAkkaSink_type :&: cmp_path_only :&: dimensionality_three_d_t =>:
-        Constructor("sampleAkka")
+    val semanticType = p_unityConnectionProperties_type =>:
+      p_mqttAkkaSource_type :&: sd_unity_scene_srt_type :&: dimensionality_var =>:
+      p_mqttAkkaSource_type :&: mpt_start_goal_position_type :&: dimensionality_var =>:
+      sbmp_planning_algorithm :&: sbmp_planner_var :&: sbmp_sampler_var :&:
+        sbmp_state_validator_var :&: sbmp_motion_validator_var :&: sbmp_optimization_objective_var :&:
+        sbmp_cost_var =>:
+      p_mqttAkkaSink_type :&: cmp_path_only :&: dimensionality_var =>:
+      p_unitySceneAgent_type :&: dimensionality_var :&: cmp_path_only :&: Constructor("sampleAkka") :&:
+        sbmp_planner_var :&: sbmp_sampler_var :&: sbmp_state_validator_var :&: sbmp_motion_validator_var :&:
+        sbmp_optimization_objective_var :&: sbmp_cost_var
   }
 // @combinator object AkkaFlowSceneSeg2DPath2 {
 //    def apply(p: Properties,

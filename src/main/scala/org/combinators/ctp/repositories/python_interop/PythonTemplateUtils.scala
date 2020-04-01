@@ -18,15 +18,15 @@ trait PythonTemplateUtils {
 
   val samplingFolder: String = pythonSettings.
     getProperty("org.combinators.ctp.python.samplingFolder")
-  val samplingStartFile: String = samplingFolder + pythonSettings.
-    getProperty("org.combinators.ctp.python.samplingStartFile")
-  val samplingStartFileTemplate: String = samplingFolder + pythonSettings.
-    getProperty("org.combinators.ctp.python.samplingStartFileTemplate")
-
   val sbmpGenFolder: String = samplingFolder + pythonSettings.
     getProperty("org.combinators.ctp.python.sbmpGenFolder")
   val sbmpTemplateFolder: String = samplingFolder + pythonSettings.
     getProperty("org.combinators.ctp.python.sbmpTemplateFolder")
+
+  val sbmpMainStartFile: String = sbmpGenFolder + pythonSettings.
+    getProperty("org.combinators.ctp.python.sbmpMainStartFile")
+  val sbmpStartTemplate: String = sbmpTemplateFolder + pythonSettings.
+    getProperty("org.combinators.ctp.python.sbmpStartTemplate")
 
   val fclSceneDataFile: String = sbmpGenFolder + pythonSettings.
     getProperty("org.combinators.ctp.python.fclSceneDataFile")

@@ -9,9 +9,9 @@ trait SbmpOptimizeCostRepository extends PythonTemplateUtils {
 
   @combinator object WeightedStateIntegralStateChange {
     def apply: SubstitutionScheme = {
-      val fileMapping: Map[String, String] = Map(samplingStartFileTemplate->samplingStartFile)
+      val fileMapping: Map[String, String] = Map(sbmpStartTemplate->sbmpMainStartFile)
       val substMap = Map(
-        "$sbmp_main.costs$" -> "        weights = np.array([1.0, 1.0, 1.0, 100.0, 100.0])\n        objective = WeightedEuclideanCostObjective(si, start, end, weights)"
+        "$sbmp_main.cost$" -> "        weights = np.array([1.0, 1.0, 1.0, 100.0, 100.0])\n        objective = WeightedEuclideanCostObjective(si, start, end, weights)"
       )
       SubstitutionScheme(fileMapping, substMap)
     }
@@ -21,9 +21,9 @@ trait SbmpOptimizeCostRepository extends PythonTemplateUtils {
 
   @combinator object DefaultOptimization {
     def apply: SubstitutionScheme = {
-      val fileMapping: Map[String, String] = Map(samplingStartFileTemplate->samplingStartFile)
+      val fileMapping: Map[String, String] = Map(sbmpStartTemplate->sbmpMainStartFile)
       val substMap = Map(
-        "$sbmp_main.costs$" -> ""
+        "$sbmp_main.cost$" -> ""
       )
       SubstitutionScheme(fileMapping, substMap)
     }

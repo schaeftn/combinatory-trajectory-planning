@@ -9,7 +9,7 @@ trait SbmpSamplerRepository extends PythonTemplateUtils {
 
   @combinator object SamplerUniform {
     def apply: SubstitutionScheme = {
-      val fileMapping: Map[String, String] = Map(samplingStartFileTemplate -> samplingStartFile)
+      val fileMapping: Map[String, String] = Map( sbmpStartTemplate -> sbmpMainStartFile)
       val substMap = Map("$sbmp_main.samplerMember$" -> "Samplers.UNIFORM")
       SubstitutionScheme(fileMapping, substMap)
     }
@@ -19,7 +19,7 @@ trait SbmpSamplerRepository extends PythonTemplateUtils {
 
   @combinator object SamplerObstacleBased {
     def apply: SubstitutionScheme = {
-      val fileMapping: Map[String, String] = Map(samplingStartFileTemplate -> samplingStartFile)
+      val fileMapping: Map[String, String] = Map(sbmpStartTemplate -> sbmpMainStartFile)
       val substMap = Map("$sbmp_main.samplerMember$" -> "Samplers.OBSTACLEBASED")
       SubstitutionScheme(fileMapping, substMap)
     }
@@ -29,7 +29,7 @@ trait SbmpSamplerRepository extends PythonTemplateUtils {
 
   @combinator object SamplerGaussian {
     def apply: SubstitutionScheme = {
-      val fileMapping: Map[String, String] = Map(samplingStartFileTemplate -> samplingStartFile)
+      val fileMapping: Map[String, String] = Map(sbmpStartTemplate -> sbmpMainStartFile)
       val substMap = Map("$sbmp_main.samplerMember$" -> "Samplers.GAUSSIAN")
       SubstitutionScheme(fileMapping, substMap)
     }
@@ -39,7 +39,7 @@ trait SbmpSamplerRepository extends PythonTemplateUtils {
 
   @combinator object SamplerMaxClearance {
     def apply: SubstitutionScheme = {
-      val fileMapping: Map[String, String] = Map(samplingStartFileTemplate -> samplingStartFile)
+      val fileMapping: Map[String, String] = Map(sbmpStartTemplate -> sbmpMainStartFile)
       val substMap = Map("$sbmp_main.samplerMember$" -> "Samplers.MAXCLEARANCE")
       SubstitutionScheme(fileMapping, substMap)
     }

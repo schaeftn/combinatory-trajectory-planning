@@ -1,5 +1,7 @@
 package org.combinators.ctp.repositories.toplevel
 
+import java.util.Properties
+
 import com.typesafe.scalalogging.LazyLogging
 import org.combinators.cls.interpreter.combinator
 import org.combinators.cls.types.Constructor
@@ -336,31 +338,4 @@ trait CmpTopLevel extends LazyLogging {
         cmp_graph_shortest_path_var =>:
         cmp_sd_tetrahedra_type :&: cmp_graph_shortest_path_var
   }
-
-  @combinator object SceneSample1 {
-    def apply(run: String => Unit):
-    (SceneSRT, MpTaskStartGoal) => List[List[Float]] = { (scene: SceneSRT, mpt: MpTaskStartGoal) =>
-      println(s"starting. mpTask: ${mpt.startPosition} to ${mpt.endPosition}")
-      println("fasfasd")
-      val pScene: String = new SceneUtils{}.sceneSRTtoFclPythonString(scene)
-      run(pScene)
-      println("run, returning empty List")
-      List.empty[List[Float]]
-      //Samplers, return Path
-    }
-
-    val semanticType =
-      Constructor("runSample") =>:
-        Constructor("sampleCombinatorTop")//TODO Planner, sampler info in type expression
-  }
-
-
-@combinator object RunSampleBased{
-  // Welcher sampler, Welcher Planner, welche configspace? Wo wird der wie definiert?
-  // Über Problembeschreibung verschiedene vordefinierte probleme oder fn: configspace => collision
-  def apply: String => Unit = (sceneString: String) => print(s"RunSampleBased sceneString: $sceneString")
-  val semanticType = Constructor("runSample")
-}
-
-
 }
