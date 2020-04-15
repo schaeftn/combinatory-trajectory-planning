@@ -116,7 +116,6 @@ trait PythonTemplateUtils {
     s"[${commaSeparated(l)}]"
   }
 
-  //TODO with parser
   def stringForMatrix(matrix: List[List[Float]]): String = {
     println(s"Matrix: $matrix")
 

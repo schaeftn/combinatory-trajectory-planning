@@ -1,13 +1,10 @@
 package org.combinators.ctp.repositories.geometry
 
 import org.combinators.cls.interpreter._
-import org.combinators.cls.types.{Kinding, Type}
+import org.combinators.cls.types.{Kinding}
 import org.combinators.cls.types.syntax._
-import org.combinators.ctp.repositories.toplevel.UnityMeshData
 import org.combinators.ctp.repositories._
-import org.eclipse.paho.client.mqttv3.MqttClient
-import org.combinators.ctp.repositories._
-import org.combinators.ctp.repositories.scene.{MqttCubeData, MqttTransform}
+import org.combinators.ctp.repositories.toplevel._
 
 import math._
 

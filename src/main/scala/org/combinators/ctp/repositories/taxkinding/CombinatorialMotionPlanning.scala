@@ -35,6 +35,8 @@ trait CombinatorialMotionPlanning {
   val cmp_cd_cells = Constructor("cmp_cd_cells") // Decomposition result as cells
   val cmp_graphBuildFct_type = Constructor("cmp_graphBuildFct_type")
 
+  val rmc_neighbourFct_type = Constructor("rmc_neighbourFct_type")
+
   val cmd_centroidFct_type = Constructor("triangle_centroidsFct_type")
   val rmc_centroidFct_var = Variable("cell_centroidFct_var")
   val cFct_centroids_naive_type = Constructor("cFct_centroids_naive_type")

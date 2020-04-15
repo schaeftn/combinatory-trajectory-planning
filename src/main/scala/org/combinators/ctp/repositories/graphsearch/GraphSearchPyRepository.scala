@@ -6,11 +6,9 @@ import io.circe.syntax._
 import org.combinators.cls.interpreter._
 import org.combinators.cls.types.Constructor
 import org.combinators.ctp.repositories._
+import org.combinators.ctp.repositories.toplevel._
 import org.combinators.ctp.repositories.geometry.GeometryUtils
-import org.combinators.ctp.repositories.mptasks.MpTaskStartGoal
 import org.combinators.ctp.repositories.python_interop.{PythonTemplateUtils, PythonWrapper, SubstitutionScheme}
-import org.combinators.ctp.repositories.scene.PathPreds
-import org.combinators.ctp.repositories.toplevel.EncodeImplicits
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
 
@@ -75,9 +73,8 @@ trait GraphSearchPyRepository extends GeometryUtils with PythonTemplateUtils wit
         println(s"nodeList: $nodeList")
         println(s"nodeList.map(_.toOuter): ${nodeList.map(_.toOuter)}")
         println(s"mpTask.startPosition: ${mpTask.startPosition}")
-        //val startIndex:Int = g.nodes.toOuter.toList.indexOf(mpTask.startPosition)  // TODO Graphbuild add start node
         println("asd324")
-        val startIndex: Int = 0
+        val startIndex:Int = g.nodes.toOuter.toList.indexOf(mpTask.startPosition)
         val locationString: String = s"""    data['locations'] = ${listToPythonArray(nodeList.map(_.toOuter).map(listToPythonArray).toList)}\n""" // TODO IndexedString test
         val distanceString: String = s"""    data['distances'] = ${listToPythonArray(nodeList.map(distanceForNode).toList)}\n"""
         val vehiclesString: String = s"""    data['num_vehicles'] = 1\n"""
@@ -100,13 +97,13 @@ trait GraphSearchPyRepository extends GeometryUtils with PythonTemplateUtils wit
           resultList.map(nodeList.map(_.toOuter))
         }
 
-        val testStr = """0
-                        |Objective: 10522
-                        |Route:
-                        | 0 -> 7 -> 78 -> 24 -> 55 -> 54 -> 41 -> 31 -> 4 -> 15 -> 19 -> 74 -> 76 -> 36 -> 12 -> 27 -> 1 -> 71 -> 25 -> 56 -> 33 -> 26 -> 77 -> 79 -> 37 -> 44 -> 13 -> 73 -> 67 -> 45 -> 14 -> 21 -> 64 -> 65 -> 80 -> 30 -> 62 -> 17 -> 32 -> 39 -> 57 -> 61 -> 53 -> 60 -> 16 -> 29 -> 9 -> 3 -> 75 -> 10 -> 42 -> 69 -> 52 -> 40 -> 66 -> 38 -> 58 -> 6 -> 8 -> 72 -> 2 -> 28 -> 5 -> 68 -> 63 -> 49 -> 34 -> 35 -> 48 -> 46 -> 11 -> 70 -> 59 -> 20 -> 18 -> 50 -> 23 -> 51 -> 47 -> 43 -> 22 -> 0
-                        |""".stripMargin
-        println("testrun")
-        print(s"asdtest")
+//        val testStr = """0
+//                        |Objective: 10522
+//                        |Route:
+//                        | 0 -> 7 -> 78 -> 24 -> 55 -> 54 -> 41 -> 31 -> 4 -> 15 -> 19 -> 74 -> 76 -> 36 -> 12 -> 27 -> 1 -> 71 -> 25 -> 56 -> 33 -> 26 -> 77 -> 79 -> 37 -> 44 -> 13 -> 73 -> 67 -> 45 -> 14 -> 21 -> 64 -> 65 -> 80 -> 30 -> 62 -> 17 -> 32 -> 39 -> 57 -> 61 -> 53 -> 60 -> 16 -> 29 -> 9 -> 3 -> 75 -> 10 -> 42 -> 69 -> 52 -> 40 -> 66 -> 38 -> 58 -> 6 -> 8 -> 72 -> 2 -> 28 -> 5 -> 68 -> 63 -> 49 -> 34 -> 35 -> 48 -> 46 -> 11 -> 70 -> 59 -> 20 -> 18 -> 50 -> 23 -> 51 -> 47 -> 43 -> 22 -> 0
+//                        |""".stripMargin
+//        println("testrun")
+//        print(s"asdtest")
         val fileMap = Map(tspTemplateLocation -> tspStartLocation)
         val substMap = Map("$substitute$" -> s)
         val t = SubstitutionScheme(fileMap, substMap)

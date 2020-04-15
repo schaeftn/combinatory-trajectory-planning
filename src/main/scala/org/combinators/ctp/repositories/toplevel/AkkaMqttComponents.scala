@@ -12,7 +12,7 @@ import io.circe.generic.auto._
 import org.combinators.cls.interpreter.combinator
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
-import org.combinators.ctp.repositories.mptasks.MpTaskStartGoal
+import org.combinators.ctp.repositories.toplevel._
 import org.combinators.ctp.repositories.scene._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 //import org.combinators.ctp.repositories.toplevel.ListenerTupleTest.getClass
@@ -162,21 +162,7 @@ trait AkkaMqttComponents extends LazyLogging with EncodeImplicits {
     }
 
     val semanticType = p_unityConnectionProperties_type =>:
-      p_mqttAkkaSink_type :&: cmp_scene_graph_path :&: dimensionality_two_d_t
-  }
-
-  //TODO check: 3D / 2D
-  @combinator object UnityMqttAkkaSinkSceneSegGraphPath3D {
-    def apply(p: Properties): Sink[MqttMessage, Future[Done]] = {
-      val broker = p.getProperty("org.combinators.ctp.broker")
-      val connectionSettings = MqttConnectionSettings(broker, "cls/GraphSink",
-        new MemoryPersistence).withAutomaticReconnect(true)
-
-      MqttSink(connectionSettings, MqttQoS.AtLeastOnce)
-    }
-
-    val semanticType = p_unityConnectionProperties_type =>:
-      p_mqttAkkaSink_type :&: cmp_scene_graph_path :&: dimensionality_three_d_t
+      p_mqttAkkaSink_type :&: cmp_scene_graph_path :&: dimensionality_var
   }
 
 

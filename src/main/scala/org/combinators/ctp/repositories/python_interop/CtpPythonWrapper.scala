@@ -6,11 +6,11 @@ import com.typesafe.scalalogging.LazyLogging
 import scala.io.Source
 import scala.sys.process._
 
-case class SubstitutionScheme(f: Map[String, String], substitutes: Map[String,String])
+case class SubstitutionScheme(f: Map[String, String], substitutes: Map[String, String])
   extends PythonTemplateUtils {
   self =>
   def executeTemplating() = {
-    f.map{case (template, target) =>
+    f.map { case (template, target) =>
       println(s"Trying to read template file: $template")
       val templateSource = Source.fromFile(template)
       val content = templateSource.getLines.mkString("\n")
@@ -25,8 +25,7 @@ case class SubstitutionScheme(f: Map[String, String], substitutes: Map[String,St
       bw.close()
       println("outFile written")
     }
-
-  } // TODO Impl
+  }
 
   def merge(tScheme: SubstitutionScheme): SubstitutionScheme =
     SubstitutionScheme(self.f ++ tScheme.f, self.substitutes ++ tScheme.substitutes) //overwrites if key exists
@@ -34,12 +33,12 @@ case class SubstitutionScheme(f: Map[String, String], substitutes: Map[String,St
 
 object SubstitutionScheme {
   def apply(fileList: Map[String, String], //File in, File out
-               substitutes: Map[String, String])//Subst in, Subst out
+            substitutes: Map[String, String]) //Subst in, Subst out
   = new SubstitutionScheme(fileList, substitutes) {
   }
 }
 
-case class PlannerScheme[A, B](st: SubstitutionScheme, pf: (A,String) => B, startFile: String)
+case class PlannerScheme[A, B](st: SubstitutionScheme, pf: (A, String) => B, startFile: String)
 
 abstract class PythonWrapper[B](t: SubstitutionScheme, startFile: String) extends LazyLogging {
   def generateFiles(): Unit = {
@@ -65,7 +64,7 @@ abstract case class SimplePythonWrapper[B](t: SubstitutionScheme, startFile: Str
   }
 }
 
-abstract case class PythonWrapperModifier[A, B]( t: SubstitutionScheme, startFile: String)
+abstract case class PythonWrapperModifier[A, B](t: SubstitutionScheme, startFile: String)
   extends PythonWrapper[B](t, startFile) {
   def computeResultAndModifyInput: A => B = { input: A =>
     println(s"Generating files... ")

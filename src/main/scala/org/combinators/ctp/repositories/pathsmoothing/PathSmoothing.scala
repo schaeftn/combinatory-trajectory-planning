@@ -4,7 +4,7 @@ import org.combinators.cls.interpreter.combinator
 import org.combinators.cls.types.Constructor
 import org.combinators.ctp.repositories.geometry.GeometryUtils
 import org.combinators.ctp.repositories.python_interop.PythonWrapper
-import org.combinators.ctp.repositories.scene.PolySceneSegmentationRoadmapPath
+import org.combinators.ctp.repositories.toplevel.PolySceneSegmentationRoadmapPath
 
 trait PathSmoothing extends GeometryUtils{
 

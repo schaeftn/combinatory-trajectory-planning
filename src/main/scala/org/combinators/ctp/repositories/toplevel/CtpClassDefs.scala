@@ -1,12 +1,5 @@
-package org.combinators.ctp.repositories.scene
+package org.combinators.ctp.repositories.toplevel
 
-import java.util.Properties
-
-import com.typesafe.scalalogging.LazyLogging
-import io.circe.generic.JsonCodec
-import io.circe.parser.decode
-import io.circe.generic.auto._
-import io.circe.syntax._
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.geometry.PpPolyhedronMesh
 import scalax.collection.Graph
@@ -45,20 +38,8 @@ case class PolySceneCellSegmentation(vertices: List[List[Float]],
                                      boundaries: List[Float],
                                      freeCells: List[List[Int]]) {
   self =>
-  def withCentroids(c: List[List[Float]]): PolySceneCellSegmentationCentroids =
-    PolySceneCellSegmentationCentroids(self.vertices, self.obstacles, self.boundaries, self.freeCells, c)
   def withRoadmap(g: Graph[List[Float], WUnDiEdge]): PolySceneSegmentationRoadmap =
     PolySceneSegmentationRoadmap(self.vertices, self.obstacles, self.boundaries, self.freeCells, List.empty, g)
-}
-
-case class PolySceneCellSegmentationCentroids(vertices: List[List[Float]],
-                                              obstacles: List[List[Int]],
-                                              boundaries: List[Float],
-                                              freeCells: List[List[Int]],
-                                              centroids: List[List[Float]]) {
-  self =>
-  def withRoadmap(g: Graph[List[Float], WUnDiEdge]): PolySceneSegmentationRoadmap =
-    PolySceneSegmentationRoadmap(self.vertices, self.obstacles, self.boundaries, self.freeCells, self.centroids, g)
 }
 
 case class PolySceneSegmentationRoadmap(vertices: List[List[Float]],
@@ -129,4 +110,9 @@ case class SurfaceMesh(vertices: vertexArrayType2, faces: facesArrayType,
 trait Transformable {
   val tMatrix: List[List[Float]]
 }
+
+case class MpTaskStartGoal(startPosition: List[Float], endPosition: List[Float]) {}
+
+case class MpTaskStartGoalPose(startPoint: List[Float], startPose: List[Float], endPoint: List[Float], endPose: List[Float]) {}
+
 

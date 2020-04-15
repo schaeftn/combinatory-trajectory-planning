@@ -3,9 +3,10 @@ package org.combinators.ctp.repositories.samplebased
 import org.combinators.cls.interpreter.combinator
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
-import org.combinators.ctp.repositories.mptasks.MpTaskStartGoal
+import org.combinators.ctp.repositories.toplevel._
 import org.combinators.ctp.repositories.python_interop.{PythonTemplateUtils, SubstitutionScheme}
-import org.combinators.ctp.repositories.scene.{PolySceneSegmentationRoadmapPath, SceneSRT, SceneUtils}
+import org.combinators.ctp.repositories.scene._
+
 
 //Contains all combinators that produce substitution schemes for given scene representations
 trait SbmpInputDataRepository extends SceneUtils with PythonTemplateUtils {
@@ -19,7 +20,7 @@ trait SbmpInputDataRepository extends SceneUtils with PythonTemplateUtils {
           "$sbmp_main.startstop$"-> taskGoalStartToPythonOMPLString(task))}
         SubstitutionScheme(fileMapping, substituteMap)
     }
-    val semanticType = sbmp_input_data
+    val semanticType = sbmp_input_data :&: dimensionality_three_d_t
     //ggf plus sampler, plus motion validator?, ggf plus dimension
   }
 

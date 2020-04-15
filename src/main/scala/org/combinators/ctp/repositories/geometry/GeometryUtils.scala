@@ -5,7 +5,6 @@ import org.combinators.cls.interpreter._
 import org.combinators.cls.types.Kinding
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
-import org.combinators.ctp.repositories.scene.{MqttCubeData, MqttTransform}
 
 import scala.math.{pow, sqrt}
 
@@ -26,7 +25,7 @@ trait GeometryUtils {
   def lineSegmentCenterPoint(v1: List[Float], v2:List[Float]): List[Float] ={
     if(v1.size != v2.size)
       println(s"WARN Trying to compute center point for points with different dimensions: $v1, $v2")
-    (v1 zip v2).map { case ((a, b)) => (a + b) / 2 }
+    (v1 zip v2).map { case (a, b) => (a + b) / 2 }
   }
 
   def tMatrixToRigidBodyTransformation(tMatrix: List[List[Float]]) = {

@@ -1,25 +1,19 @@
 package org.combinators.ctp.repositories.cmp
 
+
 import org.combinators.ctp.repositories._
+import org.combinators.ctp.repositories.toplevel._
 import org.combinators.ctp.repositories.geometry.GeometryUtils
-import org.combinators.ctp.repositories.mptasks.MpTaskStartGoal
-import org.combinators.ctp.repositories.scene.{CellSegmentation, PolySceneCellSegmentation, PolySceneCellSegmentationCentroids, PolySceneLineSegmentation, PolySceneSegmentationRoadmap, PolygonScene}
 import org.locationtech.jts.algorithm.ConvexHull
 import org.locationtech.jts.geom.{Coordinate, Geometry, GeometryFactory, Point}
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
 import io.circe.generic.auto._
 import io.circe.syntax._
-
 import io.circe.parser.decode
-import org.combinators.ctp.repositories.toplevel.EncodeImplicits
 
 trait CmpUtils extends GeometryUtils with EncodeImplicits{
-
-
-
   //Adds lines if obstacle has a vertex on bottom or top boundary
-
   object vcdLtC2 {
     //Adds lines if obstacle has a vertex on bottom or top boundary
     def addUtilityLines(ls: PolySceneLineSegmentation): PolySceneLineSegmentation = {
@@ -258,150 +252,6 @@ trait CmpUtils extends GeometryUtils with EncodeImplicits{
       (startIndex, endIndex)
   }
 
-
-
-
-  //combinator adds connects all freeCell points to start/endpoint
-  def addNodesStartEndToRoadmapAllVertices: (PolySceneSegmentationRoadmap, MpTaskStartGoal) => PolySceneSegmentationRoadmap = {
-    (sSeg, mpTask) =>
-      val g = sSeg.roadmap
-      val (startNodeCellIndex, endNodeCellIndex) = (0,0) // TODO Remove findFreeCell2D(sSeg, mpTask)
-      val startCell = sSeg.freeCells(startNodeCellIndex)
-      val endCell = sSeg.freeCells(endNodeCellIndex)
-      val startCellValues = startCell.map(i => sSeg.vertices(i))
-      val endCellValues = endCell.map(i => sSeg.vertices(i))
-      val newNodes = g.nodes.toOuter ++ List(mpTask.startPosition, mpTask.endPosition)
-
-      val newEdges = g.edges.toOuter ++
-        startCellValues.map{ i => WUnDiEdge(i, mpTask.startPosition)(distance(i, mpTask.startPosition)) } ++
-        endCellValues.map{ i => WUnDiEdge(i, mpTask.endPosition)(distance(i, mpTask.endPosition)) }
-
-      //sSeg.withRoadmap(Graph.from(newNodes, newEdges))
-      sSeg.withRoadmap(Graph.from(newNodes, newEdges))
-  }
-
-  /*
-  Adds new nodes for start and goal positions to the graph and connects them to centroids of corresponding freeCell
-  //combinator adds centroid connection for start endpoint
-  TODO Remove
-   */
-
-  def addStartGoalCentroidsOnly: (PolySceneSegmentationRoadmap, MpTaskStartGoal) => PolySceneSegmentationRoadmap = {
-    case (sSeg, mpTask) =>
-//      val (startIndex, endIndex) = findFreeCell2D(sSeg,mpTask)
-//      val startCentroid = sSeg.centroids(startIndex)
-//      val endCentroid = sSeg.centroids(endIndex)
-//
-//      val newNodes = sSeg.roadmap.nodes.toOuter.toList :+ mpTask.startPosition :+ mpTask.endPosition
-//      val newEdges = sSeg.roadmap.edges.toOuter.toList ++ List(
-//        WUnDiEdge(mpTask.startPosition, startCentroid)(distance(mpTask.startPosition, startCentroid)),
-//        WUnDiEdge(mpTask.endPosition, endCentroid)(distance(mpTask.endPosition, endCentroid))
-//      )
-//
-//      sSeg.withRoadmap(Graph.from(newNodes, newEdges))
-      sSeg
-  }
-
-
- /*
- //combinator adds connects all freeCell points to start/endpoint
-  def addNodesStartEndToRoadmapAllVerticesConnx: (PolySceneSegmentationRoadmap, neighbourCellsNativeType, MpTaskStartGoal) => PolySceneSegmentationRoadmap = {
-    case (sSeg, neighbours, mpTask) =>
-      val g = sSeg.roadmap
-      val (startNodeCellIndex, endNodeCellIndex) = findFreeCell2D(sSeg, mpTask)
-
-      //CellVertices and ConnectorNodes
-      def getCellVertices(cellIndex: Int): List[List[Float]] = {
-        val list = sSeg.freeCells(cellIndex)
-        list.flatMap(i => neighbours.filter(t => t._2 == i || t._3 == i).
-          flatMap(t => t._1).map(i => sSeg.vertices(i))) ++ list.map(i => sSeg.vertices(i))
-          //CP neu berechnen oder utility data
-      }
-
-      val startCellValues: List[List[Float]] = getCellVertices(startNodeCellIndex)
-      val endCellValues:List[List[Float]] = getCellVertices(endNodeCellIndex)
-      val newNodes= g.nodes.toOuter ++ List(mpTask.startPosition, mpTask.endPosition)
-
-      val newEdges = g.edges.toOuter ++
-        startCellValues.map{ i => WUnDiEdge(i, mpTask.startPosition)(distance(i, mpTask.startPosition)) } ++
-        endCellValues.map{ i => WUnDiEdge(i, mpTask.endPosition)(distance(i, mpTask.endPosition)) }
-
-      sSeg.withRoadmap(Graph.from(newNodes, newEdges))
-  }*/
-
-  // adds direct connection between connection points with different x values for vcd cells
-  def addInterCellEdgesToVcdRoadmap: (PolySceneSegmentationRoadmap, MpTaskStartGoal) => PolySceneSegmentationRoadmap = {
-    case (sSeg, _) =>
-      val g = sSeg.roadmap
-      val nEdges = g.edges.toOuter ++ sSeg.centroids.flatMap(c => {
-        val centroidNode = (g find c).get
-        val connectionPoints = g filter g.having(edge = _.hasSource(centroidNode))
-
-        for (
-          i <- connectionPoints.nodes.toOuter;
-          j <- connectionPoints.nodes.toOuter
-          if i != j && i.head != j.head
-        ) yield WUnDiEdge(i, j)(distance(i, j))
-      })
-
-      sSeg.withRoadmap(Graph.from(g.nodes.toOuter, nEdges))
-  }
-
-
-  // adds all free cell vertices (i.e. also obstacle vertices) and edges between them
-  def initRoadmapAllCellVertices: PolySceneCellSegmentationCentroids => PolySceneSegmentationRoadmap = {
-    sSeg =>
-      val newNodes = sSeg.freeCells.flatMap(vertexIndices => vertexIndices.map {
-        vId => sSeg.vertices(vId)
-      })
-
-      val newEdges = (sSeg.freeCells zip sSeg.centroids).map{case (cell, centroid) =>
-        val f1 = for (j <- cell;
-                      k <- cell;
-                      v1 = sSeg.vertices(j);
-                      v2 = sSeg.vertices(k)
-                      if (j != k))
-          yield WUnDiEdge(v1, v2)(distance(v1, v2))
-
-        val f2 = (for (vid <- cell;
-                       v = sSeg.vertices(vid)) yield
-          List(WUnDiEdge(v, centroid)(distance(v, centroid)),
-            WUnDiEdge(v, centroid)(distance(v, centroid)))).reduce(_ ++ _)
-        f1 ++ f2
-      }.reduce(_ ++ _)
-      println(s"new edges: $newEdges")
-      sSeg.withRoadmap(Graph.from(newNodes, newEdges))
-  }
-
-  // adds all free cell vertices (i.e. also obstacle vertices) and edges between them
-  def initRoadmapCentroidsToVertices: PolySceneCellSegmentationCentroids => PolySceneSegmentationRoadmap = {
-    sSeg:PolySceneCellSegmentationCentroids =>
-      val newNodes = sSeg.freeCells.flatMap(vertexIndices => vertexIndices.map {
-        vId => sSeg.vertices(vId)
-      })
-
-      val cellCentroidTuples: List[(List[List[Float]], List[Float])] =
-        (sSeg.freeCells.map { list => list.map(sSeg.vertices) } zip sSeg.centroids)
-
-      val edgesCentroidsToCellVertices: List[WUnDiEdge[List[Float]]] = cellCentroidTuples.map(o => edgesVertexToVertexlist(o._2, o._1)).reduce(_ ++ _)
-      println(s"new edges: $edgesCentroidsToCellVertices")
-      sSeg.withRoadmap(Graph.from(newNodes, edgesCentroidsToCellVertices ++ edgesCentroidsToCellVertices))
-  }
-
-  def initRoadmapCentroids: (PolySceneCellSegmentationCentroids,neighbourCellsNativeType)  => PolySceneSegmentationRoadmap = {
-    (csc, neighbours) =>
-      val centroids = csc.centroids
-      centroids.filter(i => i.size != 3).foreach(k => println(s"Warn: Centroid length != 3. ${k.toString}"))
-
-      val edges: IndexedSeq[WUnDiEdge[List[Float]]] = neighbours.map {
-        case (_: List[Int], leftCellId: Int, rightCellId: Int) =>
-          WUnDiEdge(centroids(rightCellId), centroids(leftCellId))(distance(centroids(rightCellId), centroids(leftCellId)))
-      }
-
-      println("Returning Cell Graph")
-      csc.withRoadmap(Graph.from(centroids, edges))
-  }
-
   def edgesVertexToVertex(v1: List[Float], v2: List[Float]): List[WUnDiEdge[List[Float]]] = {
     edgesVertexlistToVertexlist(List(v1), List(v2))
   }
@@ -413,69 +263,8 @@ trait CmpUtils extends GeometryUtils with EncodeImplicits{
   def edgesVertexlistToVertexlist(vl1: List[List[Float]], vl2: List[List[Float]]): List[WUnDiEdge[List[Float]]] = {
     for (j <- vl1;
          k <- vl2
-         if (j != k))
+         if j != k)
       yield WUnDiEdge(j, k)(distance(j, k)) //TODO Prio2 Performance check vs indexedList and index-based guard i>k
-  }
-
-  def addConnectorNodesAllCellVertexEdges: (PolySceneSegmentationRoadmap, neighbourCellsNativeType) =>
-    PolySceneSegmentationRoadmap = {
-    (scrm, neighbours) =>
-      val list: List[(List[Float], List[WUnDiEdge[List[Float]]])] =
-        getConnectorNodesEdges(scrm, neighbours, true)
-      val (connxNodes, edges) = (list.map(_._1), list.map(_._2).reduce(_ ++ _))
-
-      scrm.withRoadmap(Graph.from(scrm.roadmap.nodes.toOuter ++ connxNodes, scrm.roadmap.edges.toOuter ++ edges))
-    // TODO add cp to Vertices, add cp to freecells, alternative: use roadmap or new utility data structure
-  }
-
-  def addConnectorNodesCentroidEdges: (PolySceneSegmentationRoadmap, neighbourCellsNativeType) =>
-    PolySceneSegmentationRoadmap = {
-    (scrm, neighbours) =>
-      val list: List[(List[Float], List[WUnDiEdge[List[Float]]])] =
-        getConnectorNodesEdges(scrm, neighbours, false)
-      val (connxNodes, edges) = (list.map(_._1), list.map(_._2).reduce(_ ++ _))
-    scrm.withRoadmap(Graph.from(scrm.roadmap.nodes.toOuter ++ connxNodes, scrm.roadmap.edges.toOuter ++ edges))
-  }
-
-  def addListAllCellVerts(srm: PolySceneSegmentationRoadmap, connx: List[Float], rightCellId: Int, leftCellId: Int): List[WUnDiEdge[List[Float]]] = {
-    (srm.freeCells(rightCellId) ++ srm.freeCells(leftCellId)).map(srm.vertices).map(i =>
-      WUnDiEdge(connx, i)(distance(connx, i)))
-  }
-
-  def getConnectorNodesEdges: (PolySceneSegmentationRoadmap, neighbourCellsNativeType, Boolean) =>
-    List[(List[Float], List[WUnDiEdge[List[Float]]])] = {
-    (scrm, neighbours, connectCellVerticesToCp) =>
-      val centroids = scrm.centroids
-      val list: List[(List[Float], List[WUnDiEdge[List[Float]]])] = {
-        neighbours.map {
-          case (cp: List[Int], leftCellId: Int, rightCellId: Int) => {
-            if (cp.size != 2)
-              println(s"WARN: size of common vertices of neighbour cells is ${cp.size} should be 2. Vertices: " +
-                s"${cp.map(scrm.vertices)}")
-            val v1 = scrm.vertices(cp.head)
-            val v2 = scrm.vertices(cp.last)
-            val connxPoint = lineSegmentCenterPoint(v1, v2)
-            val addListl = if (connectCellVerticesToCp)
-              addListAllCellVerts(scrm, connxPoint, rightCellId, leftCellId)
-            else
-              List.empty[WUnDiEdge[List[Float]]]
-            (connxPoint, List(WUnDiEdge(connxPoint, centroids(leftCellId))(distance(connxPoint, centroids(leftCellId))),
-              WUnDiEdge(connxPoint, centroids(rightCellId))(distance(connxPoint, centroids(rightCellId)))) ++ addListl)
-          }
-        }.toList
-      }
-      list
-  }
-
-
-  def getNeighbours: PolySceneCellSegmentation => IndexedSeq[(List[Int], Int, Int)] = { csc =>
-    val segmentationLines = for (freeCell1 <- csc.freeCells.indices;
-                                 freeCell2 <- csc.freeCells.indices;
-                                 i = csc.freeCells(freeCell1).intersect(csc.freeCells(freeCell2))
-                                 if i.nonEmpty && freeCell1 != freeCell2)
-      yield (i, freeCell1, freeCell2)
-    val filteredLines = segmentationLines.filter(i => i._2 < i._3 && i._1.size > 2) //TODO 2d 3d
-    filteredLines
   }
 
   def decodeCellSegmentationFct: (PolygonScene, String) => PolySceneCellSegmentation = {

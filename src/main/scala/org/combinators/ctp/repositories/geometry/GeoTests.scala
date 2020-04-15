@@ -1,7 +1,6 @@
 package org.combinators.ctp.repositories.geometry
 
 import org.combinators.ctp.repositories._
-import org.combinators.ctp.repositories.scene.Scene
 
 import math._
 import io.circe.generic.JsonCodec
@@ -11,6 +10,7 @@ import io.circe.syntax._
 import org.apache.commons.geometry.euclidean.threed.{AffineTransformMatrix3D, Vector3D}
 import org.apache.commons.geometry.euclidean.threed.rotation.QuaternionRotation
 import org.apache.commons.math3.geometry.euclidean.threed.Rotation
+import org.combinators.ctp.repositories.toplevel.Scene
 
 
 object GeoTests extends App{

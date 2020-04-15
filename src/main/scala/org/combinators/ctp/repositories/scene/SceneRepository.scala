@@ -17,6 +17,7 @@ import org.apache.commons.math3.linear.RealMatrix
 import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.parser.decode
+import org.combinators.ctp.repositories.toplevel.{MqttCubeData, PolySceneLineSegmentation, PolygonScene, Scene, SegmentationLines2d}
 import org.locationtech.jts.geom.{Coordinate, Triangle}
 
 //@JsonCodec
@@ -49,17 +50,6 @@ trait SceneRepository extends SceneDescription with CtpTaxonomy with GeometricRe
     val semanticType = gm_CubeToPoly :&: dimensionality_var =>:
       (sd_unity_scene_type =>: sd_polygon_scene_type) :&: dimensionality_var
   }
-
-  //TODO Check?
-  @combinator object TranslResult {
-    def apply(): PolySceneLineSegmentation => SegmentationLines2d = { a =>
-      println(a.asJson)
-      SegmentationLines2d(a.lines.map { b => b.map(c => a.vertices(c)) })
-    }
-
-    val semanticType = Constructor("foo")
-  }
-
 
   /*
 Combinator to apply affine 2d transformation to 2d structure for a single vertex.

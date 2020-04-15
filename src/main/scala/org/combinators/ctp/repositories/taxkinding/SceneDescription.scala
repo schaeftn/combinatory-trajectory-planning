@@ -2,7 +2,7 @@ package org.combinators.ctp.repositories.taxkinding
 
 import org.combinators.ctp.repositories._
 import org.combinators.cls.types.{Constructor, Kinding, Type, Variable}
-import org.combinators.ctp.repositories.scene.{MqttCubeData, PolygonScene, Scene}
+import org.combinators.ctp.repositories.toplevel.{MqttCubeData, PolygonScene, Scene}
 
 trait SceneDescription {
   val cmp_scene_source_var = Variable("cmp_scene_source_var")
@@ -25,6 +25,7 @@ trait SceneDescription {
   val sd_vertical_cell_decomposition_type = Constructor("sd_vertical_cell_decomposition_type")
   val sd_seg_triangles_simple_type = Constructor("sd_seg_triangles_simple_type")
   val sd_seg_triangles_para_type = Constructor("sd_seg_triangles_para_type")
+  val sd_seg_grid_type = Constructor("sd_seg_grid_type")
 
 /*  val cmp_vertical_cell_decomposition_type = Constructor("cmp_vertical_cell_decomposition")
   val cmp_tetrahedralization_cd_type = Constructor("cmp_tetrahedralization_cd_type")

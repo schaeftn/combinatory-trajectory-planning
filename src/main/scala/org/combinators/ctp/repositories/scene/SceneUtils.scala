@@ -1,12 +1,11 @@
 package org.combinators.ctp.repositories.scene
 
-
 import io.circe.generic.JsonCodec
 import org.apache.commons.geometry.euclidean.threed.rotation.QuaternionRotation
 import org.apache.commons.geometry.euclidean.threed.Vector3D
-import org.combinators.ctp.repositories.mptasks.MpTaskStartGoal
 import org.combinators.ctp.repositories.python_interop.PythonTemplateUtils
 import org.combinators.ctp.repositories.taxkinding.{CtpTaxonomy, SceneDescription}
+import org.combinators.ctp.repositories.toplevel.{MpTaskStartGoal, MqttObstacleSRT, PolySceneSegmentationRoadmapPath, SceneSRT}
 
 trait SceneUtils extends SceneDescription with PythonTemplateUtils {
   val indentStr: String = """"""

@@ -4,7 +4,8 @@ import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.parser.decode
 import org.combinators.ctp.repositories.geometry.{GeometricRepository, PpVertexList}
-import org.combinators.ctp.repositories.scene.{MqttCubeData, MqttTransform, PolygonScene, Scene}
+import org.combinators.ctp.repositories._
+import org.combinators.ctp.repositories.toplevel._
 import org.locationtech.jts.algorithm.ConvexHull
 import org.locationtech.jts.geom.{Coordinate, Geometry, GeometryFactory, Point}
 

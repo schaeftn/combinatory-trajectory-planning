@@ -1,24 +1,20 @@
-package org.combinators.ctp.repositories.toplevel
-
-import java.util.Properties
+package org.combinators.ctp.repositories.runinhabitation
 
 import org.combinators.cls.interpreter.{InhabitationResult, ReflectedRepository}
 import org.combinators.cls.types.Constructor
-import org.combinators.cls.types.syntax._
+import org.combinators.ctp.repositories._
+import org.combinators.ctp.repositories.buildKinding
 import org.combinators.ctp.repositories.cmp.CmpPythonRepository
-import org.combinators.ctp.repositories.geometry.{GeometricRepository, GeometryUtils, PpVertexList}
 import org.combinators.ctp.repositories.graphsearch.GraphSearchRepository
-import org.combinators.ctp.repositories.mptasks.MpTaskStartGoal
 import org.combinators.ctp.repositories.samplebased.SbmpTopLevelRepository
-import org.combinators.ctp.repositories.scene._
+import org.combinators.ctp.repositories.scene.SceneRepository
 import org.combinators.ctp.repositories.taxkinding.CombinatorialMotionPlanning
-import org.combinators.ctp.repositories.{cmp_cd_cells, _}
+import org.combinators.ctp.repositories.toplevel.{AkkaMqttTopLevelCmp, CmpTopLevel}
 import org.locationtech.jts.util.Stopwatch
-import scalax.collection.Graph
-import scalax.collection.edge.WUnDiEdge
+import org.combinators.cls.types.syntax._
 
 object RunComplete extends App {
-  lazy val repository =  new SceneRepository  with CmpTopLevel with AkkaMqttTopLevel with CmpPythonRepository
+  lazy val repository =  new SceneRepository  with CmpTopLevel with AkkaMqttTopLevelCmp with CmpPythonRepository
     with GraphSearchRepository with SbmpTopLevelRepository{}
   lazy val cmpRepository = new CombinatorialMotionPlanning{}
 

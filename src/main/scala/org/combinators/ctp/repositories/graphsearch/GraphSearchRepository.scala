@@ -2,7 +2,6 @@ package org.combinators.ctp.repositories.graphsearch
 
 import org.combinators.cls.types.Constructor
 import org.combinators.ctp.repositories.geometry.GeometryUtils
-import org.combinators.ctp.repositories.mptasks.MpTaskStartGoal
 import scalax.collection.edge.WUnDiEdge
 import scalax.collection.Graph
 import scalax.collection.GraphPredef._
@@ -11,6 +10,7 @@ import scala.language.{higherKinds, postfixOps}
 import org.combinators.cls.interpreter._
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
+import org.combinators.ctp.repositories.toplevel._
 import org.combinators.ctp.repositories.python_interop.PythonTemplateUtils
 
 import io.circe.parser.decode
