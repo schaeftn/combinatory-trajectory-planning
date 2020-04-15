@@ -47,4 +47,14 @@ trait SbmpSamplerRepository extends PythonTemplateUtils {
     val semanticType = sbmp_max_clearance_valid_state_sampler
   }
 
+  @combinator object SamplerMaxPathOptimizer {
+    def apply: SubstitutionScheme = {
+      val fileMapping: Map[String, String] = Map(sbmpStartTemplate -> sbmpMainStartFile)
+      val substMap = Map("$sbmp_main.samplerMember$" -> "Samplers.CUSTOM")
+      SubstitutionScheme(fileMapping, substMap)
+    }
+
+    val semanticType = sbmp_path_optimizer_sampler
+  }
+
 }

@@ -7,21 +7,21 @@ import akka.stream.alpakka.mqtt.MqttMessage
 import akka.stream.scaladsl.{Sink, Source}
 import com.typesafe.scalalogging.LazyLogging
 import org.combinators.cls.interpreter.{InhabitationResult, ReflectedRepository}
-import org.combinators.cls.types.{Type, Variable}
 import org.combinators.cls.types.syntax._
+import org.combinators.cls.types.{Type, Variable}
+import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.geometry.{GeometricRepository, GeometryUtils}
 import org.combinators.ctp.repositories.graphsearch.{GraphSearchPyRepository, GraphSearchRepository}
 import org.combinators.ctp.repositories.mptasks.MpTaskStartGoal
 import org.combinators.ctp.repositories.scene._
 import org.combinators.ctp.repositories.taxkinding.CombinatorialMotionPlanning
-import org.combinators.ctp.repositories._
 import org.locationtech.jts.util.Stopwatch
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
 
 import scala.concurrent.Future
 
-object RunGraphPathInhabitationTrianglesParaSP extends App with LazyLogging with AkkaImplicits {
+object RunCmpTopLevel extends App with LazyLogging with AkkaImplicits {
   //val ihCall  = InhabitationCall[InteropRepository, Properties](new InteropRepository{}, Constructor("p_unityConnectionProperties_type"))
 
   lazy val repository = new SceneRepository with GeometricRepository with AkkaMqttComponents
@@ -41,7 +41,7 @@ object RunGraphPathInhabitationTrianglesParaSP extends App with LazyLogging with
     )
   val cmpKinding = buildKinding(kindingMap)
 
-  def getTypeFromMap(v: Variable): Type = {
+  implicit def getTypeFromMap(v: Variable): Type = {
     val typeList = kindingMap(v)
     if (typeList.size != 1)
       println(s"Typesize for $v is not 1: ${typeList}")
@@ -59,45 +59,39 @@ object RunGraphPathInhabitationTrianglesParaSP extends App with LazyLogging with
 
 
   /*
-   p_unityConnectionProperties_type =>:
-      p_mqttAkkaSource_type :&: sd_unity_scene_type :&: dimensionality_var =>:
-      p_mqttAkkaSource_type :&: mpt_start_goal_position_type :&: dimensionality_var =>:
-      cmp_algorithm_type :&: cmp_graph_algorithm_var :&: rmc_connectorNodes_var :&: rmc_centroidFct_var :&:
-        rmc_cellGraph_var :&: sd_cell_type_var :&: sd_poly_scene_cell_segmentation_var :&: dimensionality_var =>:
-      p_mqttAkkaSink_type :&: cmp_scene_graph_path :&: dimensionality_var =>:
-      p_mqttAkkaComposition_type :&: cmp_scene_graph_path :&: cmp_graph_algorithm_var :&: rmc_connectorNodes_var :&: rmc_centroidFct_var :&:
-      rmc_cellGraph_var :&: sd_cell_type_var :&: sd_poly_scene_cell_segmentation_var :&: dimensionality_var
+ransformToPoly: ,
+              toCellSegmentation: ,
+              constructRoadMap: ,
+              findPath: ):
+     = { (scene: Scene, startGoal:MpTaskStartGoal)
   * */
 
-  val ihBatch = Gamma.InhabitationBatchJob[Properties](p_unityConnectionProperties_type)
-    .addJob[Source[Scene, Future[Done]]](p_mqttAkkaSource_type :&: sd_unity_scene_type :&:
+  val ihBatch = Gamma.InhabitationBatchJob[Scene => PolygonScene]((sd_unity_scene_type =>: sd_polygon_scene_type))
+    .addJob[PolygonScene => PolySceneCellSegmentation](cmp_sceneSegFct_type :&:
+      getTypeFromMap(sd_poly_scene_cell_segmentation_var) :&:
       getTypeFromMap(dimensionality_var))
-    .addJob[Source[MpTaskStartGoal, Future[Done]]](p_mqttAkkaSource_type :&: mpt_start_goal_position_type :&:
+    .addJob[(PolySceneCellSegmentation, MpTaskStartGoal) => PolySceneSegmentationRoadmap](cmp_cell_graph_fct :&:
+      getTypeFromMap(rmc_cellNodeAddFct_var) :&:
+      getTypeFromMap(rmc_startGoalFct_var) :&:
+      getTypeFromMap(rmc_usingCentroids_var) :&:
+      getTypeFromMap(rmc_centroidFct_var) :&:
+      getTypeFromMap(sd_cell_type_var) :&:
+      getTypeFromMap(rmc_cellGraph_var) :&:
+      getTypeFromMap(rmc_connectorNodes_var) :&:
       getTypeFromMap(dimensionality_var))
-    .addJob[(Scene, MpTaskStartGoal) => PolySceneSegmentationRoadmapPath](
-      cmp_algorithm_type :&:
-        getTypeFromMap(cmp_graph_algorithm_var) :&:
-        getTypeFromMap(rmc_connectorNodes_var) :&:
-        getTypeFromMap(rmc_centroidFct_var) :&:
-        getTypeFromMap(rmc_cellGraph_var) :&:
-        getTypeFromMap(sd_cell_type_var) :&:
-        getTypeFromMap(sd_poly_scene_cell_segmentation_var) :&:
-        getTypeFromMap(dimensionality_var))
-    .addJob[Sink[MqttMessage, Future[Done]]](
-      p_mqttAkkaSink_type :&:
-        cmp_scene_graph_path :&:
-        dimensionality_three_d_t)
-    .addJob[Unit](
-      p_mqttAkkaComposition_type :&:
-        cmp_scene_graph_path :&:
-        getTypeFromMap(cmp_graph_algorithm_var) :&:
-        getTypeFromMap(rmc_connectorNodes_var) :&:
-        getTypeFromMap(rmc_centroidFct_var) :&:
-        getTypeFromMap(rmc_cellGraph_var) :&:
-        getTypeFromMap(sd_cell_type_var) :&:
-        getTypeFromMap(sd_poly_scene_cell_segmentation_var) :&:
-        getTypeFromMap(dimensionality_var)
-    )
+    .addJob[(Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Seq[List[Float]]](
+      getTypeFromMap(cmp_graph_algorithm_var))
+    .addJob[(Scene, MpTaskStartGoal) => PolySceneSegmentationRoadmapPath](cmp_algorithm_type :&:
+      getTypeFromMap(cmp_graph_algorithm_var) :&:
+      getTypeFromMap(rmc_connectorNodes_var) :&:
+      getTypeFromMap(rmc_centroidFct_var) :&:
+      getTypeFromMap(rmc_cellGraph_var) :&:
+      getTypeFromMap(sd_cell_type_var) :&:
+      getTypeFromMap(sd_poly_scene_cell_segmentation_var) :&:
+      getTypeFromMap(dimensionality_var) :&:
+      getTypeFromMap(rmc_cellNodeAddFct_var) :&:
+      getTypeFromMap(rmc_startGoalFct_var) :&:
+      getTypeFromMap(rmc_usingCentroids_var))
 
   def getResultList(b: Gamma.InhabitationBatchJob) = {
     @scala.annotation.tailrec

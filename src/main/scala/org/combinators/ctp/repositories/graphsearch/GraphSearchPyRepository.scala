@@ -1,6 +1,8 @@
 package org.combinators.ctp.repositories.graphsearch
 
 import io.circe.parser.decode
+import io.circe.generic.auto._
+import io.circe.syntax._
 import org.combinators.cls.interpreter._
 import org.combinators.cls.types.Constructor
 import org.combinators.ctp.repositories._
@@ -8,16 +10,15 @@ import org.combinators.ctp.repositories.geometry.GeometryUtils
 import org.combinators.ctp.repositories.mptasks.MpTaskStartGoal
 import org.combinators.ctp.repositories.python_interop.{PythonTemplateUtils, PythonWrapper, SubstitutionScheme}
 import org.combinators.ctp.repositories.scene.PathPreds
-
+import org.combinators.ctp.repositories.toplevel.EncodeImplicits
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
 
 import scala.language.{higherKinds, postfixOps}
 
-trait GraphSearchPyRepository extends GeometryUtils with PythonTemplateUtils{
+trait GraphSearchPyRepository extends GeometryUtils with PythonTemplateUtils with EncodeImplicits{
   @combinator object AStarCombinator {
-    def apply: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) =>
-      Seq[List[Float]] = {
+    def apply: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Seq[List[Float]] = {
       case (g, mpTask) =>
         val nodeList = g.nodes.toIndexedSeq
         val startIndex = nodeList.map(_.toOuter).indexOf(mpTask.startPosition)
@@ -114,13 +115,12 @@ trait GraphSearchPyRepository extends GeometryUtils with PythonTemplateUtils{
         pWrapper.computeResult
     }
 
-    val semanticType = Constructor("graphTsp")
+    val semanticType = cmp_graph_tsp_type
   }
 
   @combinator object GraphMst {
-    def apply: Graph[List[Float], WUnDiEdge] =>
-      Seq[List[Float]] = {
-      g =>
+    def apply: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Seq[List[Float]] = {
+      (g, _) =>
         println("MST")
         val nodeList = g.nodes.toIndexedSeq
         println(s"NodeList ${nodeList.size}")

@@ -1,4 +1,4 @@
-package org.combinators.ctp.repositories.celldecomposition
+package org.combinators.ctp.repositories.cmp
 
 import io.circe.parser.decode
 import io.circe.generic.auto._
@@ -8,12 +8,15 @@ import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.geometry.{PpAaBb2D, PpVertexList}
 import org.combinators.ctp.repositories.python_interop.{PythonTemplateUtils, PythonWrapper, SubstitutionScheme}
-import org.combinators.ctp.repositories.scene.{ PolySceneLineSegmentation, PolygonScene, TriangleSeg}
+import org.combinators.ctp.repositories.scene.{PolySceneCellSegmentation, PolySceneLineSegmentation, PolygonScene, CellSegmentation}
 import org.combinators.ctp.repositories.toplevel.AkkaImplicits
+import org.combinators.cls.interpreter._
+import org.combinators.cls.types.syntax._
+import org.combinators.ctp.repositories._
 
-trait CellDecompRepository extends PythonTemplateUtils with AkkaImplicits {
+trait CmpPythonRepository extends PythonTemplateUtils with CmpUtils {
   @combinator object VcdPoly {
-    def apply(toAabb: PpVertexList => PpAaBb2D): PolygonScene => PolySceneLineSegmentation = { polygonScene: PolygonScene =>
+    def apply(toAabb: PpVertexList => PpAaBb2D): PolygonScene => PolySceneCellSegmentation = { polygonScene: PolygonScene =>
       def pythonSceneString(scene: PolygonScene): String = {
         val obstacleString = (for (i <- scene.obstacles.indices) yield s"b$i").reduce((a, b) => a + ", " + b)
         val verticesString = "    v = " + listToPythonArray(for (i <- scene.vertices)
@@ -43,15 +46,18 @@ trait CellDecompRepository extends PythonTemplateUtils with AkkaImplicits {
       val t = SubstitutionScheme(fileMap, substMap)
 
       val pWrapper = PythonWrapper.apply(t,cdPolyStartLocation,decodeString)
-      pWrapper.computeResultAndModifyInput(polygonScene)
+      val sceneSegmentation = vcdLtC2.apply(pWrapper.computeResultAndModifyInput(polygonScene))
+      sceneSegmentation.freeCells.map(i => println(s"freeCell: ${i.map(sceneSegmentation.vertices)}"))
+      sceneSegmentation
     }
 
-    val semanticType = gm_aaBbGenFct :&: dimensionality_two_d_t =>: (sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_lines)
+    val semanticType = gm_aaBbGenFct :&: dimensionality_two_d_t =>:
+      cmp_sceneSegFct_type :&: sd_vertical_cell_decomposition_type :&: dimensionality_two_d_t
   }
 
   // Pymesh without parameters; only adds cfree triangles
   @combinator object TriangulatePoly {
-    def apply: PolygonScene => TriangleSeg = { polyScene: PolygonScene =>
+    def apply: PolygonScene => PolySceneCellSegmentation = { polyScene: PolygonScene =>
       def pythonSceneString(scene: PolygonScene): String = {
         val obstacleString = (for (i <- scene.obstacles.indices) yield s"b$i").reduce((a, b) => a + ", " + b)
         val vlist = scene.obstacles.map { i => i.map(scene.vertices).map(listToPythonArray)}.map(listToPythonArray)
@@ -65,20 +71,19 @@ trait CellDecompRepository extends PythonTemplateUtils with AkkaImplicits {
           s"    scene_size = [${scene.boundaries.mkString(", ")}]"
       }
 
-      val decodeFct = (_:PolygonScene, resultString: String) => decode[TriangleSeg](resultString).right.get
       val fileMap = Map(cdTemplateLocationTri -> cdStartLocationTri)
       val substMap = Map("$substitute$" -> pythonSceneString(polyScene))
       val t = SubstitutionScheme(fileMap, substMap)
 
-      val pWrapper = PythonWrapper.apply(t, cdStartLocationTri, decodeFct)
+      val pWrapper = PythonWrapper.apply(t, cdStartLocationTri, decodeCellSegmentationFct)
       pWrapper.computeResultAndModifyInput(polyScene)
     }
 
-    val semanticType = sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_cells :&: sd_seg_triangles_simple
+    val semanticType = cmp_sceneSegFct_type :&:  sd_seg_triangles_simple_type:&: dimensionality_two_d_t
   }
 
   @combinator object TriangulatePolyParametrized {
-    def apply: PolygonScene => TriangleSeg = { polyScene: PolygonScene =>
+    def apply: PolygonScene => PolySceneCellSegmentation = { polyScene: PolygonScene =>
       def pythonSceneString(scene: PolygonScene): String = {
         val obstacleString = (for (i <- scene.obstacles.indices) yield s"b$i").reduce((a, b) => a + ", " + b)
         val vlist = scene.obstacles.map { i => i.map(scene.vertices).map(listToPythonArray)}.map(listToPythonArray)
@@ -90,27 +95,19 @@ trait CellDecompRepository extends PythonTemplateUtils with AkkaImplicits {
           s"    scene_size = [${scene.boundaries.mkString(", ")}]"
       }
 
-      val decodeFct = (_:PolygonScene, resultString: String) => decode[TriangleSeg](resultString) match {
-        case Left(_) =>
-          println(s"error while decoding")
-          println(s"$resultString")
-          TriangleSeg(List.empty[List[Float]], List.empty[List[Int]])
-        case Right(s) => s
-      }
-
       val fileMap = Map(cdTemplateLocationTriPara -> cdStartLocationTriPara)
       val substMap = Map("$substitute$" -> pythonSceneString(polyScene))
       val t = SubstitutionScheme(fileMap, substMap)
 
-      val pWrapper = PythonWrapper.apply(t, cdStartLocationTriPara, decodeFct)
+      val pWrapper = PythonWrapper.apply(t, cdStartLocationTriPara, decodeCellSegmentationFct)
       pWrapper.computeResultAndModifyInput(polyScene)
     }
 
-    val semanticType = sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_cells :&: sd_seg_triangles_para
+    val semanticType = cmp_sceneSegFct_type :&: sd_seg_triangles_para_type :&: dimensionality_two_d_t
   }
 
   @combinator object TetPoly {
-    def apply: PolygonScene => TriangleSeg = { polyScene: PolygonScene =>
+    def apply: PolygonScene => PolySceneCellSegmentation = { polyScene: PolygonScene =>
       def pythonSceneString(scene: PolygonScene): String = {
         val obstacleString = (for (i <- scene.obstacles.indices) yield s"b$i").reduce((a, b) => a + ", " + b)
         val vlist = scene.obstacles.map { i => i.map(scene.vertices).map(listToPythonArray) }.map(listToNpArray)
@@ -124,18 +121,15 @@ trait CellDecompRepository extends PythonTemplateUtils with AkkaImplicits {
           s"    scene_size = [${scene.boundaries.mkString(", ")}]"
       }
 
-      val decodeFct = (_:PolygonScene,resultString: String) => decode[TriangleSeg](resultString).right.get
-
       val fileMap = Map(cdTemplateLocationTet -> cdStartLocationTet)
       val substMap = Map("$substitute$" -> pythonSceneString(polyScene))
       val t = SubstitutionScheme(fileMap, substMap)
 
-      val pWrapper = PythonWrapper.apply(t, cdStartLocationTet, decodeFct)
+      val pWrapper = PythonWrapper.apply(t, cdStartLocationTet, decodeCellSegmentationFct)
       pWrapper.computeResultAndModifyInput(polyScene)
     }
 
-    val semanticType = (sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_cells) :&:
-      dimensionality_three_d_t
+    val semanticType = cmp_sceneSegFct_type :&: sd_seg_triangles_simple_type :&: sd_seg_triangles_para_type :&: dimensionality_three_d_t
   }
 
   def boundVerts(b: List[Float]): List[List[Float]] =

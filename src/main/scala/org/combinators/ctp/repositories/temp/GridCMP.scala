@@ -1,5 +1,7 @@
 package org.combinators.ctp.repositories.temp
 
+import io.circe.generic.auto._
+import io.circe.syntax._
 import io.circe.parser.decode
 import org.combinators.ctp.repositories.geometry.{GeometricRepository, PpVertexList}
 import org.combinators.ctp.repositories.scene.{MqttCubeData, MqttTransform, PolygonScene, Scene}

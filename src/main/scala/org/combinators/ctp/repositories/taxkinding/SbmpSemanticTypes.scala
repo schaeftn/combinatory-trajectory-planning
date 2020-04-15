@@ -19,6 +19,7 @@ trait SbmpSemanticTypes {
   val sbmp_obstacle_valid_state_sampler = Constructor("sbmp_obstacle_valid_state_sampler")
   val sbmp_gaussian_valid_state_sampler = Constructor("sbmp_gaussian_valid_state_sampler")
   val sbmp_max_clearance_valid_state_sampler = Constructor("sbmp_max_clearance_valid_state_sampler")
+  val sbmp_path_optimizer_sampler = Constructor("sbmp_path_optimizer_sampler")
 
   val sbmp_state_validator_var = Variable("sbmp_state_validator_var")
   val sbmp_fcl_validator = Constructor("sbmp_fcl_validator")

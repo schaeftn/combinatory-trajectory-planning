@@ -14,17 +14,14 @@ import scalax.collection.edge.WUnDiEdge
 
 import scala.language.implicitConversions
 
-@JsonCodec
 case class Scene(boundaries: List[Float], obstacles: List[MqttCubeData]) {
   def empty = Scene(List.empty, List.empty)
 }
 
-@JsonCodec
 case class SceneSRT(boundaries: List[Float], obstacles: List[MqttObstacleSRT]) {
   def empty = Scene(List.empty, List.empty)
 }
 
-@JsonCodec
 case class PolygonScene(vertices: List[List[Float]], obstacles: List[List[Int]], boundaries: List[Float]) {
   self =>
   def withVertices(v: List[List[Float]]): PolygonScene = {
@@ -36,7 +33,6 @@ case class PolygonScene(vertices: List[List[Float]], obstacles: List[List[Int]],
   }
 }
 
-@JsonCodec
 case class PolySceneLineSegmentation(vertices: List[List[Float]],
                                      obstacles: List[List[Int]],
                                      boundaries: List[Float],
@@ -44,120 +40,89 @@ case class PolySceneLineSegmentation(vertices: List[List[Float]],
                                      bottomVertices: List[Int],
                                      lines: List[List[Int]]) {}
 
-@JsonCodec
 case class PolySceneCellSegmentation(vertices: List[List[Float]],
                                      obstacles: List[List[Int]],
                                      boundaries: List[Float],
-                                     freeCells: List[List[Int]]) {self=>
-
+                                     freeCells: List[List[Int]]) {
+  self =>
+  def withCentroids(c: List[List[Float]]): PolySceneCellSegmentationCentroids =
+    PolySceneCellSegmentationCentroids(self.vertices, self.obstacles, self.boundaries, self.freeCells, c)
+  def withRoadmap(g: Graph[List[Float], WUnDiEdge]): PolySceneSegmentationRoadmap =
+    PolySceneSegmentationRoadmap(self.vertices, self.obstacles, self.boundaries, self.freeCells, List.empty, g)
 }
 
-@JsonCodec
 case class PolySceneCellSegmentationCentroids(vertices: List[List[Float]],
                                               obstacles: List[List[Int]],
                                               boundaries: List[Float],
                                               freeCells: List[List[Int]],
-                                              centroids: List[List[Float]]) {}
-
-case class PolySceneSegmentationGraph(vertices: List[List[Float]],
-                                      obstacles: List[List[Int]],
-                                      boundaries: List[Float],
-                                      freeCells: List[List[Int]],
-                                      centroids: List[List[Float]],
-                                      graph: Graph[List[Float], WUnDiEdge]) {
+                                              centroids: List[List[Float]]) {
   self =>
-  def withGraph(g: Graph[List[Float], WUnDiEdge]): PolySceneSegmentationGraph =
-    PolySceneSegmentationGraph(self.vertices, self.obstacles, self.boundaries, self.freeCells, self.centroids, g)
-
-  def withPath(p:Seq[List[Float]]): PolySceneSegmentationGraphPath =
-    PolySceneSegmentationGraphPath(self.vertices, self.obstacles, self.boundaries, self.freeCells,self.graph, p)
+  def withRoadmap(g: Graph[List[Float], WUnDiEdge]): PolySceneSegmentationRoadmap =
+    PolySceneSegmentationRoadmap(self.vertices, self.obstacles, self.boundaries, self.freeCells, self.centroids, g)
 }
 
-case class PolySceneSegmentationGraphPath(
-                                           vertices: List[List[Float]],
-                                           obstacles: List[List[Int]],
-                                           boundaries: List[Float],
-                                           freeCells: List[List[Int]],
-                                           graph: Graph[List[Float], WUnDiEdge],
-                                           gpath: Seq[List[Float]]) {
+case class PolySceneSegmentationRoadmap(vertices: List[List[Float]],
+                                        obstacles: List[List[Int]],
+                                        boundaries: List[Float],
+                                        freeCells: List[List[Int]],
+                                        centroids: List[List[Float]],
+                                        roadmap: Graph[List[Float], WUnDiEdge]) {
+  self =>
+  def withRoadmap(g: Graph[List[Float], WUnDiEdge]): PolySceneSegmentationRoadmap =
+    PolySceneSegmentationRoadmap(self.vertices, self.obstacles, self.boundaries, self.freeCells, self.centroids, g)
+
+  def withPath(p:Seq[List[Float]]): PolySceneSegmentationRoadmapPath =
+    PolySceneSegmentationRoadmapPath(self.vertices, self.obstacles, self.boundaries, self.freeCells,self.roadmap, p)
+}
+
+case class PolySceneSegmentationRoadmapPath(
+                                             vertices: List[List[Float]],
+                                             obstacles: List[List[Int]],
+                                             boundaries: List[Float],
+                                             freeCells: List[List[Int]],
+                                             roadmap: Graph[List[Float], WUnDiEdge],
+                                             gpath: Seq[List[Float]]) {
   self =>
 
-  def withPath(p: Seq[List[Float]]): PolySceneSegmentationGraphPath =
-    PolySceneSegmentationGraphPath(self.vertices, self.obstacles, self.boundaries, self.freeCells, self.graph, p)
+  def withPath(p: Seq[List[Float]]): PolySceneSegmentationRoadmapPath =
+    PolySceneSegmentationRoadmapPath(self.vertices, self.obstacles, self.boundaries, self.freeCells, self.roadmap, p)
 
-  def withGraph(g: Graph[List[Float], WUnDiEdge]): PolySceneSegmentationGraphPath =
-    PolySceneSegmentationGraphPath(self.vertices, self.obstacles, self.boundaries, self.freeCells, g, self.gpath)
+  def withRoadmap(g: Graph[List[Float], WUnDiEdge]): PolySceneSegmentationRoadmapPath =
+    PolySceneSegmentationRoadmapPath(self.vertices, self.obstacles, self.boundaries, self.freeCells, g, self.gpath)
 
-  def empty:PolySceneSegmentationGraphPath = PolySceneSegmentationGraphPath(List.empty, List.empty, List.empty,
+  def empty:PolySceneSegmentationRoadmapPath = PolySceneSegmentationRoadmapPath(List.empty, List.empty, List.empty,
     List.empty, Graph.empty, Seq.empty[List[Float]])
 }
 
-@JsonCodec
 case class PolyLineSegmentation(vertices: List[List[Float]], lines: List[List[Int]]) {}
 
-@JsonCodec
-case class SceneSegmentation3d(vertices: List[List[Float]], faces: List[List[Int]], voxels: List[List[Int]])
+case class CellSegmentation(vertices: List[List[Float]], cells: List[List[Int]])
 
-@JsonCodec
-case class SceneSegmentation2d(obstacles: List[MqttCubeData], lineVertices: List[List[Float]], lines: List[List[Int]])
-
-@JsonCodec
-case class SceneSegmentation2dFree(obstacles: List[MqttCubeData], cFree: List[PpPolyhedronMesh])
-
-@JsonCodec
 case class SegmentationLines2d(lines: List[List[List[Float]]])
 
-@JsonCodec
 case class SceneCfreePolygons2d(vertices: List[List[Float]], cfreePolygons: List[PpPolyhedronMesh])
 
-@JsonCodec
-case class TriangleSeg(vertices: List[List[Float]], triangles: List[List[Int]]) {
-  self =>
-  def withCentroids(c: List[List[Float]]): TriangleSegCentroids =
-    TriangleSegCentroids(self.vertices, self.triangles, c)
-}
 
-case class TriangleSegCentroids(vertices: List[List[Float]],
-                                triangles: List[List[Int]],
-                                centroids: List[List[Float]])
-
-case class TriangleSegPath(vertices: List[List[Float]],
-                           freeCells: List[List[Int]],
-                           graph: Graph[List[Float], WUnDiEdge],
-                           gpath: Seq[List[Float]]){ self =>
-  def withPath(p: Seq[List[Float]]) =
-    TriangleSegPath(self.vertices, self.freeCells, self.graph, p )
-}
-
-
-@JsonCodec
 case class SceneMesh(vertices: vertexArrayType2, faces: facesArrayType, voxels: voxelArrayType) {}
 
-@JsonCodec
 case class MqttCubeData(tMatrix: List[List[Float]], cubeSize: List[Float])
 
-@JsonCodec
 case class MqttTransform(transformMatrixList: List[List[Float]])
 
-@JsonCodec
 case class MqttObstacleSRT(primitive: Int, srt: MqttTransformSRT)
 
-@JsonCodec
 case class MqttTransformSRT(localScale: List[Float], localRot: List[Float], localTranslate: List[Float])
 
-@JsonCodec
 case class PathPreds(nodes: List[Int], preds: List[Int])
 
 /**
  * TODO Applied Transform Matrix will expressed by semantic Types
  * Not used yet
  */
-@JsonCodec
 case class VolumeMesh(vertices: vertexArrayType2, faces: facesArrayType,
                       voxels: voxelArrayType, override val tMatrix: tMatrixType) extends Transformable {}
 
 // * Not used yet
-@JsonCodec
 case class SurfaceMesh(vertices: vertexArrayType2, faces: facesArrayType,
                        override val tMatrix: tMatrixType) extends Transformable{}
 

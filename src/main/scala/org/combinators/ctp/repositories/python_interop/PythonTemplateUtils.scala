@@ -33,6 +33,11 @@ trait PythonTemplateUtils {
   val fclSceneDataTemplate: String = sbmpTemplateFolder + pythonSettings.
     getProperty("org.combinators.ctp.python.fclSceneDataTemplate")
 
+  val cgalSceneDataFile: String = sbmpGenFolder + pythonSettings.
+    getProperty("org.combinators.ctp.python.cgalSceneDataFile")
+  val cgalSceneDataTemplate: String = sbmpTemplateFolder + pythonSettings.
+    getProperty("org.combinators.ctp.python.cgalSceneDataTemplate")
+
   val cdGenFolder = pythonSettings.getProperty("org.combinators.ctp.python.cdGenfolder")
 
   val cdPolyStartLocation = cdGenFolder + pythonSettings.

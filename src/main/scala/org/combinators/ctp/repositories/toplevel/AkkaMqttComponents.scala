@@ -8,6 +8,7 @@ import akka.stream.alpakka.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, M
 import akka.stream.scaladsl.{Sink, Source}
 import com.typesafe.scalalogging.LazyLogging
 import io.circe.parser.decode
+import io.circe.generic.auto._
 import org.combinators.cls.interpreter.combinator
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
@@ -18,7 +19,7 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
 import scala.concurrent.Future
 
-trait AkkaMqttComponents extends LazyLogging {
+trait AkkaMqttComponents extends LazyLogging with EncodeImplicits {
   @combinator object UnityMqttAkkaSourceScene{
     def apply(p: Properties): Source[Scene, Future[Done]] = {
       val broker = p.getProperty("org.combinators.ctp.broker")
@@ -86,7 +87,7 @@ trait AkkaMqttComponents extends LazyLogging {
   @combinator object UnityMqttAkkaSourceSceneSRT2D {
     def apply(p: Properties): Source[SceneSRT, Future[Done]] = {
       val broker = p.getProperty("org.combinators.ctp.broker")
-      val topic = p.getProperty("org.combinators.ctp.ctpSceneSRTFromUnity3D")
+      val topic = p.getProperty("org.combinators.ctp.ctpSceneSRTFromUnity2D")
 
       val connectionSettings = MqttConnectionSettings(broker, "cls/Scene2DSRTListener",
         new MemoryPersistence).withAutomaticReconnect(true)

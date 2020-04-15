@@ -7,16 +7,16 @@ import akka.stream.alpakka.mqtt.MqttMessage
 import akka.stream.scaladsl.{Sink, Source}
 import com.typesafe.scalalogging.LazyLogging
 import org.combinators.cls.interpreter.{InhabitationResult, ReflectedRepository}
-import org.combinators.cls.types.Constructor
+import org.combinators.cls.types.{Constructor, Kinding}
 import org.combinators.cls.types.syntax._
-import org.combinators.ctp.repositories.celldecomposition.CellDecompRepository
+import org.combinators.ctp.repositories.cmp.CmpPythonRepository
 import org.combinators.ctp.repositories.geometry.{GeometricRepository, GeometryUtils}
 import org.combinators.ctp.repositories.graphsearch.{GraphSearchPyRepository, GraphSearchRepository}
 import org.combinators.ctp.repositories.mptasks.MpTaskStartGoal
 import org.combinators.ctp.repositories.scene._
 import org.combinators.ctp.repositories.taxkinding.CombinatorialMotionPlanning
 import org.combinators.ctp.repositories.toplevel.RunGraphPathInhabitationTrianglesParaSP.Gamma
-import org.combinators.ctp.repositories.{cmp_scene_graph_path, dimensionality_two_d_t, sd_polygon_scene_type, _}
+import org.combinators.ctp.repositories.{cmp_scene_graph_path, dimensionality_two_d_t, sd_polygon_scene_type, sd_seg_triangles_para_type, _}
 import org.locationtech.jts.util.Stopwatch
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
@@ -27,10 +27,27 @@ object RunGraphPathInhabitationTrianglesMst extends App with LazyLogging with Ak
   //val ihCall  = InhabitationCall[InteropRepository, Properties](new InteropRepository{}, Constructor("p_unityConnectionProperties_type"))
 
   lazy val repository = new SceneRepository with GeometricRepository with AkkaMqttComponents
-    with CmpTopLevel with AkkaMqttTopLevel with CellDecompRepository with GeometryUtils
+    with CmpTopLevel with AkkaMqttTopLevel with CmpPythonRepository with GeometryUtils
     with GraphSearchRepository with GraphSearchPyRepository{}
   lazy val cmpRepository = new CombinatorialMotionPlanning{}
-  lazy val Gamma = ReflectedRepository(repository, substitutionSpace = cmpRepository.kinding)
+
+  /*
+        p_mqttAkkaComposition_type :&: cmp_scene_graph_path :&: cmp_graph_algorithm_var :&: rmc_connectorNodes_var :&: cell_centroidFct_var :&:
+      rmc_cellGraph_var :&: sd_cell_type_var :&: sd_poly_scene_cell_segmentation_var :&: dimensionality_var
+      */
+
+  val trianglesMstMap = Map(
+    sd_poly_scene_cell_segmentation_var -> Seq(sd_vertical_cell_decomposition_type),
+    cmp_graph_algorithm_var -> Seq(cmp_graph_dijkstra_type),
+    dimensionality_var -> Seq(dimensionality_two_d_t),
+    rmc_connectorNodes_var -> Seq(rmc_cn_withConnectorNodes),
+    rmc_centroidFct_var -> Seq(cFct_centroids_naive_type),
+    rmc_cellGraph_var -> Seq(rmc_cg_centroidCellVertices),
+    sd_cell_type_var -> Seq(sd_cell_vertical_type)
+  )
+  val kinding: Kinding = buildKinding(trianglesMstMap)
+
+  lazy val Gamma = ReflectedRepository(repository, substitutionSpace = kinding)
 
   println("kinding: " + Gamma.substitutionSpace.toString)
   println("Reflected Repository built, starting inhabitation")
@@ -39,22 +56,9 @@ object RunGraphPathInhabitationTrianglesMst extends App with LazyLogging with Ak
   val watch:Stopwatch = new Stopwatch
   watch.start()
 
-  val ihBatch = Gamma.InhabitationBatchJob[Properties](p_unityConnectionProperties_type)
-    .addJob[Source[Scene, Future[Done]]](p_mqttAkkaSource_type :&: sd_unity_scene_type :&: dimensionality_two_d_t)
-    .addJob[Scene => PolygonScene](sd_unity_scene_type =>: sd_polygon_scene_type)
-    .addJob[PolygonScene => TriangleSeg](sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation :&: sd_seg_cells :&: sd_seg_triangles_para)
-    .addJob[TriangleSeg => TriangleSegCentroids](
-      triangle_centroidsFct_type)
-    .addJob[TriangleSegCentroids => Graph[List[Float], WUnDiEdge]](
-      Constructor("tGraphbuild"))
-    .addJob[(Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Graph[List[Float], WUnDiEdge]](
-      triangle_gRefine_type)
-    .addJob[(Graph[List[Float], WUnDiEdge], MpTaskStartGoal) =>
-      Seq[List[Float]]](
-      cmp_graph_dijkstra_type)
-    .addJob[(Scene, MpTaskStartGoal) => TriangleSegPath](triangulation_path_prog_type:&: cmp_graph_mst_type)
-    .addJob[Sink[MqttMessage, Future[Done]]](p_mqttAkkaSink_type :&: cmp_scene_graph_path :&: dimensionality_two_d_t)
-    .addJob[Unit](p_unitySceneAgent_type :&: cmp_scene_graph_path :&: cmp_graph_mst_type)
+  val ihBatch = Gamma.InhabitationBatchJob[Unit](p_mqttAkkaComposition_type :&: cmp_scene_graph_path :&: sd_cell_vertical_type :&: dimensionality_two_d_t)
+//    .addJob[(Scene, MpTaskStartGoal) => PolySceneSegmentationRoadmapPath](cmp_algorithm_type :&: sd_cell_triangle_type :&: dimensionality_two_d_t)
+//    .addJob[PolygonScene => PolySceneCellSegmentation](cmp_sceneSegFct_type :&: sd_seg_triangles_para_type :&: dimensionality_two_d_t)
 
   def getResultList(b: Gamma.InhabitationBatchJob) = {
     @scala.annotation.tailrec

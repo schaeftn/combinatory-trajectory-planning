@@ -10,6 +10,5 @@ trait Protocol {
   val p_mqttAkkaSink_type: Type = Constructor("p_mqttAkkaSink_type") // MqttClient
   val p_unitySceneConnectionValues_three_d_type: Type = Constructor("p_unitySceneConnectionValues_three_d_type") // Topic values for Unity Connection
   val p_unitySceneConnectionValues_two_d_type: Type = Constructor("p_unitySceneConnectionValues_two_d_type") // Topic values for Unity Connection
-  val p_unitySceneAgent_type: Type = Constructor("p_unitySceneAgent_type") // Read Scene from unity
-  val p_unityResult_type: Type = Constructor("p_unityResult_type") // Display result in Unity
+  val p_mqttAkkaComposition_type: Type = Constructor("p_mqttAkkaComposition_type") // reads/writes data via mqtt
 }

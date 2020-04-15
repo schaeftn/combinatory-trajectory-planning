@@ -5,7 +5,7 @@ import java.util.Properties
 import org.combinators.cls.interpreter.{InhabitationResult, ReflectedRepository}
 import org.combinators.cls.types.Constructor
 import org.combinators.cls.types.syntax._
-import org.combinators.ctp.repositories.celldecomposition.CellDecompRepository
+import org.combinators.ctp.repositories.cmp.CmpPythonRepository
 import org.combinators.ctp.repositories.geometry.{GeometricRepository, GeometryUtils, PpVertexList}
 import org.combinators.ctp.repositories.graphsearch.GraphSearchRepository
 import org.combinators.ctp.repositories.mptasks.MpTaskStartGoal
@@ -18,21 +18,13 @@ import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
 
 object RunComplete extends App {
-  lazy val repository =  new SceneRepository  with CmpTopLevel with AkkaMqttTopLevel with CellDecompRepository
+  lazy val repository =  new SceneRepository  with CmpTopLevel with AkkaMqttTopLevel with CmpPythonRepository
     with GraphSearchRepository with SbmpTopLevelRepository{}
   lazy val cmpRepository = new CombinatorialMotionPlanning{}
 
-  val sbmpKindingMap = Map(sbmp_planner_var -> Seq(sbmp_planner_PRM),
-    sbmp_sampler_var -> Seq(sbmp_uniform_valid_state_sampler),
-    sbmp_state_validator_var -> Seq(sbmp_fcl_validator),
-    sbmp_motion_validator_var -> Seq(sbmp_fcl_motion_validator),
-    sbmp_cost_var -> Seq(sbmp_default_cost_state),
-    sbmp_optimization_objective_var -> Seq(sbmp_opt_path_length)
-  )
+  val sbmpKinding = buildKinding(repository.sbmpDefaultKindingMap ++ repository.cmpDefaultKindingMap)
 
-  val sbmpKinding = buildKinding(sbmpKindingMap)
-
-  lazy val Gamma = ReflectedRepository(repository, substitutionSpace = cmpRepository.kinding.merge(sbmpKinding))
+  lazy val Gamma = ReflectedRepository(repository, substitutionSpace = sbmpKinding)
 
   println("kinding: " + Gamma.substitutionSpace.toString)
   println("Reflected Repository built, starting inhabitation")
@@ -41,17 +33,17 @@ object RunComplete extends App {
   val watch:Stopwatch = new Stopwatch
   watch.start()
 
-  val ihBatch = Gamma.InhabitationBatchJob[Unit](p_unitySceneAgent_type :&:
+  val ihBatch = Gamma.InhabitationBatchJob[Unit](p_mqttAkkaComposition_type :&:
     dimensionality_three_d_t :&: cmp_scene_graph_path)
-    .addJob[Unit](p_unitySceneAgent_type :&: dimensionality_three_d_t :&: cmp_scene_graph_path)
-    .addJob[Unit](p_unitySceneAgent_type :&: cmp_scene_graph_path :&: cmp_graph_mst_type)
-    .addJob[Unit](p_unitySceneAgent_type :&: cmp_scene_graph_path :&: sd_seg_triangles_para :&: mpt_start_goal_position_type :&: cmp_graph_a_star_type)
-    .addJob[Unit](p_unitySceneAgent_type :&: cmp_scene_graph_path :&: sd_seg_triangles_simple :&:
+    .addJob[Unit](p_mqttAkkaComposition_type :&: dimensionality_three_d_t :&: cmp_scene_graph_path)
+    .addJob[Unit](p_mqttAkkaComposition_type :&: cmp_scene_graph_path :&: cmp_graph_mst_type)
+    .addJob[Unit](p_mqttAkkaComposition_type :&: cmp_scene_graph_path :&: sd_seg_triangles_para_type :&: mpt_start_goal_position_type :&: cmp_graph_a_star_type)
+    .addJob[Unit](p_mqttAkkaComposition_type :&: cmp_scene_graph_path :&: sd_seg_triangles_simple_type :&:
       mpt_start_goal_position_type)
-    .addJob[Unit](p_unitySceneAgent_type :&: cmp_scene_graph_path :&: sd_seg_triangles_para :&: Constructor("graphTsp"))
-    .addJob[Unit](p_unitySceneAgent_type :&: cmp_scene_graph_path :&: cmp_vertical_cell_decomposition_type)
-    .addJob[Unit](p_unitySceneAgent_type :&: dimensionality_two_d_t :&: cmp_path_only :&: Constructor("sampleAkka"))
-    .addJob[Unit](p_unitySceneAgent_type :&: dimensionality_three_d_t :&: cmp_path_only :&: Constructor("sampleAkka"))
+    .addJob[Unit](p_mqttAkkaComposition_type :&: cmp_scene_graph_path :&: sd_seg_triangles_para_type :&: Constructor("graphTsp"))
+    .addJob[Unit](p_mqttAkkaComposition_type :&: cmp_scene_graph_path :&: sd_vertical_cell_decomposition_type)
+    .addJob[Unit](p_mqttAkkaComposition_type :&: dimensionality_two_d_t :&: cmp_path_only :&: Constructor("sampleAkka"))
+    .addJob[Unit](p_mqttAkkaComposition_type :&: dimensionality_three_d_t :&: cmp_path_only :&: Constructor("sampleAkka"))
 
 
   def getResultList(b: Gamma.InhabitationBatchJob) = {

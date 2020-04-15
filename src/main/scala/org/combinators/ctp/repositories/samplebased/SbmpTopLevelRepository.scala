@@ -2,13 +2,21 @@ package org.combinators.ctp.repositories.samplebased
 
 import org.combinators.cls.interpreter.combinator
 import org.combinators.cls.types.Constructor
-import org.combinators.ctp.repositories.scene.{PolySceneSegmentationGraphPath, SceneSRT, SceneUtils}
+import org.combinators.ctp.repositories.scene.{PolySceneSegmentationRoadmapPath, SceneSRT, SceneUtils}
 import org.combinators.ctp.repositories.python_interop.{PlannerScheme, PythonTemplateUtils, PythonWrapper, SubstitutionScheme}
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.mptasks.MpTaskStartGoal
 
 trait SbmpTopLevelRepository extends SceneUtils with PythonTemplateUtils with SbmpInputDataRepository with SbmpOptimizeCostRepository with SbmpSamplerRepository with SbmpValidatorRepository {
+
+  val sbmpDefaultKindingMap = Map(sbmp_planner_var -> Seq(sbmp_planner_PRM),
+    sbmp_sampler_var -> Seq(sbmp_uniform_valid_state_sampler),
+    sbmp_state_validator_var -> Seq(sbmp_fcl_validator),
+    sbmp_motion_validator_var -> Seq(sbmp_fcl_motion_validator),
+    sbmp_cost_var -> Seq(sbmp_default_cost_state),
+    sbmp_optimization_objective_var -> Seq(sbmp_opt_path_length)
+  )
 
   trait OmplPlannerTrait[A, B] {
     def apply(pScheme: PlannerScheme[A,B],
@@ -41,7 +49,7 @@ trait SbmpTopLevelRepository extends SceneUtils with PythonTemplateUtils with Sb
   }
 
   @combinator object OmplPlannerRefinement extends
-    OmplPlannerTrait[PolySceneSegmentationGraphPath, PolySceneSegmentationGraphPath] {}
+    OmplPlannerTrait[PolySceneSegmentationRoadmapPath, PolySceneSegmentationRoadmapPath] {}
 
   @combinator object OmplPlannerPrmStandard extends
     OmplPlannerTrait[SceneSRT, List[List[Float]]] {}
@@ -90,9 +98,9 @@ trait SbmpTopLevelRepository extends SceneUtils with PythonTemplateUtils with Sb
   }
 
   @combinator object PrmPlannerTemplatePathSmoothing
-    extends CombinatorPlannerTemplate[PolySceneSegmentationGraphPath, PolySceneSegmentationGraphPath] {
-    override val pf: (PolySceneSegmentationGraphPath, String) => PolySceneSegmentationGraphPath =
-      (inputData: PolySceneSegmentationGraphPath, plannerOut: String) =>
+    extends CombinatorPlannerTemplate[PolySceneSegmentationRoadmapPath, PolySceneSegmentationRoadmapPath] {
+    override val pf: (PolySceneSegmentationRoadmapPath, String) => PolySceneSegmentationRoadmapPath =
+      (inputData: PolySceneSegmentationRoadmapPath, plannerOut: String) =>
         inputData.withPath(parsePath(plannerOut))
 
     def parsePath(str: String): Seq[List[Float]] = str.substring(str.indexOf("Solution path:")).split("\r\n").

@@ -9,13 +9,14 @@ import com.typesafe.scalalogging.LazyLogging
 import org.combinators.cls.interpreter.{InhabitationResult, ReflectedRepository}
 import org.combinators.cls.types.Constructor
 import org.combinators.cls.types.syntax._
-import org.combinators.ctp.repositories.celldecomposition.CellDecompRepository
+import org.combinators.ctp.repositories.cmp.CmpPythonRepository
 import org.combinators.ctp.repositories.geometry.{GeometricRepository, GeometryUtils}
 import org.combinators.ctp.repositories.graphsearch.{GraphSearchPyRepository, GraphSearchRepository}
 import org.combinators.ctp.repositories.mptasks.MpTaskStartGoal
 import org.combinators.ctp.repositories.scene._
 import org.combinators.ctp.repositories.taxkinding.CombinatorialMotionPlanning
-import org.combinators.ctp.repositories.{cmp_scene_graph_path, dimensionality_three_d_t, dimensionality_two_d_t, sd_polygon_scene_type, sd_seg_cells, _}
+import org.combinators.ctp.repositories.toplevel.RunGraphPathComposedFctInhabitation.repository
+import org.combinators.ctp.repositories.{cmp_scene_graph_path, dimensionality_three_d_t, dimensionality_two_d_t, sd_polygon_scene_type, _}
 import org.locationtech.jts.util.Stopwatch
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
@@ -23,10 +24,12 @@ import scalax.collection.edge.WUnDiEdge
 import scala.concurrent.Future
 
 object RunGraphPathInhabitationTetrahedralization extends App with LazyLogging with AkkaImplicits {
-  lazy val repository =  new SceneRepository  with CmpTopLevel with AkkaMqttTopLevel with CellDecompRepository
+  lazy val repository =  new SceneRepository  with CmpTopLevel with AkkaMqttTopLevel with CmpPythonRepository
     with GraphSearchRepository {}
   lazy val cmpRepository = new CombinatorialMotionPlanning{}
-  lazy val Gamma = ReflectedRepository(repository, substitutionSpace = cmpRepository.kinding)
+
+  val kinding = buildKinding(repository.cmpDefaultKindingMap)
+  lazy val Gamma = ReflectedRepository(repository, substitutionSpace = kinding)
 
   println("kinding: " + Gamma.substitutionSpace.toString)
   println("Reflected Repository built, starting inhabitation")
@@ -35,20 +38,20 @@ object RunGraphPathInhabitationTetrahedralization extends App with LazyLogging w
   val watch:Stopwatch = new Stopwatch
   watch.start()
 
-  val ihBatch = Gamma.InhabitationBatchJob[Properties](p_unityConnectionProperties_type)
+  /*val ihBatch = Gamma.InhabitationBatchJob[Properties](p_unityConnectionProperties_type)
     .addJob[Scene => PolygonScene](
       (sd_unity_scene_type =>: sd_polygon_scene_type) :&: dimensionality_three_d_t)
-    .addJob[PolygonScene => TriangleSeg](
+    .addJob[PolygonScene => CellSegmentation](
       (sd_polygon_scene_type =>: sd_scene_segmentation) :&: dimensionality_three_d_t )
-    .addJob[TriangleSeg => TriangleSegCentroids](
+    .addJob[CellSegmentation => CellSegmenationCentroids](
       triangle_centroidsFctNd_type)
-    .addJob[TriangleSegCentroids => Graph[List[Float], WUnDiEdge]](
+    .addJob[CellSegmenationCentroids => Graph[List[Float], WUnDiEdge]](
       triangle_gbuildNd_type)
     .addJob[(Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Graph[List[Float], WUnDiEdge]](
       triangle_gRefine_type)
     .addJob[ (Graph[List[Float], WUnDiEdge],MpTaskStartGoal) =>
       Seq[List[Float]]](cmp_graph_dijkstra_type)
-    .addJob[(Scene, MpTaskStartGoal) => TriangleSegPath](cmp_sd_tetrahedra_type)
+    .addJob[(Scene, MpTaskStartGoal) => CellSegmenationPath](cmp_sd_tetrahedra_type)
     .addJob[Unit]( p_unitySceneAgent_type :&: dimensionality_three_d_t :&: cmp_scene_graph_path)
 
   def getResultList(b: Gamma.InhabitationBatchJob) = {
@@ -68,5 +71,5 @@ object RunGraphPathInhabitationTetrahedralization extends App with LazyLogging w
   l.map(i => println(i.target.toString() + "," + (if (i.isEmpty) "inhabitant not found" else "inhabitant found")))
   l.last.interpretedTerms.index(0)
 
-  println("Done")
+  println("Done")*/
 }

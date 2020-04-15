@@ -46,7 +46,7 @@ trait SceneUtils extends SceneDescription with PythonTemplateUtils {
     List(3, 7, 6),
     List(6, 7, 4))
 
-  def cgalSceneStringPolyPath(scene: PolySceneSegmentationGraphPath): String = {
+  def cgalSceneStringPolyPath(scene: PolySceneSegmentationRoadmapPath): String = {
     val obstacleVertexStrings: List[String] = scene.obstacles.map { i =>
       listToPythonArray(i.map(scene.vertices).
         map(coords => f"""Point_2(${coords.mkString(",")})"""))
@@ -54,7 +54,8 @@ trait SceneUtils extends SceneDescription with PythonTemplateUtils {
     val obstacleString = obstacleVertexStrings.zip(obstacleVertexStrings.indices.map(index => f"obstacle$index")).map { case (i, oIdentifier) => f"$oIdentifier=$i" }
     val polygonList: List[String] = obstacleVertexStrings.indices.map(i => f"Polygon_2(obstacle$i)").toList
     val obstaclesList = f"obstacles = ${listToPythonArray(polygonList)}"
-    obstacleString.mkString("\r\n") + "\r\n" + obstaclesList
+    val pathString = f"path = ${listToPythonArray(scene.gpath.map(listToPythonArray).toList)}"
+    obstacleString.mkString("\r\n") + "\r\n" + obstaclesList + "\r\n" + pathString
   }
 
   def vertexToCgalPoint(vl:List[Float]): String = {

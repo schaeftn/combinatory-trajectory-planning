@@ -7,20 +7,21 @@ import org.combinators.cls.types.{Constructor, Kinding, Taxonomy}
 import org.combinators.ctp.repositories.inhabitation.InhabitationCall
 import org.combinators.ctp.repositories._
 import org.combinators.cls.types.syntax._
-import org.combinators.ctp.repositories.celldecomposition.CellDecompRepository
+import org.combinators.ctp.repositories.cmp.CmpPythonRepository
 import org.combinators.ctp.repositories.scene.{MqttCubeData, PolySceneLineSegmentation, PolygonScene, Scene, SceneRepository}
 import io.circe.parser.decode
 import org.combinators.ctp.repositories.geometry.{GeometryUtils, PpVertexList}
 import org.combinators.ctp.repositories.taxkinding.CombinatorialMotionPlanning
+import org.combinators.ctp.repositories.toplevel.RunGraphPathComposedFctInhabitation.repository
 
 object RunSceneDecompositionInhabitation extends App {
   //val ihCall  = InhabitationCall[InteropRepository, Properties](new InteropRepository{}, Constructor("p_unityConnectionProperties_type"))
 
-  lazy val repository = new SceneRepository with CellDecompRepository with GeometryUtils{}
+  lazy val repository = new SceneRepository with CmpPythonRepository with GeometryUtils{}
   lazy val asd = new CombinatorialMotionPlanning{}
   println("asdasd")
 
-  lazy val Gamma = ReflectedRepository(repository, substitutionSpace = asd.kinding)
+  lazy val Gamma = ReflectedRepository(repository, substitutionSpace = Kinding.empty)
 
   println("kinding: " + Gamma.substitutionSpace.toString)
   println("Reflected Repository built, starting inhabitation")
@@ -35,10 +36,10 @@ object RunSceneDecompositionInhabitation extends App {
   println("done")
   val ihCall4 = Gamma.inhabit[PolygonScene => PolySceneLineSegmentation](sd_polygon_scene_type =>: sd_polygon_scene_type :&: sd_scene_segmentation)
   println("done")
-  val ihCall5a = Gamma.inhabit[Unit](p_unitySceneAgent_type)
+  val ihCall5a = Gamma.inhabit[Unit](p_mqttAkkaComposition_type)
   println("donesemi")
 
-  val ihCall5 = Gamma.inhabit[Unit](p_unitySceneAgent_type :&: dimensionality_two_d_t)
+  val ihCall5 = Gamma.inhabit[Unit](p_mqttAkkaComposition_type :&: dimensionality_two_d_t)
 /* val teststr ="{\n  \"boundaries\": [\n    100,\n    100,\n    0\n  ],\n  \"obstacles\": [\n    {\n      \"tMatrix\": [\n        [\n          26.97,\n          0.0,\n          0.0,\n          -33.1\n        ],\n        [\n          0.0,\n          22.36,\n          0.0,\n          25.7\n        ],\n        [\n          0.0,\n          0.0,\n          0.0,\n          0.0\n        ],\n        [\n          0.0,\n          0.0,\n          0.0,\n          1.0\n        ]\n      ],\n      \"cubeSize\": [\n        26.97,\n        22.36,\n        0.0\n      ]\n    },\n    {\n      \"tMatrix\": [\n        [\n          17.8544483,\n          5.656854,\n          0.0,\n          17.5\n        ],\n        [\n          -17.8544464,\n          5.65685463,\n          0.0,\n          -21.1\n        ],\n        [\n          0.0,\n          0.0,\n          0.0,\n          0.0\n        ],\n        [\n          0.0,\n          0.0,\n          0.0,\n          1.0\n        ]\n      ],\n      \"cubeSize\": [\n        25.25,\n        8.0,\n        0.0\n      ]\n    },\n    {\n      \"tMatrix\": [\n        [\n          22.2738647,\n          -13.43503,\n          0.0,\n          23.9\n        ],\n        [\n          22.2738628,\n          13.4350319,\n          0.0,\n          28.3\n        ],\n        [\n          0.0,\n          0.0,\n          0.0,\n          0.0\n        ],\n        [\n          0.0,\n          0.0,\n          0.0,\n          1.0\n        ]\n      ],\n      \"cubeSize\": [\n        31.5,\n        19.0000019,\n        0.0\n      ]\n    }\n  ]\n}"
   val decoded = decode[Scene](teststr)*/
   println("donefinal")

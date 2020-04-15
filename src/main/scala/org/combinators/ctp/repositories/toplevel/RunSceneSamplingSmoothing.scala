@@ -1,19 +1,19 @@
 package org.combinators.ctp.repositories.toplevel
 
-
-
 import org.combinators.cls.interpreter.{InhabitationResult, ReflectedRepository}
-import org.combinators.cls.types.{Constructor}
+import org.combinators.cls.types.Constructor
 import org.combinators.cls.types.syntax._
+import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.cmp.CmpPythonRepository
 import org.combinators.ctp.repositories.graphsearch.GraphSearchRepository
+import org.combinators.ctp.repositories.mptasks.MpTaskStartGoal
 import org.combinators.ctp.repositories.samplebased.SbmpTopLevelRepository
-import org.combinators.ctp.repositories.scene.{SceneSRT, _}
-import org.combinators.ctp.repositories.taxkinding.{CombinatorialMotionPlanning, SbmpSemanticTypes}
-import org.combinators.ctp.repositories._
+import org.combinators.ctp.repositories.scene._
+import org.combinators.ctp.repositories.taxkinding.CombinatorialMotionPlanning
+import org.combinators.ctp.repositories.toplevel.RunSceneSampling.repository
 
 
-object RunSceneSampling extends App{
+object RunSceneSamplingSmoothing extends App{
   //val ihCall  = InhabitationCall[InteropRepository, Properties](new InteropRepository{}, Constructor("p_unityConnectionProperties_type"))
 
   lazy val repository = new SceneRepository  with CmpTopLevel with AkkaMqttTopLevel with CmpPythonRepository
@@ -28,10 +28,9 @@ object RunSceneSampling extends App{
     sbmp_optimization_objective_var -> Seq(sbmp_opt_path_length)
   )
 
-  val sbmpKinding = buildKinding(repository.cmpDefaultKindingMap ++ repository.sbmpDefaultKindingMap ++ sbmpKindingMap)
+  val kinding = buildKinding(repository.cmpDefaultKindingMap ++ repository.sbmpDefaultKindingMap ++ sbmpKindingMap)
 
-  lazy val Gamma = ReflectedRepository(repository, substitutionSpace = sbmpKinding)
-
+  lazy val Gamma = ReflectedRepository(repository, substitutionSpace = kinding)
 
   println(s"# of allowed substitutions: ${Gamma.substitutionSpace.allowedSubstitutions.values.size}")
 
@@ -43,7 +42,7 @@ object RunSceneSampling extends App{
 
 
   val ihBatch = Gamma.InhabitationBatchJob[Unit](sbmp_planner_RRT :&: Constructor("sampleAkka") :&:
-    p_mqttAkkaComposition_type :&: dimensionality_three_d_t :&: cmp_path_only)
+    p_mqttAkkaComposition_type  :&: Constructor("pathsmoothing"))
  /*   [PlannerScheme[SceneSRT, List[List[Float]]]](sbmp_planner_PRM)
     .addJob[SubstitutionScheme](sbmp_uniform_valid_state_sampler)
     .addJob[SubstitutionScheme](sbmp_fcl_validator)
