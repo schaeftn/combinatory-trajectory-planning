@@ -51,66 +51,8 @@ trait SbmpTopLevelRepository extends SceneUtils with PythonTemplateUtils with Sb
   @combinator object OmplPlannerRefinement extends
     OmplPlannerTrait[PolySceneSegmentationRoadmapPath, PolySceneSegmentationRoadmapPath] {}
 
-  @combinator object OmplPlannerPrmStandard extends
+  @combinator object OmplPlannerStandard extends
     OmplPlannerTrait[SceneSRT, List[List[Float]]] {}
-
-  trait CombinatorPlannerTemplate[A, B] {
-    def apply = new PlannerScheme[A, B](st, pf, startFile)
-
-    val pf: (A, String) => B
-    val st: SubstitutionScheme
-    val startFile: String
-  }
-
-  @combinator object PrmPlannerTemplate
-    extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
-    override val pf: (SceneSRT, String) => List[List[Float]] =
-      (_: SceneSRT, plannerOut: String) =>
-        parsePath(plannerOut).toList
-        //inputData.withPath(parsePath(plannerOut))
-
-    def parsePath(str: String): Seq[List[Float]] = str.substring(str.indexOf("solution path:")).split("\r\n").
-      filter((s: String) => s.startsWith("RealVectorState")).
-      map(s => s.substring(s.indexOf("[") + 1, s.indexOf("]")).split(" ").map(_.toFloat).toList).toList
-
-    override val st: SubstitutionScheme = SubstitutionScheme(
-      Map(sbmpStartTemplate -> sbmpMainStartFile),
-      Map("$plannerMainPlannerInst$" -> "og.PRM(self.si)"))
-    override val startFile: String = sbmpMainStartFile
-    val semanticType = sbmp_planner_PRM
-  }
-
-  @combinator object RrtPlannerTemplate
-    extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
-    override val pf: (SceneSRT, String) => List[List[Float]] =
-      (_: SceneSRT, plannerOut: String) =>
-        parsePath(plannerOut).toList
-
-    def parsePath(str: String): Seq[List[Float]] = str.substring(str.indexOf("solution path:")).split("\r\n").
-      filter((s: String) => s.startsWith("RealVectorState")).
-      map(s => s.substring(s.indexOf("[") + 1, s.indexOf("]")).split(" ").map(_.toFloat).toList).toList
-
-    override val st: SubstitutionScheme = SubstitutionScheme(
-      Map(sbmpStartTemplate -> sbmpMainStartFile),
-      Map("$plannerMainPlannerInst$" -> "og.RRT(self.si)"))
-    override val startFile: String = sbmpMainStartFile
-    val semanticType = sbmp_planner_RRT
-  }
-
-  @combinator object PrmPlannerTemplatePathSmoothing
-    extends CombinatorPlannerTemplate[PolySceneSegmentationRoadmapPath, PolySceneSegmentationRoadmapPath] {
-    override val pf: (PolySceneSegmentationRoadmapPath, String) => PolySceneSegmentationRoadmapPath =
-      (inputData: PolySceneSegmentationRoadmapPath, plannerOut: String) =>
-        inputData.withPath(parsePath(plannerOut))
-
-    def parsePath(str: String): Seq[List[Float]] = str.substring(str.indexOf("Solution path:")).split("\r\n").
-      filter((s: String) => s.startsWith("RealVectorState")).
-      map(s => s.substring(s.indexOf("["), s.indexOf("]")).split(" ").map(_.toFloat).toList).toList
-
-    override val st: SubstitutionScheme = SubstitutionScheme(Map(sbmpStartTemplate->sbmpMainStartFile), Map("$plannerMainPlannerInst$" -> "og.PRM(self.si)"))
-    override val startFile: String = sbmpMainStartFile
-    val semanticType = sbmp_planner_PRM
-  }
 
 
   trait EmptyTemplateScheme[A] {

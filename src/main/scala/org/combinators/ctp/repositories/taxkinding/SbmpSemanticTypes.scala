@@ -7,10 +7,41 @@ trait SbmpSemanticTypes {
   val sbmp_planner_var = Variable("sbmp_planner_var")
   val sbmp_planner_PRM = Constructor("sbmp_planner_PRM")
   val sbmp_planner_PRMStar = Constructor("sbmp_planner_PRMStar")
+  val sbmp_planner_LazyPRM = Constructor("sbmp_planner_LazyPRM")
+  val sbmp_planner_LazyPRMStar = Constructor("sbmp_planner_LazyPRMStar")
+  val sbmp_planner_SST = Constructor("sbmp_planner_SST")
   val sbmp_planner_RRT = Constructor("sbmp_planner_RRT")
   val sbmp_planner_RRTStar = Constructor("sbmp_planner_RRTStar")
+  val sbmp_planner_LBTRRT = Constructor("sbmp_planner_LBTRRT")
+  val sbmp_planner_TRRT = Constructor("sbmp_planner_TRRT")
+//  val sbmp_planner_VFRRT = Constructor("sbmp_planner_VFRRT") // no py bindings available
+//  val sbmp_planner_pRRT = Constructor("sbmp_planner_pRRT") // no py bindings available
+  val sbmp_planner_LazyRRT = Constructor("sbmp_planner_LazyRRT")
   val sbmp_planner_cRRT = Constructor("sbmp_planner_cRRT")
   val sbmp_planner_RRTConnect = Constructor("sbmp_planner_RRTConnect")
+
+  val sbmp_planner_EST = Constructor("sbmp_planner_EST")
+  val sbmp_planner_SBL = Constructor("sbmp_planner_SBL")
+//  val sbmp_planner_pSBL = Constructor("sbmp_planner_pSBL") // no py bindings available
+
+  val sbmp_planner_LBKPIECE1 = Constructor("sbmp_planner_LBKPIECE1")
+  val sbmp_planner_KPIECE1 = Constructor("sbmp_planner_KPIECE1")
+  val sbmp_planner_BKPIECE1 = Constructor("sbmp_planner_BKPIECE1")
+
+  val sbmp_planner_STRIDE = Constructor("sbmp_planner_STRIDE")
+  val sbmp_planner_PDST = Constructor("sbmp_planner_PDST")
+  val sbmp_planner_FMT = Constructor("sbmp_planner_FMT")
+  val sbmp_planner_BFMT = Constructor("sbmp_planner_BFMT")
+
+  val sbmp_planner_RRTsharp = Constructor("sbmp_planner_RRTsharp")
+  val sbmp_planner_RRTXstatic = Constructor("sbmp_planner_RRTXstatic")
+  val sbmp_planner_InformedRRTstar = Constructor("sbmp_planner_InformedRRTstar")
+  val sbmp_planner_BITstar = Constructor("sbmp_planner_BITstar")
+  //  val sbmp_planner_SPARS = Constructor("sbmp_planner_SPARS") // unstable for py
+  //  val sbmp_planner_SPARStwo = Constructor("sbmp_planner_SPARStwo") // unstable for py
+  //  val sbmp_planner_CForest = Constructor("sbmp_planner_CForest") // no py bindings available
+  //  val sbmp_planner_AnytimePathShortening  = Constructor("sbmp_planner_AnytimePathShortening") // no py bindings available
+
 
   val sbmp_sampler_var = Variable("sbmp_sampler_var")
   val sbmp_roadmap_valid_state_sampler = Constructor("sbmp_valid_state_sampler")

@@ -14,7 +14,6 @@ import org.combinators.ctp.repositories.graphsearch.{GraphSearchPyRepository, Gr
 import org.combinators.ctp.repositories.taxkinding.CombinatorialMotionPlanning
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.toplevel._
-import org.combinators.ctp.repositories.runinhabitation.RunCmpTopLevel.repository
 import org.combinators.ctp.repositories.scene.SceneRepository
 import org.locationtech.jts.util.Stopwatch
 
