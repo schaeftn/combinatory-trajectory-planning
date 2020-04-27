@@ -278,4 +278,5 @@ trait CmpUtils extends GeometryUtils with EncodeImplicits{
       }
       pScene.withVertices(segmentation.vertices).withFreeCells(segmentation.cells)
   }
+
 }

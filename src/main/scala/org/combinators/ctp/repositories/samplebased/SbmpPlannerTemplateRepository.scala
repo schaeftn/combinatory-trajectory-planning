@@ -21,7 +21,7 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
     override val pf: (SceneSRT, String) => List[List[Float]] =
       (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
-    override val st: SubstitutionScheme = defaultPlannerSubstScheme("og.PRM(self.si)")
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.PRM(self.si))")
     override val startFile: String = sbmpMainStartFile
 
     val semanticType = sbmp_planner_PRM
@@ -31,7 +31,17 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
     override val pf: (SceneSRT, String) => List[List[Float]] =
       (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
-    override val st: SubstitutionScheme = defaultPlannerSubstScheme("og.RRT(self.si)")
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.RRT(self.si))")
+    override val startFile: String = sbmpMainStartFile
+
+    val semanticType = sbmp_planner_RRT
+  }
+
+  @combinator object RrtPlannerTemplateFb
+    extends CombinatorPlannerTemplate[ProblemDefinitionFiles, List[List[Float]]] {
+    override val pf: (ProblemDefinitionFiles, String) => List[List[Float]] =
+      (_: ProblemDefinitionFiles, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.RRT(self.si))")
     override val startFile: String = sbmpMainStartFile
 
     val semanticType = sbmp_planner_RRT
@@ -41,7 +51,7 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
     override val pf: (SceneSRT, String) => List[List[Float]] =
       (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
-    override val st: SubstitutionScheme = defaultPlannerSubstScheme("og.PRMstar(self.si)")
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.PRMstar(self.si))")
     override val startFile: String = sbmpMainStartFile
 
     val semanticType = sbmp_planner_PRMStar
@@ -51,7 +61,7 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
     override val pf: (SceneSRT, String) => List[List[Float]] =
       (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
-    override val st: SubstitutionScheme = defaultPlannerSubstScheme("og.LazyPRM(self.si)")
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.LazyPRM(self.si))")
     override val startFile: String = sbmpMainStartFile
 
     val semanticType = sbmp_planner_LazyPRM
@@ -61,7 +71,7 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
     override val pf: (SceneSRT, String) => List[List[Float]] =
       (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
-    override val st: SubstitutionScheme = defaultPlannerSubstScheme("og.LazyPRMstar(self.si)")
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.LazyPRMstar(self.si))")
     override val startFile: String = sbmpMainStartFile
 
     val semanticType = sbmp_planner_LazyPRMStar
@@ -71,7 +81,7 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
     override val pf: (SceneSRT, String) => List[List[Float]] =
       (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
-    override val st: SubstitutionScheme = defaultPlannerSubstScheme("og.SST(self.si)")
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.SST(self.si))")
     override val startFile: String = sbmpMainStartFile
 
     val semanticType = sbmp_planner_SST
@@ -82,7 +92,18 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     override val pf: (SceneSRT, String) => List[List[Float]] =
       (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
 
-    override val st: SubstitutionScheme = defaultPlannerSubstScheme("og.PRMstar(si)")
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.RRTConnect(self.si))")
+    override val startFile: String = sbmpMainStartFile
+
+    val semanticType = sbmp_planner_RRTConnect
+  }
+
+  @combinator object RRTConnectPlannerTemplate1
+    extends CombinatorPlannerTemplate[ProblemDefinitionFiles, List[List[Float]]] {
+    override val pf: (ProblemDefinitionFiles, String) => List[List[Float]] =
+      (_: ProblemDefinitionFiles, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
+
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.RRTConnect(self.si))")
     override val startFile: String = sbmpMainStartFile
 
     val semanticType = sbmp_planner_RRTConnect
@@ -92,7 +113,7 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
     override val pf: (SceneSRT, String) => List[List[Float]] =
       (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
-    override val st: SubstitutionScheme = defaultPlannerSubstScheme("og.RRTstar(si)")
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.RRTstar(si))")
     override val startFile: String = sbmpMainStartFile
 
     val semanticType = sbmp_planner_RRTStar
@@ -102,7 +123,7 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
     override val pf: (SceneSRT, String) => List[List[Float]] =
       (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
-    override val st: SubstitutionScheme = defaultPlannerSubstScheme("og.LBTRRT(si)")
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.LBTRRT(si))")
     override val startFile: String = sbmpMainStartFile
 
     val semanticType = sbmp_planner_LBTRRT
@@ -112,7 +133,7 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
     override val pf: (SceneSRT, String) => List[List[Float]] =
       (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
-    override val st: SubstitutionScheme = defaultPlannerSubstScheme("og.TRRT(si)")
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.TRRT(si))")
     override val startFile: String = sbmpMainStartFile
 
     val semanticType = sbmp_planner_TRRT
@@ -122,7 +143,7 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
     override val pf: (SceneSRT, String) => List[List[Float]] =
       (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
-    override val st: SubstitutionScheme = defaultPlannerSubstScheme("og.LazyRRT(si)")
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.LazyRRT(si))")
     override val startFile: String = sbmpMainStartFile
 
     val semanticType = sbmp_planner_LazyRRT
@@ -132,7 +153,7 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
     override val pf: (SceneSRT, String) => List[List[Float]] =
       (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
-    override val st: SubstitutionScheme = defaultPlannerSubstScheme("og.EST(si)")
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.EST(si))")
     override val startFile: String = sbmpMainStartFile
 
     val semanticType = sbmp_planner_EST
@@ -142,7 +163,7 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
     override val pf: (SceneSRT, String) => List[List[Float]] =
       (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
-    override val st: SubstitutionScheme = defaultPlannerSubstScheme("og.SBL(si)")
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.SBL(si))")
     override val startFile: String = sbmpMainStartFile
 
     val semanticType = sbmp_planner_SBL
@@ -152,17 +173,28 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
     override val pf: (SceneSRT, String) => List[List[Float]] =
       (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
-    override val st: SubstitutionScheme = defaultPlannerSubstScheme("og.KPIECE1(si)")
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.KPIECE1(si))")
     override val startFile: String = sbmpMainStartFile
 
     val semanticType = sbmp_planner_KPIECE1
+  }
+
+  @combinator object BKPIECE1PlannerTemplateProb
+    extends CombinatorPlannerTemplate[ProblemDefinitionFiles, List[List[Float]]] {
+    override val pf: (ProblemDefinitionFiles, String) => List[List[Float]] =
+      (_: ProblemDefinitionFiles, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
+
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.BKPIECE1(self.si))")
+    override val startFile: String = sbmpMainStartFile
+
+    val semanticType = sbmp_planner_BKPIECE1
   }
 
   @combinator object BKPIECE1PlannerTemplate
     extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
     override val pf: (SceneSRT, String) => List[List[Float]] =
       (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
-    override val st: SubstitutionScheme = defaultPlannerSubstScheme("og.BKPIECE1(si)")
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.BKPIECE1(si))")
     override val startFile: String = sbmpMainStartFile
 
     val semanticType = sbmp_planner_BKPIECE1
@@ -172,7 +204,7 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
     override val pf: (SceneSRT, String) => List[List[Float]] =
       (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
-    override val st: SubstitutionScheme = defaultPlannerSubstScheme("og.LBKPIECE1(si)")
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.LBKPIECE1(si))")
     override val startFile: String = sbmpMainStartFile
 
     val semanticType = sbmp_planner_LBKPIECE1
@@ -183,7 +215,7 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
     override val pf: (SceneSRT, String) => List[List[Float]] =
       (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
-    override val st: SubstitutionScheme = defaultPlannerSubstScheme("og.STRIDE(si)")
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.STRIDE(si))")
     override val startFile: String = sbmpMainStartFile
 
     val semanticType = sbmp_planner_STRIDE
@@ -193,7 +225,7 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
     override val pf: (SceneSRT, String) => List[List[Float]] =
       (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
-    override val st: SubstitutionScheme = defaultPlannerSubstScheme("og.PDST(si)")
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.PDST(si))")
     override val startFile: String = sbmpMainStartFile
 
     val semanticType = sbmp_planner_PDST
@@ -203,7 +235,7 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
     override val pf: (SceneSRT, String) => List[List[Float]] =
       (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
-    override val st: SubstitutionScheme = defaultPlannerSubstScheme("og.FMT(si)")
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.FMT(si))")
     override val startFile: String = sbmpMainStartFile
 
     val semanticType = sbmp_planner_FMT
@@ -213,7 +245,7 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
     override val pf: (SceneSRT, String) => List[List[Float]] =
       (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
-    override val st: SubstitutionScheme = defaultPlannerSubstScheme("og.BFMT(si)")
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.BFMT(si))")
     override val startFile: String = sbmpMainStartFile
 
     val semanticType = sbmp_planner_BFMT
@@ -223,7 +255,7 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
     override val pf: (SceneSRT, String) => List[List[Float]] =
       (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
-    override val st: SubstitutionScheme = defaultPlannerSubstScheme("og.RRTsharp(si)")
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.RRTsharp(si))")
     override val startFile: String = sbmpMainStartFile
 
     val semanticType = sbmp_planner_RRTsharp
@@ -234,7 +266,7 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
     override val pf: (SceneSRT, String) => List[List[Float]] =
       (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
-    override val st: SubstitutionScheme = defaultPlannerSubstScheme("og.RRTXstatic(si)")
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.RRTXstatic(si))")
     override val startFile: String = sbmpMainStartFile
 
     val semanticType = sbmp_planner_RRTXstatic
@@ -244,7 +276,7 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
     override val pf: (SceneSRT, String) => List[List[Float]] =
       (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
-    override val st: SubstitutionScheme = defaultPlannerSubstScheme("og.InformedRRTstar(si)")
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.InformedRRTstar(si))")
     override val startFile: String = sbmpMainStartFile
 
     val semanticType = sbmp_planner_InformedRRTstar
@@ -254,7 +286,7 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
     override val pf: (SceneSRT, String) => List[List[Float]] =
       (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
-    override val st: SubstitutionScheme = defaultPlannerSubstScheme("og.BITstar(si)")
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("self.ss.setPlanner(og.BITstar(si))")
     override val startFile: String = sbmpMainStartFile
 
     val semanticType = sbmp_planner_BITstar
@@ -265,26 +297,40 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
       Map(sbmpStartTemplate -> sbmpMainStartFile),
       Map("$plannerMainPlannerInst$" -> s))
 
-  def parseDefaultOmplPath(str: String): Seq[List[Float]] = str.substring(str.indexOf("solution path:")).split("\r\n").
-    filter((s: String) => s.startsWith("RealVectorState")).
-    map(s => s.substring(s.indexOf("[") + 1, s.indexOf("]")).split(" ").map(_.toFloat).toList).toList
-
-
-/*
-  @combinator object PrmPlannerTemplatePathSmoothing
-    extends CombinatorPlannerTemplate[PolySceneSegmentationRoadmapPath, PolySceneSegmentationRoadmapPath] {
-    override val pf: (PolySceneSegmentationRoadmapPath, String) => PolySceneSegmentationRoadmapPath =
-      (inputData: PolySceneSegmentationRoadmapPath, plannerOut: String) =>
-        inputData.withPath(parsePath(plannerOut))
-
-    def parsePath(str: String): Seq[List[Float]] = str.substring(str.indexOf("Solution path:")).split("\r\n").
-      filter((s: String) => s.startsWith("RealVectorState")).
-      map(s => s.substring(s.indexOf("["), s.indexOf("]")).split(" ").map(_.toFloat).toList).toList
-
-    override val st: SubstitutionScheme = SubstitutionScheme(Map(sbmpStartTemplate->sbmpMainStartFile), Map("$plannerMainPlannerInst$" -> "og.PRM(self.si)"))
-    override val startFile: String = sbmpMainStartFile
-    val semanticType = sbmp_planner_PRM
+  def parseDefaultOmplPath(str: String): Seq[List[Float]] = {
+    val index = str.indexOf("solution path:")
+    if (index > -1)
+      str.substring(index).split("\r\n").
+        withFilter((s: String) => s.startsWith("RealVectorState")).
+        map(s => s.substring(s.indexOf("[") + 1, s.indexOf("]")).split(" ").map(_.toFloat).toList).toList
+    else Seq.empty
   }
-*/
+
+  @combinator object PrmPlannerTemplatePathSmoothing
+      extends CombinatorPlannerTemplate[(ProblemDefinitionFiles,List[List[Float]]), List[List[Float]]] {
+    override val pf: ((ProblemDefinitionFiles,List[List[Float]]), String) => List[List[Float]] =
+      (_: (ProblemDefinitionFiles,List[List[Float]]), plannerOut: String) =>
+        parseDefaultOmplPath(plannerOut).toList
+
+      override val st: SubstitutionScheme = SubstitutionScheme(
+        Map(sbmpStartTemplate->sbmpMainStartFile),
+        Map("$plannerMainPlannerInst$" -> "self.ss.setPlanner(og.PRM(self.si))"))
+      override val startFile: String = sbmpMainStartFile
+      val semanticType = sbmp_planner_PRM
+  }
+
+  @combinator object KPIECE1PlannerTemplatePathSmoothing
+      extends CombinatorPlannerTemplate[(ProblemDefinitionFiles,List[List[Float]]), List[List[Float]]] {
+    override val pf: ((ProblemDefinitionFiles,List[List[Float]]), String) => List[List[Float]] =
+      (_: (ProblemDefinitionFiles,List[List[Float]]), plannerOut: String) =>
+        parseDefaultOmplPath(plannerOut).toList
+
+      override val st: SubstitutionScheme = SubstitutionScheme(
+        Map(sbmpStartTemplate->sbmpMainStartFile),
+        Map("$plannerMainPlannerInst$" -> "p = og.KPIECE1(self.si)\n        p.setBorderFraction(0.9)\n        p.setGoalBias(0.05)\n        p.setRange(0)\n        self.ss.setPlanner(p)"))
+      override val startFile: String = sbmpMainStartFile
+      val semanticType = sbmp_planner_KPIECE1
+  }
+
 
 }

@@ -75,7 +75,7 @@ trait GraphSearchPyRepository extends GeometryUtils with PythonTemplateUtils wit
         println(s"mpTask.startPosition: ${mpTask.startPosition}")
         println("asd324")
         val startIndex:Int = g.nodes.toOuter.toList.indexOf(mpTask.startPosition)
-        val locationString: String = s"""    data['locations'] = ${listToPythonArray(nodeList.map(_.toOuter).map(listToPythonArray).toList)}\n""" // TODO IndexedString test
+        val locationString: String = s"""    data['locations'] = ${listToPythonArray(nodeList.map(_.toOuter).map(listToPythonArray).toList)}\n"""
         val distanceString: String = s"""    data['distances'] = ${listToPythonArray(nodeList.map(distanceForNode).toList)}\n"""
         val vehiclesString: String = s"""    data['num_vehicles'] = 1\n"""
         val startNodeString: String = s"""    data['depot'] = 0\n"""

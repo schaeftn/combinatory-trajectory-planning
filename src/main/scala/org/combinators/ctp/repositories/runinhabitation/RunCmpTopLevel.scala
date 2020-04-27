@@ -34,7 +34,7 @@ object RunCmpTopLevel extends App with LazyLogging with AkkaImplicits {
   implicit def getTypeFromMap(v: Variable): Type = {
     val typeList = kindingMap(v)
     if (typeList.size != 1)
-      println(s"Typesize for $v is not 1: ${typeList}")
+      println(s"Typesize for $v is not 1: $typeList")
     typeList.head
   }
   lazy val Gamma = ReflectedRepository(repository, substitutionSpace = cmpKinding)
@@ -83,6 +83,7 @@ object RunCmpTopLevel extends App with LazyLogging with AkkaImplicits {
     }
     getElements(List.empty, b.run())
   }
+
 
   val l = getResultList(ihBatch)
 

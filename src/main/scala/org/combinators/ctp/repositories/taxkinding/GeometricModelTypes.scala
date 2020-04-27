@@ -43,6 +43,8 @@ trait GeometricModelTypes {
 
   val gm_aaBbGenFct = Constructor("gm_aaBbGenFct")
   val gm_CubeToPoly = Constructor("gm_CubeToPoly")
+  val gm_CubeToSurfaceMesh = Constructor("gm_CubeToSurfaceMesh")
+  val gm_SurfaceMeshToPoly = Constructor("gm_CubeToSurfaceMesh")
 
   val gf_centroid_selection = Constructor("gf_centroid_selection")
   // function applies affine transform matrix to vertex

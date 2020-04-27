@@ -45,6 +45,8 @@ trait test {
  * @tparam E type of edges. Needs to be at least an undirected weighted edge
  * @author Tilman Zuckmantel
  */
+
+//TODO Fix bugs
 sealed case class
 ValueIteration[N, E[X] <: UnDiEdge[X] with WEdge[X]](graph: Graph[N, E],
                                                      termNodes: Set[N]) {

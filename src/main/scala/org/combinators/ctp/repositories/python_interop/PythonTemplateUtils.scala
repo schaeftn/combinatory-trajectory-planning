@@ -6,6 +6,7 @@ import java.util.Properties
 import io.circe.Decoder
 import io.circe.syntax._
 import io.circe.generic.JsonCodec
+import org.combinators.ctp.repositories.toplevel.PropertyFiles
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
 
@@ -13,69 +14,78 @@ import scala.io.Source
 
 
 trait PythonTemplateUtils {
-  val pythonSettings = new Properties()
-  pythonSettings.load(getClass.getClassLoader.getResourceAsStream("pythoninterop.properties"))
+  val pyProps = PropertyFiles.pythonInteropProperties
 
-  val samplingFolder: String = pythonSettings.
+  val samplingFolder: String = pyProps.
     getProperty("org.combinators.ctp.python.samplingFolder")
-  val sbmpGenFolder: String = samplingFolder + pythonSettings.
+  val sbmpGenFolder: String = samplingFolder + pyProps.
     getProperty("org.combinators.ctp.python.sbmpGenFolder")
-  val sbmpTemplateFolder: String = samplingFolder + pythonSettings.
+  val sbmpTemplateFolder: String = samplingFolder + pyProps.
     getProperty("org.combinators.ctp.python.sbmpTemplateFolder")
 
-  val sbmpMainStartFile: String = sbmpGenFolder + pythonSettings.
+  val sbmpMainStartFile: String = sbmpGenFolder + pyProps.
     getProperty("org.combinators.ctp.python.sbmpMainStartFile")
-  val sbmpStartTemplate: String = sbmpTemplateFolder + pythonSettings.
+  val sbmpStartTemplate: String = sbmpTemplateFolder + pyProps.
     getProperty("org.combinators.ctp.python.sbmpStartTemplate")
 
-  val fclSceneDataFile: String = sbmpGenFolder + pythonSettings.
+  val fclSceneDataFile: String = sbmpGenFolder + pyProps.
     getProperty("org.combinators.ctp.python.fclSceneDataFile")
-  val fclSceneDataTemplate: String = sbmpTemplateFolder + pythonSettings.
+  val fclSceneDataTemplate: String = sbmpTemplateFolder + pyProps.
     getProperty("org.combinators.ctp.python.fclSceneDataTemplate")
 
-  val cgalSceneDataFile: String = sbmpGenFolder + pythonSettings.
+  val pathDataFile: String = sbmpGenFolder + pyProps.
+    getProperty("org.combinators.ctp.python.DlRefinementPath")
+  val pathDataTemplate: String = sbmpTemplateFolder + pyProps.
+    getProperty("org.combinators.ctp.python.TlRefinementPath")
+
+  val cgalSceneDataFile: String = sbmpGenFolder + pyProps.
     getProperty("org.combinators.ctp.python.cgalSceneDataFile")
-  val cgalSceneDataTemplate: String = sbmpTemplateFolder + pythonSettings.
+  val cgalSceneDataTemplate: String = sbmpTemplateFolder + pyProps.
     getProperty("org.combinators.ctp.python.cgalSceneDataTemplate")
 
-  val cdGenFolder = pythonSettings.getProperty("org.combinators.ctp.python.cdGenfolder")
+  val cdGenFolder = pyProps.getProperty("org.combinators.ctp.python.cdGenfolder")
 
-  val cdPolyStartLocation = cdGenFolder + pythonSettings.
+  val cdPolyStartLocation = cdGenFolder + pyProps.
     getProperty("org.combinators.ctp.python.cdStartLocationVcdPoly")
-  val cdPolyTemplateLocation = cdGenFolder + pythonSettings.
+  val cdPolyTemplateLocation = cdGenFolder + pyProps.
     getProperty("org.combinators.ctp.python.cdTemplateLocationVcdPoly")
 
-  val cdStartLocationTri = cdGenFolder + pythonSettings.
+  val cdStartLocationTri = cdGenFolder + pyProps.
     getProperty("org.combinators.ctp.python.cdStartLocationTri")
-  val cdTemplateLocationTri = cdGenFolder + pythonSettings.
+  val cdTemplateLocationTri = cdGenFolder + pyProps.
     getProperty("org.combinators.ctp.python.cdTemplateLocationTri")
 
-  val cdStartLocationTriPara = cdGenFolder + pythonSettings.
+  val cdStartLocationTriPara = cdGenFolder + pyProps.
     getProperty("org.combinators.ctp.python.cdStartLocationTriPara")
-  val cdTemplateLocationTriPara = cdGenFolder + pythonSettings.
+  val cdTemplateLocationTriPara = cdGenFolder + pyProps.
     getProperty("org.combinators.ctp.python.cdTemplateLocationTriPara")
 
-  val cdStartLocationTet = cdGenFolder + pythonSettings.
+  val cdStartLocationTet = cdGenFolder + pyProps.
     getProperty("org.combinators.ctp.python.cdStartLocationTet")
-  val cdTemplateLocationTet = cdGenFolder + pythonSettings.
+  val cdTemplateLocationTet = cdGenFolder + pyProps.
     getProperty("org.combinators.ctp.python.cdTemplateLocationTet")
 
-  val aStarFolder = pythonSettings.getProperty("org.combinators.ctp.python.aStarFolder")
-  val aStarStartFile = aStarFolder + pythonSettings.
+  val cdStartLocationTetFileBased = cdGenFolder + pyProps.
+    getProperty("org.combinators.ctp.python.cdStartLocationTetFileBased")
+  val cdTemplateLocationTetFileBased = cdGenFolder + pyProps.
+    getProperty("org.combinators.ctp.python.cdTemplateLocationTetFileBased")
+
+  val aStarFolder = pyProps.getProperty("org.combinators.ctp.python.aStarFolder")
+  val aStarStartFile = aStarFolder + pyProps.
     getProperty("org.combinators.ctp.python.aStarStartFile")
-  val aStarTemplateFile = aStarFolder + pythonSettings.
+  val aStarTemplateFile = aStarFolder + pyProps.
     getProperty("org.combinators.ctp.python.aStarTemplateFile")
 
-  val tspFolder = pythonSettings.getProperty("org.combinators.ctp.python.tspFolder")
-  val tspStartLocation = tspFolder + pythonSettings.
+  val tspFolder = pyProps.getProperty("org.combinators.ctp.python.tspFolder")
+  val tspStartLocation = tspFolder + pyProps.
     getProperty("org.combinators.ctp.python.tspStartFile")
-  val tspTemplateLocation = tspFolder + pythonSettings.
+  val tspTemplateLocation = tspFolder + pyProps.
     getProperty("org.combinators.ctp.python.tspTemplateFile")
 
-  val mstFolder = pythonSettings.getProperty("org.combinators.ctp.python.mstFolder")
-  val mstStartLocation = mstFolder + pythonSettings.
+  val mstFolder = pyProps.getProperty("org.combinators.ctp.python.mstFolder")
+  val mstStartLocation = mstFolder + pyProps.
     getProperty("org.combinators.ctp.python.mstStartFile")
-  val mstTemplateFile = mstFolder + pythonSettings.
+  val mstTemplateFile = mstFolder + pyProps.
     getProperty("org.combinators.ctp.python.mstTemplateFile")
 
 
@@ -126,6 +136,22 @@ trait PythonTemplateUtils {
     s"np.array([${commaSeparated(fooList)}])"
   }
 
+  def getBoxMinMaxString(p: Properties): String = {
+    val minList = List(p.getProperty("volume.min.x"),
+      p.getProperty("volume.min.y"),
+      p.getProperty("volume.min.z"))
+    val maxList = List(p.getProperty("volume.max.x"),
+      p.getProperty("volume.max.y"),
+      p.getProperty("volume.max.z"))
+    s"${listToNpArray(minList)}, ${listToNpArray(maxList)}"
+  }
 
-
+  def writePyPathData(l: List[List[Float]]): String = {
+    val point_vars: IndexedSeq[String] =
+      l.zipWithIndex.map { case ((a, b)) => s"p$b" }.toIndexedSeq
+    val points = l.indices.map(i => s"${point_vars(i)} = ${listToPythonArray(l(i))}")
+    val pathString = s"path_list = ${listToNpArray(point_vars.toList)}"
+    s"""${points.mkString("\r\n")}
+$pathString"""
+  }
 }

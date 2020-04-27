@@ -1,14 +1,13 @@
 package org.combinators.ctp.repositories.geometry
 
 import org.combinators.cls.interpreter._
-import org.combinators.cls.types.{Kinding}
+import org.combinators.cls.types.Kinding
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.toplevel._
 
 import math._
 
-//TODO remove combiantors
 trait GeometricRepository extends GeometryUtils {
   @combinator object AabbGen2D {
     def apply(): PpVertexList => PpAaBb2D = { a =>
@@ -73,6 +72,20 @@ trait GeometricRepository extends GeometryUtils {
       gm_AffTransformVertexListFunction :&: dimensionality_var =>:
       gm_CubeToPoly :&: dimensionality_var
   }
+
+    @combinator object CubeToSurfaceMesh {
+    def apply(vertices: List[List[Float]], transform: (List[List[Float]], MqttTransform) => List[List[Float]]):
+    List[MqttCubeData] => List[PpVertexList] = { a =>
+      (for {i <- a}
+        yield transform(vertices, MqttTransform(i.tMatrix))).map(a => PpVertexList(a))
+    }
+
+    val semanticType = gm_rectangular :&: dimensionality_var =>:
+      gm_AffTransformVertexListFunction :&: dimensionality_var =>:
+      gm_CubeToPoly :&: dimensionality_var
+  }
+
+
 
 
   /*

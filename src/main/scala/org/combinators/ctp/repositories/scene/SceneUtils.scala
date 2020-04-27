@@ -1,11 +1,16 @@
 package org.combinators.ctp.repositories.scene
 
+import java.io.FileInputStream
+import java.util.Properties
+
 import io.circe.generic.JsonCodec
 import org.apache.commons.geometry.euclidean.threed.rotation.QuaternionRotation
 import org.apache.commons.geometry.euclidean.threed.Vector3D
 import org.combinators.ctp.repositories.python_interop.PythonTemplateUtils
 import org.combinators.ctp.repositories.taxkinding.{CtpTaxonomy, SceneDescription}
-import org.combinators.ctp.repositories.toplevel.{MpTaskStartGoal, MqttObstacleSRT, PolySceneSegmentationRoadmapPath, SceneSRT}
+import org.combinators.ctp.repositories.toplevel.{MpTaskStartGoal, MqttObstacleSRT, PolySceneSegmentationRoadmapPath, ProblemDefinitionFiles, SceneSRT}
+
+import scala.io.Source
 
 trait SceneUtils extends SceneDescription with PythonTemplateUtils {
   val indentStr: String = """"""
@@ -73,11 +78,6 @@ trait SceneUtils extends SceneDescription with PythonTemplateUtils {
       s" ${listToNpArray(t.srt.localTranslate.zip(globalScale).map { case (a, b) => a * b })}\r\n${indentStr}transform$id = fcl.Transform(q$id, translate$id)"
   }
 
-  def TODOalti(id: Int, globalScale:List[Float], t: MqttObstacleSRT): String = {
-    s"${indentStr}q$id = ${listToNpArray(t.srt.localRot)}\r\n${indentStr}translate$id = ${listToNpArray(t.srt.localTranslate.zip(globalScale).map { case (a, b) => a * b })}\r\n${indentStr}transform$id = fcl.Transform(q$id, translate$id)"
-  }
-
-//TODO apply srt method
   def getBvModelString(id:Int, globalScale:List[Float], t:MqttObstacleSRT):String ={
     t.primitive match {
       case 0 => //Cube
@@ -97,10 +97,6 @@ trait SceneUtils extends SceneDescription with PythonTemplateUtils {
         s"""($vertexString,
            |$triString)""".stripMargin
     }
-  }
-
-  def getCollisionObjString(id: Int) = {
-    s"${indentStr}colObj$id = fcl.CollisionObject(obstacle$id, transform$id)"
   }
 
   def vertexTriCount(id:Int):(Int,Int) = id match {
@@ -127,9 +123,85 @@ ${scene.obstacles.indices.map(id => s"    mesh.addSubModel(verts$id, tris$id)").
     val idList = scene.obstacles.indices zip scene.obstacles
     val instantiationStr = idList.map { case (a, b) => s"${indentStr}obstacle$a=${getFclObstacleString(scene.boundaries, b)}" }.mkString("\r\n")
     val transformStr = idList.map { case (a, b) => getFclSRTString(a, scene.boundaries, b) }.mkString("\r\n")
-    val colObjStr = idList.map { case (a, _) => getCollisionObjString(a) }.mkString("\r\n")
-    val coArray = s"${indentStr}objs = ${listToPythonArray(idList.map { case (a, _) => s"colObj$a" }.toList)}"
-    List(instantiationStr, transformStr, colObjStr, coArray).mkString("\r\n")
+    val fcl_objs = s"${indentStr}fcl_objs = ${listToPythonArray(idList.map { case (a, _) => s"(obstacle$a, transform$a)" }.toList)}"
+    List(instantiationStr, transformStr, fcl_objs).mkString("\r\n")
+  }
+
+
+  def getOmplQuaternions(l:Properties) : (String, String) = {
+    (
+      s"""startRef.rotation().setAxisAngle(
+         |${l.getProperty("start.axis.x")},
+         |${l.getProperty("start.axis.y")},
+         |${l.getProperty("start.axis.z")},
+         |${l.getProperty("start.theta")}
+         |)
+         |""".stripMargin.filter(_ >= ' '),
+      s"""goalRef.rotation().setAxisAngle(
+         |${l.getProperty("goal.axis.x")},
+         |${l.getProperty("goal.axis.y")},
+         |${l.getProperty("goal.axis.z")},
+         |${l.getProperty("goal.theta")}
+         |)
+         |""".stripMargin.filter(_ >= ' '))
+  }
+
+  def loadSceneFromProbDefinition(tg:ProblemDefinitionFiles):String = {
+//    s"""robot, scene = loadModels("${tg.envModelLocation}", "${tg.robotModelLocation}")
+//       |sceneobj = fcl.CollisionObject(scene, fcl.Transform())
+//       |objs = [sceneobj]""".stripMargin
+    s"""
+      |scene, robot = loadModels("${tg.envModelLocation}", "${tg.robotModelLocation}")
+      |
+      |env_mesh = fcl.BVHModel()
+      |env_mesh.beginModel(len(scene.vertices), len(scene.faces))
+      |env_mesh.addSubModel(scene.vertices, scene.faces)
+      |env_mesh.endModel()
+      |
+      |robot_mesh = fcl.BVHModel()
+      |robot_mesh.beginModel(len(robot.vertices), len(robot.faces))
+      |robot_mesh.addSubModel(robot.vertices, robot.faces)
+      |robot_mesh.endModel()
+      |
+      |fcl_objs = [(env_mesh, fcl.Transform())]""".stripMargin
+  }
+
+  def readOmplStartStopFromCfg(problemCfg: Properties):String = {
+    val (startRot, goalRot) = getOmplQuaternions(problemCfg)
+
+    s"""        # create a start state
+       |        start = ob.State(space)
+       |        startRef = start()
+       |        startRef.setX(${problemCfg.getProperty("start.x")})
+       |        startRef.setY(${problemCfg.getProperty("start.y")})
+       |        startRef.setZ(${problemCfg.getProperty("start.z")})
+       |        $startRot
+       |        # startRef.rotation().setIdentity()  # start[0] = 0
+       |        # start[1] = 0
+       |        # start[2] = 0
+       |
+       |        # create a goal state
+       |        goal = ob.State(space)
+       |        goalRef = goal()
+       |        goalRef.setX(${problemCfg.getProperty("goal.x")})
+       |        goalRef.setY(${problemCfg.getProperty("goal.y")})
+       |        goalRef.setZ(${problemCfg.getProperty("goal.z")})
+       |        $goalRot
+       |        # goalRef.rotation().setIdentity()""".stripMargin
+  }
+
+  def readOmplBoundsFromCfg(problemCfg: Properties):String = {
+    s"""        # create R^3 Bounds
+       |        bounds = ob.RealVectorBounds(3) #
+       |        bounds.setLow(0, ${problemCfg.getProperty("volume.min.x")})
+       |        bounds.setHigh(0, ${problemCfg.getProperty("volume.max.x")})
+       |        bounds.setLow(1, ${problemCfg.getProperty("volume.min.y")})
+       |        bounds.setHigh(1, ${problemCfg.getProperty("volume.max.y")})
+       |        bounds.setLow(2, ${problemCfg.getProperty("volume.min.z")})
+       |        bounds.setHigh(2, ${problemCfg.getProperty("volume.max.z")})
+       |        bounds.check()
+       |        space.setBounds(bounds)
+       |        """.stripMargin
   }
 
   def taskGoalStartToPythonOMPLString(tg: MpTaskStartGoal):String = {
@@ -150,7 +222,19 @@ ${scene.obstacles.indices.map(id => s"    mesh.addSubModel(verts$id, tris$id)").
        |        goalRef.setY(${tg.endPosition(1)})
        |        goalRef.setZ(${tg.endPosition(2)})
        |        goalRef.rotation().setIdentity()""".stripMargin
+  }
 
+  def getMpStartGoalFromProperties(p: Properties) = {
+    val startPos: List[Float] = List(
+      p.getProperty("start.x").toFloat,
+      p.getProperty("start.y").toFloat,
+      p.getProperty("start.z").toFloat)
+
+    val endPos: List[Float] = List(
+      p.getProperty("goal.x").toFloat,
+      p.getProperty("goal.y").toFloat,
+      p.getProperty("goal.z").toFloat)
+    MpTaskStartGoal(startPos, endPos)
   }
 
 /*

@@ -66,7 +66,7 @@ abstract case class SimplePythonWrapper[B](t: SubstitutionScheme, startFile: Str
 
 abstract case class PythonWrapperModifier[A, B](t: SubstitutionScheme, startFile: String)
   extends PythonWrapper[B](t, startFile) {
-  def computeResultAndModifyInput: A => B = { input: A =>
+  def computeResult: A => B = { input: A =>
     println(s"Generating files... ")
     generateFiles()
     val resultString: String = executePythonFile()

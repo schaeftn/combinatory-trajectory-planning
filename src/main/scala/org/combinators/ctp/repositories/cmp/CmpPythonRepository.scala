@@ -8,7 +8,7 @@ import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.geometry.{PpAaBb2D, PpVertexList}
 import org.combinators.ctp.repositories.python_interop.{PythonTemplateUtils, PythonWrapper, SubstitutionScheme}
-import org.combinators.ctp.repositories.toplevel.{PolySceneCellSegmentation, PolySceneLineSegmentation, PolygonScene}
+import org.combinators.ctp.repositories.toplevel.{CellSegmentation, MeshScene, PolySceneCellSegmentation, PolySceneLineSegmentation, PolygonScene, ProblemDefinitionFiles}
 import org.combinators.cls.interpreter._
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
@@ -39,15 +39,15 @@ trait CmpPythonRepository extends PythonTemplateUtils with CmpUtils {
           s"    scene_size = [${scene.boundaries.mkString(", ")}]"
       }
 
-      def decodeString: (PolygonScene, String) => PolySceneLineSegmentation =
-        (_:PolygonScene, s: String) => decode[PolySceneLineSegmentation](s).right.get
+      def decodeString: String => PolySceneLineSegmentation =
+        (s: String) => decode[PolySceneLineSegmentation](s).right.get
 
       val fileMap = Map(cdPolyTemplateLocation -> cdPolyStartLocation)
       val substMap = Map("$substitute$" -> pythonSceneString(polygonScene))
       val t = SubstitutionScheme(fileMap, substMap)
 
       val pWrapper = PythonWrapper.apply(t,cdPolyStartLocation,decodeString)
-      val sceneSegmentation = vcdLtC2.apply(pWrapper.computeResultAndModifyInput(polygonScene))
+      val sceneSegmentation = vcdLtC2.apply(pWrapper.computeResult)
       sceneSegmentation.freeCells.foreach(i => println(s"freeCell: ${i.map(sceneSegmentation.vertices)}"))
       sceneSegmentation
     }
@@ -77,7 +77,7 @@ trait CmpPythonRepository extends PythonTemplateUtils with CmpUtils {
       val t = SubstitutionScheme(fileMap, substMap)
 
       val pWrapper = PythonWrapper.apply(t, cdStartLocationTri, decodeCellSegmentationFct)
-      pWrapper.computeResultAndModifyInput(polyScene)
+      pWrapper.computeResult(polyScene)
     }
 
     val semanticType = cmp_sceneSegFct_type :&:  sd_seg_triangles_simple_type:&: dimensionality_two_d_t
@@ -101,7 +101,7 @@ trait CmpPythonRepository extends PythonTemplateUtils with CmpUtils {
       val t = SubstitutionScheme(fileMap, substMap)
 
       val pWrapper = PythonWrapper.apply(t, cdStartLocationTriPara, decodeCellSegmentationFct)
-      pWrapper.computeResultAndModifyInput(polyScene)
+      pWrapper.computeResult(polyScene)
     }
 
     val semanticType = cmp_sceneSegFct_type :&: sd_seg_triangles_para_type :&: dimensionality_two_d_t
@@ -127,11 +127,67 @@ trait CmpPythonRepository extends PythonTemplateUtils with CmpUtils {
       val t = SubstitutionScheme(fileMap, substMap)
 
       val pWrapper = PythonWrapper.apply(t, cdStartLocationTet, decodeCellSegmentationFct)
+      pWrapper.computeResult(polyScene)
+    }
+
+    val semanticType = cmp_sceneSegFct_type :&: sd_seg_triangles_simple_type :&: sd_seg_triangles_para_type :&: dimensionality_three_d_t
+  }
+
+  @combinator object TetFile {
+    def apply: ProblemDefinitionFiles => PolySceneCellSegmentation = { pdef: ProblemDefinitionFiles =>
+      val fileMap = Map(cdTemplateLocationTetFileBased -> cdStartLocationTetFileBased)
+      val substMap = Map("$run_tetrahedralization_file.envFile$" -> s""""${pdef.envModelLocation}"""",
+        "$run_tetrahedralization_file.boxminmax$" -> getBoxMinMaxString(pdef.problemProperties))
+      val t = SubstitutionScheme(fileMap, substMap)
+
+      def decodeCellSegmentationFile: String => PolySceneCellSegmentation = {
+        resultString: String =>
+          val segmentation = decode[CellSegmentation](resultString) match {
+            case Left(_) =>
+              println(s"Error while decoding")
+              println(s"$resultString")
+              CellSegmentation(List.empty[List[Float]], List.empty[List[Int]])
+            case Right(s) => s
+          }
+          PolygonScene(List.empty[List[Float]], List.empty[List[Int]], List.empty[Float]).
+            withVertices(segmentation.vertices).withFreeCells(segmentation.cells)
+      }
+      val pWrapper = PythonWrapper.apply(t, cdStartLocationTetFileBased, decodeCellSegmentationFile)
+      pWrapper.computeResult
+    }
+
+    val semanticType = cmp_sceneSegFct_type :&: sd_seg_triangles_simple_type :&: sd_seg_triangles_para_type :&: dimensionality_three_d_t
+  }
+/*
+  @combinator object TetMesh {
+    def apply: MeshScene => PolySceneCellSegmentation = { polyScene: PolygonScene =>
+      def pythonSceneString(scene: MeshScene): String = {
+        val obstacleString = (for (i <- scene.obstacles.indices) yield s"b$i").reduce((a, b) => a + ", " + b)
+        val verticesList: List[String] = scene.obstacles.map {
+          i => i.vertices.map(listToPythonArray)
+        }.map(listToPythonArray).map(listToNpArray())
+        val facesList: List[String] = scene.obstacles.map { i => i.triangles }.map(listToNpArray)
+
+        scene.obstacles.indices.foreach(i => println("i print: " + scene.obstacles(i).toString()))
+        val object_instances = scene.obstacles.indices.map(i =>
+          s"""    mesh$i = mesh = pymesh.form_mesh(obstacleVertices($i), obstacleFaces($i))""").reduce(_ + "\n" + _)
+
+        s"$object_instances\n" +
+          s"    scene_objects = [$obstacleString]\n" +
+          s"    scene_size = [${scene.boundaries.mkString(", ")}]"
+      }
+
+      val fileMap = Map(cdTemplateLocationTet -> cdStartLocationTet)
+      val substMap = Map("$substitute$" -> pythonSceneString(polyScene))
+      val t = SubstitutionScheme(fileMap, substMap)
+
+      val pWrapper = PythonWrapper.apply(t, cdStartLocationTet, decodeCellSegmentationFct)
       pWrapper.computeResultAndModifyInput(polyScene)
     }
 
     val semanticType = cmp_sceneSegFct_type :&: sd_seg_triangles_simple_type :&: sd_seg_triangles_para_type :&: dimensionality_three_d_t
   }
+  */
 
   @combinator object GridCombinator {
     def apply: PolygonScene => PolySceneCellSegmentation = { polyScene: PolygonScene =>

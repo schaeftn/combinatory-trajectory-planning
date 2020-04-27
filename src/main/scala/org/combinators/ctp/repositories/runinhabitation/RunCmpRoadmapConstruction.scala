@@ -46,6 +46,7 @@ object RunCmpRoadmapConstruction extends App {
     getElements(List.empty, b.run())
   }
 
+
   val l = getResultList(ihBatch)
 
   l.map(i => println((if (i.isEmpty) "inhabitant not found" else "inhabitant found") + "," + i.target.toString()))

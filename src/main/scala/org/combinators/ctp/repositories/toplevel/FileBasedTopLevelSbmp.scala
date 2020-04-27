@@ -1,6 +1,5 @@
 package org.combinators.ctp.repositories.toplevel
 
-import java.io.File
 import java.util.Properties
 
 import akka.stream.ClosedShape
@@ -10,26 +9,20 @@ import akka.stream.scaladsl.{GraphDSL, RunnableGraph, Sink, Source, Zip}
 import akka.util.ByteString
 import akka.{Done, NotUsed}
 import com.typesafe.scalalogging.LazyLogging
-import io.circe.generic.auto._
 import io.circe.syntax._
 import org.combinators.cls.interpreter.combinator
-import org.combinators.cls.types.Constructor
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
-import org.combinators.ctp.repositories.toplevel._
-import org.combinators.ctp.repositories.scene._
+import scala.io.StdIn._
 
 import scala.concurrent.Future
-import scala.io.StdIn.readLine
+import java.io.File
 
-
-trait AkkaMqttTopLevelCmpSbmp extends LazyLogging with AkkaImplicits with AkkaMqttComponents {
-  @combinator object SampleBasedMpAkkaRefinement {
-    def apply(
-               cmpFileBased: ProblemDefinitionFiles => List[List[Float]],
-               composedFunction: ((ProblemDefinitionFiles, List[List[Float]])) => List[List[Float]],
-               sceneSink: Sink[MqttMessage, Future[Done]]): Unit = {
-      logger.info(s"Refinement start")
+trait FileBasedTopLevelSbmp extends LazyLogging with AkkaImplicits with AkkaMqttComponents {
+  @combinator object FileBasedTopLevelSbmp {
+    def apply(composedFunction: ProblemDefinitionFiles => List[List[Float]],
+              sceneSink: Sink[MqttMessage, Future[Done]]): Unit = {
+      logger.info(s"SampleBasedAkka Start")
 
       def toMqttMsg(s: List[List[Float]]) = {
         val topic = mqttProperties.getProperty("org.combinators.ctp.ctpPathfromScala")
@@ -39,8 +32,7 @@ trait AkkaMqttTopLevelCmpSbmp extends LazyLogging with AkkaImplicits with AkkaMq
       val streamGraph: ProblemDefinitionFiles => RunnableGraph[NotUsed] = pDef =>
         RunnableGraph.fromGraph(GraphDSL.create() { implicit b =>
           logger.info("running composedfct")
-          val cmpPath = cmpFileBased(pDef)
-          val path = composedFunction((pDef, cmpPath))
+          val path = composedFunction(pDef)
           println(s"found path: $path")
           Source.single(toMqttMsg(path)) ~> sceneSink
           ClosedShape
@@ -85,18 +77,12 @@ trait AkkaMqttTopLevelCmpSbmp extends LazyLogging with AkkaImplicits with AkkaMq
     }
 
     val semanticType =
-      cmp_algorithm_type :&: cmp_graph_algorithm_var :&: rmc_connectorNodes_var :&: rmc_centroidFct_var :&:
-        rmc_cellGraph_var :&: sd_cell_type_var :&: sd_poly_scene_cell_segmentation_var :&: dimensionality_var :&:
-        rmc_cellNodeAddFct_var :&: rmc_startGoalFct_var :&: rmc_usingCentroids_var =>:
-        sbmp_planning_algorithm :&: sbmp_planner_var :&: sbmp_sampler_var :&:
-          sbmp_state_validator_var :&: sbmp_motion_validator_var :&: sbmp_optimization_objective_var :&:
-          sbmp_cost_var =>:
-        p_mqttAkkaSink_type :&: cmp_path_only :&: dimensionality_var =>:
+      sbmp_planning_algorithm :&: sbmp_planner_var :&: sbmp_sampler_var :&:
+        sbmp_state_validator_var :&: sbmp_motion_validator_var :&: sbmp_optimization_objective_var :&:
+        sbmp_cost_var =>:
+      p_mqttAkkaSink_type :&: cmp_path_only :&: dimensionality_var =>:
         p_fileToAkka_type :&: dimensionality_var :&: cmp_path_only :&:
-          sbmp_planner_var :&: sbmp_sampler_var :&: sbmp_state_validator_var :&: sbmp_motion_validator_var :&:
-          sbmp_optimization_objective_var :&: sbmp_cost_var :&: cmp_graph_algorithm_var :&: rmc_connectorNodes_var :&:
-          rmc_centroidFct_var :&: rmc_cellGraph_var :&: sd_cell_type_var :&: sd_poly_scene_cell_segmentation_var  :&:
-          rmc_cellNodeAddFct_var :&: rmc_startGoalFct_var :&: rmc_usingCentroids_var
+        sbmp_planner_var :&: sbmp_sampler_var :&: sbmp_state_validator_var :&: sbmp_motion_validator_var :&:
+        sbmp_optimization_objective_var :&: sbmp_cost_var
   }
-
 }

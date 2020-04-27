@@ -39,6 +39,44 @@ trait SbmpInputDataRepository extends SceneUtils with PythonTemplateUtils {
     //ggf plus sampler, plus motion validator?, ggf plus dimension
   }
 
+
+  @combinator object SceneFileImportSceneData{
+    def apply: ProblemDefinitionFiles => SubstitutionScheme = {
+      scene: ProblemDefinitionFiles =>
+        val fileMapping: Map[String, String] = Map(sbmpStartTemplate -> sbmpMainStartFile,
+          fclSceneDataTemplate -> fclSceneDataFile)
+
+        val substituteMap: Map[String, String] = {
+          Map("$fcl_scene_data.data$" -> loadSceneFromProbDefinition(scene),
+            "$sbmp_main.startstop$"-> readOmplStartStopFromCfg(scene.problemProperties),
+            "$sbmp_main.r3bounds$" -> readOmplBoundsFromCfg(scene.problemProperties))}
+        SubstitutionScheme(fileMapping, substituteMap)
+    }
+    val semanticType = sbmp_input_data :&: dimensionality_three_d_t
+    //ggf plus sampler, plus motion validator?, ggf plus dimension
+  }
+
+  @combinator object SceneFileImportPathSceneData {
+    def apply: ((ProblemDefinitionFiles, List[List[Float]])) => SubstitutionScheme = {
+      case (scene: ProblemDefinitionFiles, pathNodes: List[List[Float]]) =>
+        val fileMapping: Map[String, String] = Map(sbmpStartTemplate -> sbmpMainStartFile,
+          fclSceneDataTemplate -> fclSceneDataFile,
+          pathDataTemplate -> pathDataFile)
+
+        val substituteMap: Map[String, String] = {
+          Map("$fcl_scene_data.data$" -> loadSceneFromProbDefinition(scene),
+            "$sbmp_main.startstop$" -> readOmplStartStopFromCfg(scene.problemProperties),
+            "$sbmp_main.r3bounds$" -> readOmplBoundsFromCfg(scene.problemProperties),
+            "$path_data.path$" -> writePyPathData(pathNodes)
+          )
+        }
+        SubstitutionScheme(fileMapping, substituteMap)
+    }
+
+    val semanticType = sbmp_input_data :&: dimensionality_three_d_t
+    //ggf plus sampler, plus motion validator?, ggf plus dimension
+  }
+
   // Path refinement
   // scene rep
   // sampler path hinterlegen

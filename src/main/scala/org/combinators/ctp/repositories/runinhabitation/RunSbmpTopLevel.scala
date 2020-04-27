@@ -1,39 +1,41 @@
 package org.combinators.ctp.repositories.runinhabitation
 
-import akka.Done
-import akka.stream.alpakka.mqtt.MqttMessage
-import akka.stream.scaladsl.Sink
+
 import org.combinators.cls.interpreter.{InhabitationResult, ReflectedRepository}
-import org.combinators.cls.types.{Type, Variable}
+import org.combinators.cls.types.syntax._
+import org.combinators.cls.types.{Constructor, Intersection, Type, Variable}
+import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.cmp.CmpPythonRepository
 import org.combinators.ctp.repositories.graphsearch.GraphSearchRepository
+import org.combinators.ctp.repositories.python_interop.{PlannerScheme, SubstitutionScheme}
 import org.combinators.ctp.repositories.samplebased.SbmpTopLevelRepository
 import org.combinators.ctp.repositories.scene.SceneRepository
 import org.combinators.ctp.repositories.taxkinding.CombinatorialMotionPlanning
 import org.combinators.ctp.repositories.toplevel.{CmpTopLevel, FileBasedTopLevelSbmp, ProblemDefinitionFiles}
-import org.combinators.ctp.repositories._
-import org.combinators.cls.types.syntax._
 
-import scala.concurrent.Future
-
-object RunSceneSampling extends App {
+object RunSbmpTopLevel extends App {
   lazy val repository = new SceneRepository with CmpTopLevel with FileBasedTopLevelSbmp with CmpPythonRepository
     with GraphSearchRepository with SbmpTopLevelRepository {}
   lazy val cmpRepository = new CombinatorialMotionPlanning {}
 
-  val sbmpKindingMap = Map(sbmp_planner_var -> Seq(sbmp_planner_BKPIECE1),
+  val sbmpKindingMap = Map(sbmp_planner_var -> Seq(sbmp_planner_RRT),
     sbmp_sampler_var -> Seq(sbmp_uniform_valid_state_sampler),
     sbmp_state_validator_var -> Seq(sbmp_fcl_validator),
-    sbmp_motion_validator_var -> Seq(sbmp_discrete_motion_validator),
+    sbmp_motion_validator_var -> Seq(sbmp_fcl_motion_validator),
     sbmp_cost_var -> Seq(sbmp_default_cost_state),
     sbmp_optimization_objective_var -> Seq(sbmp_opt_path_length),
     dimensionality_var -> Seq(dimensionality_three_d_t)
   )
   val kindingMap = repository.cmpDefaultKindingMap ++ repository.sbmpDefaultKindingMap ++ sbmpKindingMap
+  // cmpFull: 28k substitutions
+  // sbmpFull: 94k substitutions
   val sbmpKinding = buildKinding(kindingMap)
 
+  println("Building reflected repository")
   lazy val Gamma = ReflectedRepository(repository, substitutionSpace = sbmpKinding)
 
+  println(s"Gamma.combinators.size: ${Gamma.combinators.size}")
+  println(s"Gamma.combinatorComponents.size: ${Gamma.combinatorComponents.size}")
 
   println(s"# of allowed substitutions: ${Gamma.substitutionSpace.allowedSubstitutions.values.size}")
 
@@ -50,31 +52,36 @@ object RunSceneSampling extends App {
     typeList.head
   }
 
-  val ihBatch = Gamma.InhabitationBatchJob[ProblemDefinitionFiles => List[List[Float]]](
-    sbmp_planning_algorithm :&:
+  def resolveTypeExpression(t: Type): Type = t match {
+    case Intersection(a, b) => Intersection(resolveTypeExpression(a), resolveTypeExpression(b))
+    case Variable(a) => getTypeFromMap(Variable(a))
+    case Constructor(name, arguments@_*) => Constructor(name, arguments: _*)
+  }
+
+  val ihBatch = Gamma.InhabitationBatchJob[Unit](
+    p_fileToAkka_type :&: cmp_path_only :&:
+      getTypeFromMap(dimensionality_var) :&:
       getTypeFromMap(sbmp_planner_var) :&:
       getTypeFromMap(sbmp_sampler_var) :&:
       getTypeFromMap(sbmp_state_validator_var) :&:
       getTypeFromMap(sbmp_motion_validator_var) :&:
       getTypeFromMap(sbmp_optimization_objective_var) :&:
       getTypeFromMap(sbmp_cost_var))
-    .addJob[Sink[MqttMessage, Future[Done]]](p_mqttAkkaSink_type :&: cmp_path_only :&: getTypeFromMap(dimensionality_var))
-    .addJob[Unit](
-      p_fileToAkka_type :&: cmp_path_only :&:
-        getTypeFromMap(dimensionality_var) :&:
+    .addJob[ProblemDefinitionFiles => List[List[Float]]](
+      sbmp_planning_algorithm :&:
         getTypeFromMap(sbmp_planner_var) :&:
         getTypeFromMap(sbmp_sampler_var) :&:
         getTypeFromMap(sbmp_state_validator_var) :&:
         getTypeFromMap(sbmp_motion_validator_var) :&:
         getTypeFromMap(sbmp_optimization_objective_var) :&:
         getTypeFromMap(sbmp_cost_var))
-  /*   [PlannerScheme[SceneSRT, List[List[Float]]]](sbmp_planner_PRM)
-     .addJob[SubstitutionScheme](sbmp_uniform_valid_state_sampler)
-     .addJob[SubstitutionScheme](sbmp_fcl_validator)
-     .addJob[SubstitutionScheme](sbmp_fcl_motion_validator)
-     .addJob[SubstitutionScheme](sbmp_default_cost_state :&: sbmp_opt_path_length)
-     .addJob[(SceneSRT, MpTaskStartGoal) => SubstitutionScheme](sbmp_input_data )
-     .addJob[(SceneSRT, MpTaskStartGoal) => List[List[Float]]](sbmp_planning_algorithm)*/
+    .addJob[PlannerScheme[ProblemDefinitionFiles, List[List[Float]]]](resolveTypeExpression(sbmp_planner_var))
+    .addJob[SubstitutionScheme](resolveTypeExpression(sbmp_sampler_var))
+    .addJob[SubstitutionScheme](resolveTypeExpression(sbmp_state_validator_var :&: sbmp_state_validator_var))
+    .addJob[SubstitutionScheme](resolveTypeExpression(sbmp_motion_validator_var))
+    .addJob[SubstitutionScheme](resolveTypeExpression(sbmp_cost_var :&: sbmp_optimization_objective_var))
+    .addJob[ProblemDefinitionFiles => SubstitutionScheme](resolveTypeExpression(sbmp_input_data :&: dimensionality_var))
+
 
   println("...")
   println("done")

@@ -19,7 +19,7 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
 import scala.concurrent.Future
 
-trait AkkaMqttComponents extends LazyLogging with EncodeImplicits {
+trait AkkaMqttComponents extends LazyLogging with EncodeImplicits with PropertyFiles {
   @combinator object UnityMqttAkkaSourceScene{
     def apply(p: Properties): Source[Scene, Future[Done]] = {
       val broker = p.getProperty("org.combinators.ctp.broker")
@@ -204,11 +204,7 @@ trait AkkaMqttComponents extends LazyLogging with EncodeImplicits {
 
 
   @combinator object UnityConnectionProperties {
-    def apply:Properties = {
-      val p = new Properties()
-      p.load(getClass.getClassLoader.getResourceAsStream("mqtt.properties"))
-      p
-    }
+    def apply:Properties = mqttProperties
 
     val semanticType = p_unityConnectionProperties_type
   }

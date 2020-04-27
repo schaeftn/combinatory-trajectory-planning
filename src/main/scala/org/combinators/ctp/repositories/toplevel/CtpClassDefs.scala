@@ -1,11 +1,15 @@
 package org.combinators.ctp.repositories.toplevel
 
+import java.io.FileInputStream
+import java.util.Properties
+
 import org.combinators.ctp.repositories._
-import org.combinators.ctp.repositories.geometry.PpPolyhedronMesh
+import org.combinators.ctp.repositories.geometry.{PpPolyhedronMesh, PpSurfaceMesh}
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
 
 import scala.language.implicitConversions
+
 
 case class Scene(boundaries: List[Float], obstacles: List[MqttCubeData]) {
   def empty = Scene(List.empty, List.empty)
@@ -14,6 +18,29 @@ case class Scene(boundaries: List[Float], obstacles: List[MqttCubeData]) {
 case class SceneSRT(boundaries: List[Float], obstacles: List[MqttObstacleSRT]) {
   def empty = Scene(List.empty, List.empty)
 }
+
+case class MeshScene(boundaries: List[List[Float]], obstacles: List[PpSurfaceMesh]) {
+  self =>
+}
+
+case class ProblemDefinitionFiles(
+                                   envModelLocation: String,
+                                   robotModelLocation: String,
+                                   problemProperties: Properties)
+
+object ProblemDefinitionFiles{
+  def apply(cfgFile: String): ProblemDefinitionFiles = {
+    val probFolder = PropertyFiles.problemsProperties.getProperty("org.combinators.ctp.problemFolder")
+
+    val cfgProperties = new Properties()
+    cfgProperties.load(new FileInputStream(probFolder + cfgFile))
+
+    val eFile = probFolder + cfgProperties.getProperty("world").split("dae").head  + "obj"
+    val robotFile = probFolder + cfgProperties.getProperty("robot").split("dae").head + "obj"
+    ProblemDefinitionFiles(eFile, robotFile, cfgProperties)
+  }
+}
+
 
 case class PolygonScene(vertices: List[List[Float]], obstacles: List[List[Int]], boundaries: List[Float]) {
   self =>
@@ -29,7 +56,7 @@ case class PolygonScene(vertices: List[List[Float]], obstacles: List[List[Int]],
 case class PolySceneLineSegmentation(vertices: List[List[Float]],
                                      obstacles: List[List[Int]],
                                      boundaries: List[Float],
-                                     topVertices :List[Int],
+                                     topVertices: List[Int],
                                      bottomVertices: List[Int],
                                      lines: List[List[Int]]) {}
 
@@ -52,8 +79,8 @@ case class PolySceneSegmentationRoadmap(vertices: List[List[Float]],
   def withRoadmap(g: Graph[List[Float], WUnDiEdge]): PolySceneSegmentationRoadmap =
     PolySceneSegmentationRoadmap(self.vertices, self.obstacles, self.boundaries, self.freeCells, self.centroids, g)
 
-  def withPath(p:Seq[List[Float]]): PolySceneSegmentationRoadmapPath =
-    PolySceneSegmentationRoadmapPath(self.vertices, self.obstacles, self.boundaries, self.freeCells,self.roadmap, p)
+  def withPath(p: Seq[List[Float]]): PolySceneSegmentationRoadmapPath =
+    PolySceneSegmentationRoadmapPath(self.vertices, self.obstacles, self.boundaries, self.freeCells, self.roadmap, p)
 }
 
 case class PolySceneSegmentationRoadmapPath(
@@ -71,7 +98,7 @@ case class PolySceneSegmentationRoadmapPath(
   def withRoadmap(g: Graph[List[Float], WUnDiEdge]): PolySceneSegmentationRoadmapPath =
     PolySceneSegmentationRoadmapPath(self.vertices, self.obstacles, self.boundaries, self.freeCells, g, self.gpath)
 
-  def empty:PolySceneSegmentationRoadmapPath = PolySceneSegmentationRoadmapPath(List.empty, List.empty, List.empty,
+  def empty: PolySceneSegmentationRoadmapPath = PolySceneSegmentationRoadmapPath(List.empty, List.empty, List.empty,
     List.empty, Graph.empty, Seq.empty[List[Float]])
 }
 
@@ -97,7 +124,6 @@ case class MqttTransformSRT(localScale: List[Float], localRot: List[Float], loca
 case class PathPreds(nodes: List[Int], preds: List[Int])
 
 /**
- * TODO Applied Transform Matrix will expressed by semantic Types
  * Not used yet
  */
 case class VolumeMesh(vertices: vertexArrayType2, faces: facesArrayType,
@@ -105,7 +131,7 @@ case class VolumeMesh(vertices: vertexArrayType2, faces: facesArrayType,
 
 // * Not used yet
 case class SurfaceMesh(vertices: vertexArrayType2, faces: facesArrayType,
-                       override val tMatrix: tMatrixType) extends Transformable{}
+                       override val tMatrix: tMatrixType) extends Transformable {}
 
 trait Transformable {
   val tMatrix: List[List[Float]]

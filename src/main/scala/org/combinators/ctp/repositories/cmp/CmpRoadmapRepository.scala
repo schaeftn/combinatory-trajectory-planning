@@ -116,7 +116,7 @@ trait CmpRoadmapRepository extends CmpUtils with CmpCellCentroidsRepository {
       (scrm, neighbours) => {
         val list: List[(List[Float], Int, Int)] = {
           neighbours.map {
-            case (common_points: List[Int], leftCellId: Int, rightCellId: Int) => {
+            case (common_points: List[Int], leftCellId: Int, rightCellId: Int) =>
               if (common_points.size != 2)
                 println(s"WARN: size of common vertices of neighbour cells is " +
                   s"${common_points.size} should be 2. Vertices: " +
@@ -125,7 +125,6 @@ trait CmpRoadmapRepository extends CmpUtils with CmpCellCentroidsRepository {
               val v2 = scrm.vertices(common_points.last)
               val connxPoint = lineSegmentCenterPoint(v1, v2)
               (connxPoint, leftCellId, rightCellId)
-            }
           }.toList
         }
         scrm.freeCells.indices.map(i => list.filter { case (_, id1, id2) => id1 == i || id2 == i }.map(_._1)).toList
@@ -171,14 +170,13 @@ trait CmpRoadmapRepository extends CmpUtils with CmpCellCentroidsRepository {
 
   @combinator object NodesEdgesStartEndCentroid {
     def apply(): (PolySceneCellSegmentation, IndexedSeq[RmAuxDataNodes], MpTaskStartGoal) => (List[List[Float]], List[WUnDiEdge[List[Float]]]) = {
-      case (sSeg: PolySceneCellSegmentation, cellNodes: IndexedSeq[RmAuxDataNodes], startGoal: MpTaskStartGoal) => {
+      case (sSeg: PolySceneCellSegmentation, cellNodes: IndexedSeq[RmAuxDataNodes], startGoal: MpTaskStartGoal) =>
         val (startIndex, endIndex) = findFreeCell2D(sSeg, startGoal)
         val edges = edgesVertexToVertex(cellNodes(startIndex).centroid, startGoal.startPosition) ++
           edgesVertexToVertex(cellNodes(endIndex).centroid, startGoal.endPosition)
         val nodes = List(startGoal.startPosition, startGoal.endPosition)
 
         (nodes, edges)
-      }
     }
 
     val semanticType = rmc_startGoalFct_type :&: rmc_startGoal_cellbased_type :&: rmc_cg_centroidsOnly :&:
@@ -188,7 +186,7 @@ trait CmpRoadmapRepository extends CmpUtils with CmpCellCentroidsRepository {
   @combinator object NodesEdgesStartEndCellBased {
     def apply(): (PolySceneCellSegmentation, IndexedSeq[RmAuxDataNodes], MpTaskStartGoal) =>
       (List[List[Float]], List[WUnDiEdge[List[Float]]]) = {
-      case (sSeg: PolySceneCellSegmentation, cellNodes: IndexedSeq[RmAuxDataNodes], startGoal: MpTaskStartGoal) => {
+      case (sSeg: PolySceneCellSegmentation, cellNodes: IndexedSeq[RmAuxDataNodes], startGoal: MpTaskStartGoal) =>
         print("aaa")
         val (startIndex, endIndex) = findFreeCell2D(sSeg, startGoal)
         print("bbb")
@@ -201,7 +199,6 @@ trait CmpRoadmapRepository extends CmpUtils with CmpCellCentroidsRepository {
         print("ddd")
 
         (nodes, edges)
-      }
     }
 
     val semanticType = rmc_startGoalFct_type :&: rmc_startGoal_cellbased_type :&:
@@ -212,7 +209,7 @@ trait CmpRoadmapRepository extends CmpUtils with CmpCellCentroidsRepository {
   @combinator object NodesEdgesStartEndNearest {
     def apply(): (PolySceneCellSegmentation, IndexedSeq[RmAuxDataNodes], MpTaskStartGoal) =>
       (List[List[Float]], List[WUnDiEdge[List[Float]]]) = {
-      case (_:PolySceneCellSegmentation, cellNodes: IndexedSeq[RmAuxDataNodes], mpTask: MpTaskStartGoal) => {
+      case (_:PolySceneCellSegmentation, cellNodes: IndexedSeq[RmAuxDataNodes], mpTask: MpTaskStartGoal) =>
         print(s"startingNOdesEdgesStartEndNEarest")
 
         val startPoint = mpTask.startPosition
@@ -239,7 +236,6 @@ trait CmpRoadmapRepository extends CmpUtils with CmpCellCentroidsRepository {
         val startEdge = WUnDiEdge(minStartNode._1, startPoint)(minStartNode._2)
         val endEdge = WUnDiEdge(minEndNode._1, endPoint)(minEndNode._3)
         (List(startPoint, endPoint), List(startEdge, endEdge))
-      }
     }
 
     val semanticType = rmc_startGoalFct_type :&: rmc_startGoal_nn_type :&: rmc_cellGraph_var :&: dimensionality_var
