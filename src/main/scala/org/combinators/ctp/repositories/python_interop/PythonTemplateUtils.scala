@@ -44,48 +44,49 @@ trait PythonTemplateUtils {
     getProperty("org.combinators.ctp.python.cgalSceneDataTemplate")
 
   val cdGenFolder = pyProps.getProperty("org.combinators.ctp.python.cdGenfolder")
+  val cdTemplateFolder = pyProps.getProperty("org.combinators.ctp.python.cdTemplatefolder")
 
   val cdPolyStartLocation = cdGenFolder + pyProps.
     getProperty("org.combinators.ctp.python.cdStartLocationVcdPoly")
-  val cdPolyTemplateLocation = cdGenFolder + pyProps.
+  val cdPolyTemplateLocation = cdTemplateFolder + pyProps.
     getProperty("org.combinators.ctp.python.cdTemplateLocationVcdPoly")
 
   val cdStartLocationTri = cdGenFolder + pyProps.
     getProperty("org.combinators.ctp.python.cdStartLocationTri")
-  val cdTemplateLocationTri = cdGenFolder + pyProps.
+  val cdTemplateLocationTri = cdTemplateFolder + pyProps.
     getProperty("org.combinators.ctp.python.cdTemplateLocationTri")
 
   val cdStartLocationTriPara = cdGenFolder + pyProps.
     getProperty("org.combinators.ctp.python.cdStartLocationTriPara")
-  val cdTemplateLocationTriPara = cdGenFolder + pyProps.
+  val cdTemplateLocationTriPara = cdTemplateFolder + pyProps.
     getProperty("org.combinators.ctp.python.cdTemplateLocationTriPara")
 
   val cdStartLocationTet = cdGenFolder + pyProps.
     getProperty("org.combinators.ctp.python.cdStartLocationTet")
-  val cdTemplateLocationTet = cdGenFolder + pyProps.
+  val cdTemplateLocationTet = cdTemplateFolder + pyProps.
     getProperty("org.combinators.ctp.python.cdTemplateLocationTet")
 
   val cdStartLocationTetFileBased = cdGenFolder + pyProps.
     getProperty("org.combinators.ctp.python.cdStartLocationTetFileBased")
-  val cdTemplateLocationTetFileBased = cdGenFolder + pyProps.
+  val cdTemplateLocationTetFileBased = cdTemplateFolder + pyProps.
     getProperty("org.combinators.ctp.python.cdTemplateLocationTetFileBased")
 
-  val aStarFolder = pyProps.getProperty("org.combinators.ctp.python.aStarFolder")
-  val aStarStartFile = aStarFolder + pyProps.
+  val graphGenFolder = pyProps.getProperty("org.combinators.ctp.python.graphGenFolder")
+  val graphTemplateFolder = pyProps.getProperty("org.combinators.ctp.python.graphTemplateFolder")
+
+  val aStarStartFile = graphGenFolder + pyProps.
     getProperty("org.combinators.ctp.python.aStarStartFile")
-  val aStarTemplateFile = aStarFolder + pyProps.
+  val aStarTemplateFile = graphTemplateFolder + pyProps.
     getProperty("org.combinators.ctp.python.aStarTemplateFile")
 
-  val tspFolder = pyProps.getProperty("org.combinators.ctp.python.tspFolder")
-  val tspStartLocation = tspFolder + pyProps.
+  val tspStartLocation = graphGenFolder + pyProps.
     getProperty("org.combinators.ctp.python.tspStartFile")
-  val tspTemplateLocation = tspFolder + pyProps.
+  val tspTemplateLocation = graphTemplateFolder + pyProps.
     getProperty("org.combinators.ctp.python.tspTemplateFile")
 
-  val mstFolder = pyProps.getProperty("org.combinators.ctp.python.mstFolder")
-  val mstStartLocation = mstFolder + pyProps.
+  val mstStartLocation = graphGenFolder + pyProps.
     getProperty("org.combinators.ctp.python.mstStartFile")
-  val mstTemplateFile = mstFolder + pyProps.
+  val mstTemplateFile = graphTemplateFolder + pyProps.
     getProperty("org.combinators.ctp.python.mstTemplateFile")
 
 
