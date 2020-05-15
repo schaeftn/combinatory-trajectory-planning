@@ -8,19 +8,18 @@ import akka.stream.alpakka.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, M
 import akka.stream.scaladsl.{Sink, Source}
 import com.typesafe.scalalogging.LazyLogging
 import io.circe.parser.decode
+import io.circe.generic.auto._
 import org.combinators.cls.interpreter.combinator
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
-import org.combinators.ctp.repositories.mptasks.MpTaskStartGoal
+import org.combinators.ctp.repositories.toplevel._
 import org.combinators.ctp.repositories.scene._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 //import org.combinators.ctp.repositories.toplevel.ListenerTupleTest.getClass
 
 import scala.concurrent.Future
 
-trait AkkaMqttComponents extends LazyLogging {
-
-
+trait AkkaMqttComponents extends LazyLogging with EncodeImplicits with PropertyFiles {
   @combinator object UnityMqttAkkaSourceScene{
     def apply(p: Properties): Source[Scene, Future[Done]] = {
       val broker = p.getProperty("org.combinators.ctp.broker")
@@ -63,7 +62,51 @@ trait AkkaMqttComponents extends LazyLogging {
       p_mqttAkkaSource_type :&: sd_unity_scene_type :&: dimensionality_three_d_t
   }
 
-  @combinator object UnityMqttAkkaSourceTask2D{
+  @combinator object UnityMqttAkkaSourceSceneSRT3D {
+    def apply(p: Properties): Source[SceneSRT, Future[Done]] = {
+      val broker = p.getProperty("org.combinators.ctp.broker")
+      val topic = p.getProperty("org.combinators.ctp.ctpSceneSRTFromUnity3D")
+
+      val connectionSettings = MqttConnectionSettings(broker, "cls/Scene3DSRTListener",
+        new MemoryPersistence).withAutomaticReconnect(true)
+
+      MqttSource.atLeastOnce(
+        connectionSettings,
+        MqttSubscriptions(topic, MqttQoS.AtLeastOnce),
+        bufferSize = 8).map { i =>
+        println(s"Received 3D SRT scene:")
+        println(s"$i")
+        decode[SceneSRT](i.message.payload.utf8String).right.get
+      }
+    }
+
+    val semanticType = p_unityConnectionProperties_type =>:
+      p_mqttAkkaSource_type :&: sd_unity_scene_srt_type :&: dimensionality_three_d_t
+  }
+
+  @combinator object UnityMqttAkkaSourceSceneSRT2D {
+    def apply(p: Properties): Source[SceneSRT, Future[Done]] = {
+      val broker = p.getProperty("org.combinators.ctp.broker")
+      val topic = p.getProperty("org.combinators.ctp.ctpSceneSRTFromUnity2D")
+
+      val connectionSettings = MqttConnectionSettings(broker, "cls/Scene2DSRTListener",
+        new MemoryPersistence).withAutomaticReconnect(true)
+
+      MqttSource.atLeastOnce(
+        connectionSettings,
+        MqttSubscriptions(topic, MqttQoS.AtLeastOnce),
+        bufferSize = 8).map { i =>
+        println(s"Received 2D SRT scene:")
+        println(s"$i")
+        decode[SceneSRT](i.message.payload.utf8String).right.get
+      }
+    }
+
+    val semanticType = p_unityConnectionProperties_type =>:
+      p_mqttAkkaSource_type :&: sd_unity_scene_srt_type :&: dimensionality_two_d_t
+  }
+
+  @combinator object UnityMqttAkkaSourceTask2D {
     def apply(p: Properties): Source[MpTaskStartGoal, Future[Done]] = {
       val broker = p.getProperty("org.combinators.ctp.broker")
       val topic = p.getProperty("org.combinators.ctp.ctpTaskSpFromUnity2D")
@@ -119,21 +162,34 @@ trait AkkaMqttComponents extends LazyLogging {
     }
 
     val semanticType = p_unityConnectionProperties_type =>:
-      p_mqttAkkaSink_type :&: cmp_scene_graph_path :&: dimensionality_two_d_t
+      p_mqttAkkaSink_type :&: cmp_scene_graph_path :&: dimensionality_var
   }
 
-  //TODO check: 3D / 2D
-  @combinator object UnityMqttAkkaSinkSceneSegGraphPath3D {
+
+  @combinator object UnityMqttAkkaSinkPath3D {
     def apply(p: Properties): Sink[MqttMessage, Future[Done]] = {
       val broker = p.getProperty("org.combinators.ctp.broker")
-      val connectionSettings = MqttConnectionSettings(broker, "cls/GraphSink",
+      val connectionSettings = MqttConnectionSettings(broker, "cls/Path3D",
         new MemoryPersistence).withAutomaticReconnect(true)
 
       MqttSink(connectionSettings, MqttQoS.AtLeastOnce)
     }
 
     val semanticType = p_unityConnectionProperties_type =>:
-      p_mqttAkkaSink_type :&: cmp_scene_graph_path :&: dimensionality_three_d_t
+      p_mqttAkkaSink_type :&: cmp_path_only :&: dimensionality_three_d_t
+  }
+
+  @combinator object UnityMqttAkkaSinkPath2D {
+    def apply(p: Properties): Sink[MqttMessage, Future[Done]] = {
+      val broker = p.getProperty("org.combinators.ctp.broker")
+      val connectionSettings = MqttConnectionSettings(broker, "cls/Path2D",
+        new MemoryPersistence).withAutomaticReconnect(true)
+
+      MqttSink(connectionSettings, MqttQoS.AtLeastOnce)
+    }
+
+    val semanticType = p_unityConnectionProperties_type =>:
+      p_mqttAkkaSink_type :&: cmp_path_only :&: dimensionality_two_d_t
   }
 
   @combinator object UnityMqttAkkaConnectSettings {
@@ -144,5 +200,12 @@ trait AkkaMqttComponents extends LazyLogging {
     }
 
     val semanticType = p_unityConnectionProperties_type =>: p_mqttAkkaConnxSettings_type
+  }
+
+
+  @combinator object UnityConnectionProperties {
+    def apply:Properties = mqttProperties
+
+    val semanticType = p_unityConnectionProperties_type
   }
 }

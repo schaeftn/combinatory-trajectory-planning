@@ -1,13 +1,10 @@
 package org.combinators.ctp.repositories.geometry
 
 import org.combinators.cls.interpreter._
-import org.combinators.cls.types.{Kinding, Type}
+import org.combinators.cls.types.Kinding
 import org.combinators.cls.types.syntax._
-import org.combinators.ctp.repositories.toplevel.UnityMeshData
 import org.combinators.ctp.repositories._
-import org.eclipse.paho.client.mqttv3.MqttClient
-import org.combinators.ctp.repositories._
-import org.combinators.ctp.repositories.scene.{MqttCubeData, MqttTransform}
+import org.combinators.ctp.repositories.toplevel._
 
 import math._
 
@@ -75,6 +72,20 @@ trait GeometricRepository extends GeometryUtils {
       gm_AffTransformVertexListFunction :&: dimensionality_var =>:
       gm_CubeToPoly :&: dimensionality_var
   }
+
+    @combinator object CubeToSurfaceMesh {
+    def apply(vertices: List[List[Float]], transform: (List[List[Float]], MqttTransform) => List[List[Float]]):
+    List[MqttCubeData] => List[PpVertexList] = { a =>
+      (for {i <- a}
+        yield transform(vertices, MqttTransform(i.tMatrix))).map(a => PpVertexList(a))
+    }
+
+    val semanticType = gm_rectangular :&: dimensionality_var =>:
+      gm_AffTransformVertexListFunction :&: dimensionality_var =>:
+      gm_CubeToPoly :&: dimensionality_var
+  }
+
+
 
 
   /*
@@ -173,7 +184,7 @@ Function to apply affine 3d transformation to 3d structure for a single vertex.
 
   //Todo check if math commons is occasionally faster: MatrixUtils.create
   def mult(a: List[List[Float]], b: List[Float]): List[Float] = for (row <- a) yield
-    (row zip b).map { case ((matElem, coordinate)) => matElem * coordinate }.sum
+    (row zip b).map { case (matElem, coordinate) => matElem * coordinate }.sum
 
   def multList(a: List[List[Float]], b: List[List[Float]]): List[List[Float]] =
     for (p <- b) yield mult(a, p)

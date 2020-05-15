@@ -20,7 +20,7 @@ case class PpVertexList(vertices: List[List[Float]])
 case class PpPolyhedronMesh(vertices: List[List[Float]], triangles: List[Int], faces: List[Int])
 
 @JsonCodec
-case class PpPolyhedronSurfaceMesh(vertices: List[List[Float]], triangles: List[Int])
+case class PpSurfaceMesh(vertices: List[List[Float]], triangles: List[Int])
 
 @JsonCodec
 case class PpPolygon(vertices: List[List[Float]], triangles: List[Int])

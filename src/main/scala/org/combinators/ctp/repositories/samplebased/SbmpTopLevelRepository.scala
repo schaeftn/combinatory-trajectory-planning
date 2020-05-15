@@ -1,0 +1,136 @@
+package org.combinators.ctp.repositories.samplebased
+
+import org.combinators.cls.interpreter.combinator
+import org.combinators.cls.types.Constructor
+import org.combinators.ctp.repositories.scene.SceneUtils
+import org.combinators.ctp.repositories.python_interop.{PlannerScheme, PythonTemplateUtils, PythonWrapper, SubstitutionScheme}
+import org.combinators.cls.types.syntax._
+import org.combinators.ctp.repositories._
+import org.combinators.ctp.repositories.toplevel._
+
+trait SbmpTopLevelRepository extends SceneUtils with PythonTemplateUtils with SbmpInputDataRepository
+  with SbmpOptimizeCostRepository with SbmpSamplerRepository with SbmpValidatorRepository
+  with SbmpPlannerTemplateRepository {
+
+  val sbmpDefaultKindingMap = Map(sbmp_planner_var -> Seq(sbmp_planner_PRM),
+    sbmp_sampler_var -> Seq(sbmp_uniform_valid_state_sampler),
+    sbmp_state_validator_var -> Seq(sbmp_fcl_validator),
+    sbmp_motion_validator_var -> Seq(sbmp_fcl_motion_validator),
+    sbmp_cost_var -> Seq(sbmp_default_cost_state),
+    sbmp_optimization_objective_var -> Seq(sbmp_opt_path_length),
+    dimensionality_var -> Seq(dimensionality_three_d_t)
+  )
+
+  val sbmpFullKindingMap = Map(
+    sbmp_planner_var -> Seq(
+      sbmp_planner_PRM,
+      sbmp_planner_PRMStar,
+      sbmp_planner_LazyPRM,
+      sbmp_planner_LazyPRMStar,
+      sbmp_planner_SST,
+      sbmp_planner_RRT,
+      sbmp_planner_RRTStar,
+      sbmp_planner_LBTRRT,
+      sbmp_planner_TRRT,
+      sbmp_planner_LazyRRT,
+      sbmp_planner_cRRT,
+      sbmp_planner_RRTConnect,
+      sbmp_planner_EST,
+      sbmp_planner_SBL,
+      sbmp_planner_LBKPIECE1,
+      sbmp_planner_KPIECE1,
+      sbmp_planner_BKPIECE1,
+      sbmp_planner_STRIDE,
+      sbmp_planner_PDST,
+      sbmp_planner_FMT,
+      sbmp_planner_BFMT,
+      sbmp_planner_RRTsharp,
+      sbmp_planner_RRTXstatic,
+      sbmp_planner_InformedRRTstar,
+      sbmp_planner_BITstar),
+    sbmp_sampler_var -> Seq(
+      sbmp_roadmap_valid_state_sampler,
+      sbmp_milling_valid_state_sampler,
+      sbmp_uniform_valid_state_sampler,
+      sbmp_obstacle_valid_state_sampler,
+      sbmp_gaussian_valid_state_sampler,
+      sbmp_max_clearance_valid_state_sampler,
+      sbmp_path_optimizer_sampler),
+    sbmp_state_validator_var -> Seq(
+      sbmp_fcl_validator,
+      sbmp_cgal_validator,
+      sbmp_m5a_validator),
+    sbmp_motion_validator_var -> Seq(
+      sbmp_fcl_motion_validator,
+      sbmp_discrete_motion_validator,
+      sbmp_m5a_motion_validator),
+    sbmp_cost_var -> Seq(
+      sbmp_default_cost_state,
+      sbmp_cost_state_change,
+      sbmp_cost_state_change_weighted,
+      sbmp_cost_state_acceleration
+    ),
+    sbmp_optimization_objective_var -> Seq(
+      sbmp_opt_path_length,
+      sbmp_opt_path_clearance,
+      sbmp_opt_path_smoothness,
+      sbmp_opt_control_smoothness,
+      sbmp_m5a_integral_fct),
+    dimensionality_var -> Seq(
+      dimensionality_three_d_t,
+      dimensionality_two_d_t,
+      dimensionality_n_d_t)
+  )
+
+  trait OmplPlannerTrait[A, B] {
+    def apply(pScheme: PlannerScheme[A, B],
+              samplerSubstScheme: SubstitutionScheme,
+              stateValidatorSubstScheme: SubstitutionScheme,
+              motionValidatorSubstScheme: SubstitutionScheme,
+              optimizationCostSubstScheme: SubstitutionScheme,
+              dataSubstScheme: (A) => SubstitutionScheme
+             ): (A) => B = { (input: A) =>
+      println("ompltrait")
+      val schemeList = List(pScheme.st, samplerSubstScheme, stateValidatorSubstScheme,
+        motionValidatorSubstScheme, optimizationCostSubstScheme, dataSubstScheme(input))
+      val newScheme = schemeList.reduce(_.merge(_))
+
+      val pWrapper = PythonWrapper.apply(newScheme, pScheme.startFile, pScheme.pf)
+      println("pWrapper starting")
+      pWrapper.computeResult(input)
+    }
+
+    val semanticType =
+      sbmp_planner_var =>:
+        sbmp_sampler_var =>:
+        sbmp_state_validator_var =>:
+        sbmp_motion_validator_var =>:
+        sbmp_cost_var :&: sbmp_optimization_objective_var =>:
+        sbmp_input_data :&: dimensionality_var =>: //ggf plus sampler, plus motion validator?
+        sbmp_planning_algorithm :&: sbmp_planner_var :&: sbmp_sampler_var :&:
+          sbmp_state_validator_var :&: sbmp_motion_validator_var :&: sbmp_optimization_objective_var :&:
+          sbmp_cost_var :&: dimensionality_var
+  }
+
+  @combinator object OmplPlannerRefinement extends
+    OmplPlannerTrait[(ProblemDefinitionFiles, List[List[Float]]), List[List[Float]]] {}
+
+  @combinator object OmplPlannerStandard extends
+    OmplPlannerTrait[(SceneSRT, MpTaskStartGoal), List[List[Float]]] {}
+
+  @combinator object OmplPlannerProblemFile extends
+    OmplPlannerTrait[ProblemDefinitionFiles, List[List[Float]]] {}
+
+
+  trait EmptyTemplateScheme[A] {
+    def apply: A => SubstitutionScheme = (_: A) => SubstitutionScheme(
+      Map.empty[String, String], //no files
+      Map.empty[String, String], //no substitutions
+    )
+  }
+
+  @combinator object EmptyTemplateScheme extends EmptyTemplateScheme[String] {
+    val semanticType = Constructor("emptyTemplate")
+  }
+
+}

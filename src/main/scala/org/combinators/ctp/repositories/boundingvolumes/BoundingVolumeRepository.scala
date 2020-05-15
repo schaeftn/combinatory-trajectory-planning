@@ -5,9 +5,8 @@ import com.dreizak.miniball.model.ArrayPointSet
 import org.combinators.cls.interpreter.combinator
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.toplevel.UnityMeshData
-import org.combinators.ctp.repositories.inhabitation.CtpRepository
 
-trait BoundingVolumeRepository extends CtpRepository{
+trait BoundingVolumeRepository {
   @combinator object UnityDataBoundingBox {
     def apply: UnityMeshData => vertexPairType = { a: UnityMeshData =>
       val va = a.vertexArray

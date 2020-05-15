@@ -74,7 +74,7 @@ class vbi_test extends FlatSpec {
   def calculateCostsFor(valueIterationPath: List[String], graph: Graph[String, WDiEdge]): Double = valueIterationPath match {
     case node :: nextNode :: restList =>
       bigGraph.get(node).outgoingTo(bigGraph.get(nextNode)).head.weight + calculateCostsFor(nextNode :: restList, graph)
-    case node :: Nil => 0.0d
+    case _ :: Nil => 0.0d
     case Nil => 0.0d
   }
 

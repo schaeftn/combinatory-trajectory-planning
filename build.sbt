@@ -13,7 +13,8 @@ lazy val commonSettings = Seq(
     Resolver.sonatypeRepo("releases"),
     Resolver.typesafeRepo("releases"),
     Resolver.sonatypeRepo("snapshots"),
-    Resolver.typesafeRepo("snapshots")
+    Resolver.typesafeRepo("snapshots"),
+    "apache-snapshot" at "https://repository.apache.org/snapshots/"
   ),
   
   addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full),
@@ -31,7 +32,7 @@ lazy val root = (Project(id = "combinatory-trajectory-planning", base = file("."
   .settings(commonSettings: _*)
   .settings(
     moduleName := "cls-graph-search",
-    libraryDependencies ++= Seq(
+      libraryDependencies ++= Seq(
       "org.combinators" %% "cls-scala" % "2.1.0+7-9e42ea3e",
       "org.scalactic" %% "scalactic" % "3.0.5" % "test",
       "org.scalatest" %% "scalatest" % "3.0.5" % "test",
@@ -46,7 +47,14 @@ lazy val root = (Project(id = "combinatory-trajectory-planning", base = file("."
       "org.locationtech.jts" % "jts-core" % "1.16.1",
       "com.dreizak" % "miniball" % "1.0.3",
       "org.scalaz" %% "scalaz-core" % "7.2.27",
-      "org.apache.commons" % "commons-math3" % "3.6.1") ++
+      "org.apache.commons" % "commons-math3" % "3.6.1",
+      "org.apache.commons" % "commons-geometry-core" % "1.0-SNAPSHOT",
+      "org.apache.commons" % "commons-geometry-euclidean" % "1.0-SNAPSHOT") ++
+
+      //<module>commons-geometry-spherical</module>
+      //<module>commons-geometry-hull</module>
+      //<module>commons-geometry-enclosing</module>
+
       Seq(
         "io.circe" %% "circe-core",
         "io.circe" %% "circe-generic",

@@ -6,7 +6,6 @@ import org.combinators.ctp.repositories._
 @JsonCodec
 case class UnityMeshData(intArray: intListType, vertexArray: vertexArrayType)
 
-//TODO: Rename?!
 @JsonCodec
 case class MinBoxData(vertexArray: vertexArrayType)
 
