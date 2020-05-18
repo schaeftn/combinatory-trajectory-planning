@@ -1,13 +1,11 @@
 package org.combinators.ctp.repositories.temp
 
 import io.circe.generic.auto._
-import io.circe.syntax._
 import io.circe.parser.decode
 import org.combinators.ctp.repositories.geometry.{GeometricRepository, PpVertexList}
-import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.toplevel._
 import org.locationtech.jts.algorithm.ConvexHull
-import org.locationtech.jts.geom.{Coordinate, Geometry, GeometryFactory, Point}
+import org.locationtech.jts.geom.{Coordinate, Geometry, GeometryFactory, LineSegment, Point}
 
 
 object GridCMP extends App with GeometricRepository{
@@ -23,13 +21,13 @@ object GridCMP extends App with GeometricRepository{
    * @param yDim vertical dimension of bitmap
    * @return 2-dimensional Array initialized with 0's
    */
-  def defaultBitmap(xDim : Int, yDim : Int) : Array[Array[Int]] = {
-    val matrix = Array.ofDim[Int](xDim, yDim)
+  def defaultBitmap(xDim : Int, yDim : Int) : Array[Array[String]] = {
+    val matrix = Array.ofDim[String](xDim, yDim)
     for {
       x <- 0 until xDim
       y <- 0 until yDim
     }{
-      matrix(x)(y) = 0
+      matrix(x)(y) = " "
     }
     matrix
   }
@@ -39,7 +37,7 @@ object GridCMP extends App with GeometricRepository{
    * @param bitmap
    * @ prints the given bitmap
    */
-  def printBitmap(bitmap : Array[Array[Int]]) : Unit = {
+  def printBitmap(bitmap : Array[Array[String]]) : Unit = {
     val xDim : Int = bitmap.length
     val yDim : Int = bitmap.head.length
     println("x - Dimension : "+xDim)
@@ -62,14 +60,14 @@ object GridCMP extends App with GeometricRepository{
    * @param yDim y-boundary of polygon scene
    * @return bitmap representation convex hulls in 2D with xDim and yDim boundaries
    */
-  def computeBitmapFromHulls(hulls : List[Geometry], xDim : Int, yDim : Int) : Array[Array[Int]] = {
-    val bitmap = defaultBitmap(xDim,yDim)
+  def computeBitmapFromHulls(hulls : List[Geometry], xDim : Int, yDim : Int) : Array[Array[String]] = {
+    val bitmap = defaultBitmap(xDim, yDim)
     for{
       x <- 0 until xDim
       y <- 0 until yDim
     }{
       val point : Point = new GeometryFactory().createPoint(new Coordinate(x - xDim/2,y - yDim/2))
-      if(hulls.exists(g => g.contains(point))) bitmap(x)(y) = 1
+      if(hulls.exists(g => g.contains(point))) bitmap(x)(y) = "*"
     }
     bitmap
   }
@@ -81,14 +79,34 @@ object GridCMP extends App with GeometricRepository{
    * @param yDim y-boundary of polygon scene
    * @return bitmap representation convex hulls in 2D with xDim and yDim boundaries
    */
-  def computeScaledDownBitmapFromHulls(hulls : List[Geometry], xDim : Int, yDim : Int, bitXdim : Int, bitYdim : Int) : Array[Array[Int]] = {
+  def computeBitmapFromHullsAndLines(hulls : List[Geometry], lines : List[Geometry], xDim : Int, yDim : Int) : Array[Array[String]] = {
+    val bitmap = defaultBitmap(xDim, yDim)
+    for{
+      x <- 0 until xDim
+      y <- 0 until yDim
+    }{
+      val point : Point = new GeometryFactory().createPoint(new Coordinate(x - xDim/2,y - yDim/2))
+      if(hulls.exists(g => g.contains(point))) bitmap(x)(y) = "*"
+      if(lines.exists(l => l.isWithinDistance(point, 1))) bitmap(x)(y) = "|"
+    }
+    bitmap
+  }
+
+  /**
+   *
+   * @param hulls list of convex hulls of polygon scene elements
+   * @param xDim x-boundary of polygon scene
+   * @param yDim y-boundary of polygon scene
+   * @return bitmap representation convex hulls in 2D with xDim and yDim boundaries
+   */
+  def computeScaledDownBitmapFromHulls(hulls : List[Geometry], xDim : Int, yDim : Int, bitXdim : Int, bitYdim : Int) : Array[Array[String]] = {
     //val bitXdim = 10
     //val bitYdim = 10
     val xfac : Double = xDim.toDouble/bitXdim.toDouble
     val yfac : Double = yDim.toDouble/bitYdim.toDouble
     val xstep : Double = 1.0/xfac
     val ystep : Double = 1.0/yfac
-    val bitmap = defaultBitmap(bitXdim,bitYdim)
+    val bitmap = defaultBitmap(bitXdim, bitYdim)
     for{
       x <- 0 until xDim
       y <- 0 until yDim
@@ -96,19 +114,47 @@ object GridCMP extends App with GeometricRepository{
       val bx = (x * xstep).toInt
       val by = (y * ystep).toInt
       val point : Point = new GeometryFactory().createPoint(new Coordinate(x - xDim/2,y - yDim/2))
-      if(hulls.exists(g => g.contains(point))) bitmap(bx)(by) = 1
+      if(hulls.exists(g => g.contains(point))) bitmap(bx)(by) = "*"
     }
     bitmap
   }
 
-  def computeScaledUpBitmapFromHulls(hulls : List[Geometry], xDim : Int, yDim : Int, bitXdim : Int, bitYdim : Int) : Array[Array[Int]] = {
+  /**
+   *
+   * @param hulls list of convex hulls of polygon scene elements
+   * @param xDim x-boundary of polygon scene
+   * @param yDim y-boundary of polygon scene
+   * @return bitmap representation convex hulls in 2D with xDim and yDim boundaries
+   */
+  def computeScaledDownBitmapFromHullsAndLines(hulls : List[Geometry], lines : List[Geometry], xDim : Int, yDim : Int, bitXdim : Int, bitYdim : Int) : Array[Array[String]] = {
+    //val bitXdim = 10
+    //val bitYdim = 10
+    val xfac : Double = xDim.toDouble/bitXdim.toDouble
+    val yfac : Double = yDim.toDouble/bitYdim.toDouble
+    val xstep : Double = 1.0/xfac
+    val ystep : Double = 1.0/yfac
+    val bitmap = defaultBitmap(bitXdim, bitYdim)
+    for{
+      x <- 0 until xDim
+      y <- 0 until yDim
+    }{
+      val bx = (x * xstep).toInt
+      val by = (y * ystep).toInt
+      val point : Point = new GeometryFactory().createPoint(new Coordinate(x - xDim/2,y - yDim/2))
+      if(hulls.exists(g => g.contains(point))) bitmap(bx)(by) = "*"
+      if(lines.exists(l => l.isWithinDistance(point, 1/xfac))) bitmap(bx)(by) = "|"
+    }
+    bitmap
+  }
+
+  def computeScaledUpBitmapFromHulls(hulls : List[Geometry], xDim : Int, yDim : Int, bitXdim : Int, bitYdim : Int) : Array[Array[String]] = {
     //val bitXdim = 10
     //val bitYdim = 10
     val xfac : Double = bitXdim.toDouble/xDim.toDouble
     val yfac : Double = bitYdim.toDouble/yDim.toDouble
     val xstep : Double = 1.0/xfac
     val ystep : Double = 1.0/yfac
-    val bitmap = defaultBitmap(bitXdim,bitYdim)
+    val bitmap = defaultBitmap(bitXdim, bitYdim)
     for{
       bx <- 0 until bitXdim
       by <- 0 until bitYdim
@@ -116,7 +162,28 @@ object GridCMP extends App with GeometricRepository{
       val x = bx * xstep
       val y = by * ystep
       val point : Point = new GeometryFactory().createPoint(new Coordinate(x - xDim/2,y - yDim/2))
-      if(hulls.exists(g => g.contains(point))) bitmap(bx)(by) = 1
+      if(hulls.exists(g => g.contains(point))) bitmap(bx)(by) = "*"
+    }
+    bitmap
+  }
+
+  def computeScaledUpBitmapFromHullsAndLines(hulls : List[Geometry], lines : List[Geometry], xDim : Int, yDim : Int, bitXdim : Int, bitYdim : Int) : Array[Array[String]] = {
+    //val bitXdim = 10
+    //val bitYdim = 10
+    val xfac : Double = bitXdim.toDouble/xDim.toDouble
+    val yfac : Double = bitYdim.toDouble/yDim.toDouble
+    val xstep : Double = 1.0/xfac
+    val ystep : Double = 1.0/yfac
+    val bitmap = defaultBitmap(bitXdim, bitYdim)
+    for{
+      bx <- 0 until bitXdim
+      by <- 0 until bitYdim
+    }{
+      val x = bx * xstep
+      val y = by * ystep
+      val point : Point = new GeometryFactory().createPoint(new Coordinate(x - xDim/2,y - yDim/2))
+      if(hulls.exists(g => g.contains(point))) bitmap(bx)(by) = "*"
+      if(lines.exists(l => l.isWithinDistance(point, 1/xfac))) bitmap(bx)(by) = "|"
     }
     bitmap
   }
@@ -126,7 +193,7 @@ object GridCMP extends App with GeometricRepository{
    * @param polyScene polygon scene
    * @return bitmap representation of polygon scene
    */
-  def bitmapFromPolyScene(polyScene : PolygonScene, bitXdim : Int, bitYdim : Int) : Array[Array[Int]] = {
+  def bitmapFromPolyScene(polyScene : PolygonScene, bitXdim : Int, bitYdim : Int) : Array[Array[String]] = {
     val vertexLists = polyScene.obstacles.map(i => i.map(polyScene.vertices))
     val hulls: List[Geometry] = vertexLists.map { actualCoords =>
       // generate convex hull for current batch of points
@@ -140,6 +207,29 @@ object GridCMP extends App with GeometricRepository{
       computeScaledUpBitmapFromHulls(hulls, boundaries.head.toInt, boundaries(1).toInt, bitXdim, bitYdim)
     }else {
       computeScaledDownBitmapFromHulls(hulls, boundaries.head.toInt, boundaries(1).toInt, bitXdim, bitYdim)
+    }
+  }
+
+  def bitmapFromPolySceneLineSegmentation(polyScene : PolySceneLineSegmentation, bitXdim : Int, bitYdim : Int) : Array[Array[String]] = {
+    val vertexLists = polyScene.obstacles.map(i => i.map(polyScene.vertices))
+    val hulls: List[Geometry] = vertexLists.map { actualCoords =>
+      // generate convex hull for current batch of points
+      val coords = actualCoords.map(c => new Coordinate(c.head, c(1)))
+      val convexHull = new ConvexHull(coords.toArray, new GeometryFactory)
+      val hullGeometry = convexHull.getConvexHull
+      hullGeometry
+    }
+    val vertexLineList: List[List[List[Float]]] = polyScene.lines.map(i => i.map(polyScene.vertices))
+    val lines: List[Geometry] = vertexLineList.map { line =>
+      val coords = line.map(vertex => new Coordinate(vertex.head, vertex(1)))
+      val lineGeometry = new LineSegment(coords.head,coords(1))
+      lineGeometry.toGeometry(new GeometryFactory)
+    }
+    val boundaries = polyScene.boundaries
+    if(bitXdim > boundaries.head.toInt || bitYdim > boundaries(1).toInt){
+      computeScaledUpBitmapFromHullsAndLines(hulls, lines, boundaries.head.toInt, boundaries(1).toInt, bitXdim, bitYdim)
+    } else {
+      computeScaledDownBitmapFromHullsAndLines(hulls, lines, boundaries.head.toInt, boundaries(1).toInt, bitXdim, bitYdim)
     }
   }
 
@@ -158,16 +248,24 @@ object GridCMP extends App with GeometricRepository{
     }
   }
 
+  /*
   val vertices = List(
     List(-0.5f, -0.5f),
     List(0.5f, -0.5f),
     List(0.5f, 0.5f),
     List(-0.5f, 0.5f))
+    */
 
   def cubeTransform:
-  List[MqttCubeData] => List[PpVertexList] = { a =>
+  List[MqttCubeData] => List[PpVertexList] = { a => {
+    val vertices = List(
+      List(-0.5f, -0.5f),
+      List(0.5f, -0.5f),
+      List(0.5f, 0.5f),
+      List(-0.5f, 0.5f))
     (for {i <- a}
       yield aTransform(vertices, MqttTransform(i.tMatrix))).map(a => PpVertexList(a))
+  }
   }
 
   def sceneTransform: Scene => PolygonScene = { s: Scene =>
