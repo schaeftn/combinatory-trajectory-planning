@@ -248,14 +248,6 @@ object GridCMP extends App with GeometricRepository{
     }
   }
 
-  /*
-  val vertices = List(
-    List(-0.5f, -0.5f),
-    List(0.5f, -0.5f),
-    List(0.5f, 0.5f),
-    List(-0.5f, 0.5f))
-    */
-
   def cubeTransform:
   List[MqttCubeData] => List[PpVertexList] = { a => {
     val vertices = List(

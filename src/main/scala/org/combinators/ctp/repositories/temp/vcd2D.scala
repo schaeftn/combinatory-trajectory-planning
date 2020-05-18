@@ -20,16 +20,16 @@ object vcd2D {
       hullGeometry
     }
 
-    val preUpExtVertices: Seq[List[Float]] = upwardExtendableVertices(obstacleVertexLists)
-    val preDownExtVertices: Seq[List[Float]] = downwardExtendableVertices(obstacleVertexLists)
-    val upExtVertices: Seq[List[Float]] = preUpExtVertices
-    val downExtVertices: Seq[List[Float]] = preDownExtVertices
+    val upExtVertices: Seq[List[Float]] = upwardExtendableVertices(obstacleVertexLists)
+    val downExtVertices: Seq[List[Float]] = downwardExtendableVertices(obstacleVertexLists)
 
     val vertexLinesUP : Seq[List[List[Float]]] = upExtVertices.map(vertex => {
       val vertexCoord = new Coordinate(vertex.head, vertex(1))
       val topCoord = new Coordinate(vertex.head, topBoundary)
       val line = new LineSegment(vertexCoord,topCoord)
+
       assert(line.isVertical, "Segmentation lines should always be vertical!")
+
       val intersectionGeometry: Seq[Geometry] = hulls.map(hull =>
         hull.intersection(line.toGeometry(new GeometryFactory))).filter(intersect => !intersect.isEmpty)
       val intersectionCoordinate = intersectionGeometry.map(intersect =>{
@@ -43,7 +43,9 @@ object vcd2D {
         } else {
           topCoord
         }
+
         assert(vertex.head == newTopCoord.x, "There should be no shift along x-axis")
+
         List(vertex, List(newTopCoord.x.toFloat, newTopCoord.y.toFloat))
       } else {
         //This case should not be reachable
@@ -55,7 +57,9 @@ object vcd2D {
       val vertexCoord = new Coordinate(vertex.head, vertex(1))
       val bottomCoord = new Coordinate(vertex.head, bottomBoundary)
       val line = new LineSegment(vertexCoord,bottomCoord)
+
       assert(line.isVertical, "Segmentation lines should always be vertical!")
+
       val intersectionGeometry = hulls.map(hull =>
         hull.intersection(line.toGeometry(new GeometryFactory))).filter(intersect => !intersect.isEmpty)
       val intersectionCoordinate = intersectionGeometry.map(intersect =>{
@@ -69,7 +73,9 @@ object vcd2D {
         } else {
           bottomCoord
         }
+
         assert(vertex.head == newTopCoord.x, "There should be no shift along x-axis")
+
         List(vertex, List(newTopCoord.x.toFloat, newTopCoord.y.toFloat))
       } else {
         //This case should not be reachable
@@ -104,16 +110,12 @@ object vcd2D {
     val lineList: Seq[List[Int]] = vertexLineList.map(vertexList =>
       vertexList.map(vertex => polySceneSegVertices.indexOf(vertex)))
 
-    //TODO compute cells from lines
-
     PolySceneLineSegmentation(polySceneSegVertices.toList,
       polySceneSegObstacles.toList,
       polyScene.boundaries,
       topVertices.toList,
       bottomVertices.toList,
       lineList.toList)
-    //PolySceneCellSegmentation(polySceneCellSegVertices.toList,polyScene.obstacles, polyScene.boundaries,Nil)
-
   }
 
   def upwardExtendableVertices(obstacleVertexLists: Seq[List[List[Float]]]) : Seq[List[Float]] = {
