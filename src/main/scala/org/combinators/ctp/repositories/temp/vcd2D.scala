@@ -6,10 +6,10 @@ import org.locationtech.jts.geom.{Coordinate, Geometry, GeometryFactory, LineSeg
 
 object vcd2D {
 
-  def apply(polyScene : PolygonScene) : PolySceneLineSegmentation = {
+  def apply(polyScene: PolygonScene): PolySceneLineSegmentation = {
 
     val topBoundary: Float = polyScene.boundaries(1) / 2
-    val bottomBoundary: Float = - topBoundary
+    val bottomBoundary: Float = -topBoundary
 
     val obstacleVertexLists: Seq[List[List[Float]]] = polyScene.obstacles.map(i => i.map(polyScene.vertices))
     val hulls: Seq[Geometry] = obstacleVertexLists.map { actualCoords =>
@@ -23,65 +23,9 @@ object vcd2D {
     val upExtVertices: Seq[List[Float]] = upwardExtendableVertices(obstacleVertexLists)
     val downExtVertices: Seq[List[Float]] = downwardExtendableVertices(obstacleVertexLists)
 
-    val vertexLinesUP : Seq[List[List[Float]]] = upExtVertices.map(vertex => {
-      val vertexCoord = new Coordinate(vertex.head, vertex(1))
-      val topCoord = new Coordinate(vertex.head, topBoundary)
-      val line = new LineSegment(vertexCoord,topCoord)
+    val vertexLinesUP: Seq[List[List[Float]]] = computeLines(upExtVertices, topBoundary, hulls, (d1, d2) => d1 <= d2)
 
-      assert(line.isVertical, "Segmentation lines should always be vertical!")
-
-      val intersectionGeometry: Seq[Geometry] = hulls.map(hull =>
-        hull.intersection(line.toGeometry(new GeometryFactory))).filter(intersect => !intersect.isEmpty)
-      val intersectionCoordinate = intersectionGeometry.map(intersect =>{
-        intersect.getCoordinates.sortWith((c1, c2) => c1.y <= c2.y)
-      })
-
-      if(intersectionCoordinate.nonEmpty){
-        val sortedIntersection = intersectionCoordinate.sortWith((ls1,ls2) => ls1.head.y <= ls2.head.y)
-        val newTopCoord = if(sortedIntersection.length > 1){
-          sortedIntersection(1).head
-        } else {
-          topCoord
-        }
-
-        assert(vertex.head == newTopCoord.x, "There should be no shift along x-axis")
-
-        List(vertex, List(newTopCoord.x.toFloat, newTopCoord.y.toFloat))
-      } else {
-        //This case should not be reachable
-        List(vertex,List(vertex.head,topBoundary))
-      }
-    })
-
-    val vertexLinesDown : Seq[List[List[Float]]] = downExtVertices.map(vertex => {
-      val vertexCoord = new Coordinate(vertex.head, vertex(1))
-      val bottomCoord = new Coordinate(vertex.head, bottomBoundary)
-      val line = new LineSegment(vertexCoord,bottomCoord)
-
-      assert(line.isVertical, "Segmentation lines should always be vertical!")
-
-      val intersectionGeometry = hulls.map(hull =>
-        hull.intersection(line.toGeometry(new GeometryFactory))).filter(intersect => !intersect.isEmpty)
-      val intersectionCoordinate = intersectionGeometry.map(intersect =>{
-        intersect.getCoordinates.sortWith((c1, c2) => c1.y >= c2.y)
-      })
-
-      if(intersectionCoordinate.nonEmpty){
-        val sortedIntersection = intersectionCoordinate.sortWith((ls1,ls2) => ls1.head.y >= ls2.head.y)
-        val newTopCoord = if(sortedIntersection.length > 1){
-          sortedIntersection(1).head
-        } else {
-          bottomCoord
-        }
-
-        assert(vertex.head == newTopCoord.x, "There should be no shift along x-axis")
-
-        List(vertex, List(newTopCoord.x.toFloat, newTopCoord.y.toFloat))
-      } else {
-        //This case should not be reachable
-        List(vertex, List(vertex.head,bottomBoundary))
-      }
-    })
+    val vertexLinesDown: Seq[List[List[Float]]] = computeLines(downExtVertices, bottomBoundary, hulls, (d1, d2) => d1 >= d2)
 
     val vertexLineList = vertexLinesUP ++ vertexLinesDown
 
@@ -100,7 +44,7 @@ object vcd2D {
       val coords = obstacle.map(vertex => new Coordinate(vertex.head, vertex(1)))
       val convexHull = new ConvexHull(coords.toArray, new GeometryFactory)
       val hullGeometry = convexHull.getConvexHull
-      val newVerticesInHull = newVertices.filter(vertex => hullGeometry.contains(new GeometryFactory().createPoint(new Coordinate(vertex.head,vertex(1)))))
+      val newVerticesInHull = newVertices.filter(vertex => hullGeometry.contains(new GeometryFactory().createPoint(new Coordinate(vertex.head, vertex(1)))))
       obstacle ++ newVerticesInHull
     }
 
@@ -118,24 +62,50 @@ object vcd2D {
       lineList.toList)
   }
 
-  def upwardExtendableVertices(obstacleVertexLists: Seq[List[List[Float]]]) : Seq[List[Float]] = {
+  def upwardExtendableVertices(obstacleVertexLists: Seq[List[List[Float]]]): Seq[List[Float]] = {
     obstacleVertexLists.flatMap { obstacle =>
       val coords = obstacle.map(vertex => new Coordinate(vertex.head, vertex(1)))
       val convexHull = new ConvexHull(coords.toArray, new GeometryFactory)
       val hullGeometry = convexHull.getConvexHull
-      val verticesAndUpPoints = obstacle.map(vertex => (vertex, new GeometryFactory().createPoint(new Coordinate(vertex.head,vertex(1) + 0.01))))
+      val verticesAndUpPoints = obstacle.map(vertex => (vertex, new GeometryFactory().createPoint(new Coordinate(vertex.head, vertex(1) + 0.01))))
       verticesAndUpPoints.filter(pair => !hullGeometry.contains(pair._2)).map(pair => pair._1)
     }
   }
 
-  def downwardExtendableVertices(obstacleVertexLists: Seq[List[List[Float]]]) : Seq[List[Float]] = {
+  def downwardExtendableVertices(obstacleVertexLists: Seq[List[List[Float]]]): Seq[List[Float]] = {
     obstacleVertexLists.flatMap { obstacle =>
       val coords = obstacle.map(vertex => new Coordinate(vertex.head, vertex(1)))
       val convexHull = new ConvexHull(coords.toArray, new GeometryFactory)
       val hullGeometry = convexHull.getConvexHull
-      val verticesAndDownPoints = obstacle.map(vertex => (vertex, new GeometryFactory().createPoint(new Coordinate(vertex.head,vertex(1) - 0.01))))
+      val verticesAndDownPoints = obstacle.map(vertex => (vertex, new GeometryFactory().createPoint(new Coordinate(vertex.head, vertex(1) - 0.01))))
       verticesAndDownPoints.filter(pair => !hullGeometry.contains(pair._2)).map(pair => pair._1)
     }
   }
 
- }
+  def computeLines(extVertices: Seq[List[Float]], boundary: Float, hulls: Seq[Geometry], partialOrder: (Double, Double) => Boolean): Seq[List[List[Float]]] = extVertices.map(vertex => {
+    val vertexCoord = new Coordinate(vertex.head, vertex(1))
+    val boundaryCoord = new Coordinate(vertex.head, boundary)
+    val line = new LineSegment(vertexCoord, boundaryCoord)
+
+    assert(line.isVertical, "Segmentation lines should always be vertical!")
+
+    val intersectionGeometry: Seq[Geometry] = hulls.map(hull =>
+      hull.intersection(line.toGeometry(new GeometryFactory))).filter(intersect => !intersect.isEmpty)
+    val intersectionCoordinate = intersectionGeometry.map(intersect => {
+      intersect.getCoordinates.sortWith((c1, c2) => partialOrder(c1.y, c2.y))
+    })
+
+    assert(intersectionCoordinate.nonEmpty, "intersectionCoordinate has to have at least one element")
+    val sortedIntersection = intersectionCoordinate.sortWith((ls1, ls2) => partialOrder(ls1.head.y, ls2.head.y))
+    val newTopCoord = if (sortedIntersection.length > 1) {
+      sortedIntersection(1).head
+    } else {
+      boundaryCoord
+    }
+
+    assert(vertex.head == newTopCoord.x, "There should be no shift along x-axis")
+
+    List(vertex, List(newTopCoord.x.toFloat, newTopCoord.y.toFloat))
+  })
+
+}
