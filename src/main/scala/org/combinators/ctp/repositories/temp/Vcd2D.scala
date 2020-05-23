@@ -4,7 +4,7 @@ import org.combinators.ctp.repositories.toplevel.{PolySceneLineSegmentation, Pol
 import org.locationtech.jts.algorithm.ConvexHull
 import org.locationtech.jts.geom.{Coordinate, Geometry, GeometryFactory, LineSegment}
 
-object vcd2D {
+object Vcd2D {
 
   def apply(polyScene: PolygonScene): PolySceneLineSegmentation = {
 
@@ -68,7 +68,7 @@ object vcd2D {
       val convexHull = new ConvexHull(coords.toArray, new GeometryFactory)
       val hullGeometry = convexHull.getConvexHull
       val verticesAndUpPoints = obstacle.map(vertex => (vertex, new GeometryFactory().createPoint(new Coordinate(vertex.head, vertex(1) + 0.01))))
-      verticesAndUpPoints.filter(pair => !hullGeometry.contains(pair._2)).map(pair => pair._1)
+      verticesAndUpPoints.filter(pair => !(hullGeometry.distance(pair._2) == 0)).map(pair => pair._1)
     }
   }
 
@@ -78,7 +78,7 @@ object vcd2D {
       val convexHull = new ConvexHull(coords.toArray, new GeometryFactory)
       val hullGeometry = convexHull.getConvexHull
       val verticesAndDownPoints = obstacle.map(vertex => (vertex, new GeometryFactory().createPoint(new Coordinate(vertex.head, vertex(1) - 0.01))))
-      verticesAndDownPoints.filter(pair => !hullGeometry.contains(pair._2)).map(pair => pair._1)
+      verticesAndDownPoints.filter(pair => !(hullGeometry.distance(pair._2) == 0)).map(pair => pair._1)
     }
   }
 

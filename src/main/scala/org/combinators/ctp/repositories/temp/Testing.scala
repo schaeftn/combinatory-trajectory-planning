@@ -6,7 +6,7 @@ import org.combinators.ctp.repositories.cmp.CmpUtils
 import org.combinators.ctp.repositories.temp.GridCMP._ //{bitmapFromPolyScene, printBitmap, sceneTransform}
 import org.combinators.ctp.repositories.toplevel.{PolySceneLineSegmentation, PolygonScene, Scene}
 
-object testing extends App with CmpUtils {
+object Testing extends App with CmpUtils {
 
   val sceneString: String = """{"boundaries":[100,100,0],"obstacles":[{"tMatrix":[[53.85289,4.82381058,0.0,-49.88],[-12.1389685,4.810618,0.0,-8.34],[0.0,0.0,0.0,0.0],[0.0,0.0,0.0,1.0]],"cubeSize":[64.34709,9.13852,0.0]},{"tMatrix":[[10.2148867,0.0,0.0,26.8900013],[0.0,48.25598,0.0,-10.5599995],[0.0,0.0,0.0,0.0],[0.0,0.0,0.0,1.0]],"cubeSize":[10.2148867,48.25598,0.0]},{"tMatrix":[[10.4838343,3.62617254,0.0,-0.38],[-1.06201494,35.7962837,0.0,32.94],[0.0,0.0,0.0,0.0],[0.0,0.0,0.0,1.0]],"cubeSize":[10.537488,35.97948,0.0]},{"tMatrix":[[42.2332878,-0.3470646,0.0,-35.4600029],[-4.27824259,-3.426098,0.0,8.7300005],[0.0,0.0,0.0,0.0],[0.0,0.0,0.0,1.0]],"cubeSize":[42.44943,-3.44363236,0.0]},{"tMatrix":[[16.3090668,0.0,0.0,-36.3],[0.0,-10.5733194,0.0,39.6],[0.0,0.0,0.0,0.0],[0.0,0.0,0.0,1.0]],"cubeSize":[16.3090668,-10.5733194,0.0]},{"tMatrix":[[16.3090668,0.0,0.0,-25.2],[0.0,-10.5733194,0.0,20.6],[0.0,0.0,0.0,0.0],[0.0,0.0,0.0,1.0]],"cubeSize":[16.3090668,-10.5733194,0.0]},{"tMatrix":[[16.3090668,0.0,0.0,8.5],[0.0,-10.5733194,0.0,3.6],[0.0,0.0,0.0,0.0],[0.0,0.0,0.0,1.0]],"cubeSize":[16.3090668,-10.5733194,0.0]},{"tMatrix":[[6.57370663,0.0,0.0,2.80000019],[0.0,46.4312019,0.0,-29.1999989],[0.0,0.0,0.0,0.0],[0.0,0.0,0.0,1.0]],"cubeSize":[6.57370663,46.4312019,0.0]}]}"""
   val decScene: Scene = decode[Scene](sceneString).right.get
@@ -169,16 +169,29 @@ object testing extends App with CmpUtils {
 
   printBitmap(bitmapFromPolySceneLineSegmentation(polySceneLinePython,50,50))
 
+  //val polySceneCellPython = vcdLtC2.apply(polySceneLinePython)
+
+  //polySceneCellPython.freeCells.foreach(i => println(s"freeCell: ${i.map(polySceneCellPython.vertices)}"))
+
+  //val newPolySceneLinePython = VerticalCellToLineSegmentation(polySceneCellPython)
+
+  //newPolySceneLinePython.lines.foreach(i => println(s"line: ${i.map(newPolySceneLinePython.vertices)}"))
+
+  //printBitmap(bitmapFromPolySceneLineSegmentation(VerticalCellToLineSegmentation(polySceneCellPython),50,50))
+
   println("Scala: ")
-  val polySceneLineScala: PolySceneLineSegmentation = vcd2D(polyScene)
+  val polySceneLineScala: PolySceneLineSegmentation = Vcd2D(polyScene)
 
   polySceneLineScala.lines.foreach(i => println(s"line: ${i.map(polySceneLineScala.vertices)}"))
 
   printBitmap(bitmapFromPolySceneLineSegmentation(polySceneLineScala,50,50))
 
-  //val polySceneCellPython = vcdLtC2.apply(polySceneLinePython)
+  val polySceneCellScala = LineSweep(polyScene)
 
-  //polySceneCellPython.freeCells.foreach(i => println(s"freeCell: ${i.map(polySceneCellPython.vertices)}"))
+  println("free cells: ")
+  polySceneCellScala.freeCells.foreach(i => println(s"freeCell: ${i.map(polySceneCellScala.vertices)}"))
+
+  printBitmap(bitmapFromPolySceneLineSegmentation(VerticalCellToLineSegmentation(polySceneCellScala),50,50))
 
 }
 
