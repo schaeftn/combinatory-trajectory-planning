@@ -18,29 +18,23 @@ object VerticalCellToLineSegmentation {
 
     val vertexLineList: List[List[List[Float]]] = cellVertices.flatMap(cell => {
       val sortedCell: List[List[Float]] = cell.sortWith((v1, v2) => v1.head <= v2.head)
-      //This must not be true for the first two x-Coordinates:
-      //assert(sortedCell.head.head == sortedCell(1).head, "Sorted Cells should contain elements with the same x-Coordinate.")
-      //This is not true:
-      //assert(sortedCell.length >= 4, "A Cell should contain at least 4 vertices.")
       val leftLine: List[List[Float]] = sortedCell.takeWhile(vertex => vertex.head == sortedCell.head.head)
       val withoutLeft = sortedCell.diff(leftLine)
       val rightLine: List[List[Float]] = withoutLeft.takeWhile(vertex => vertex.head == withoutLeft.head.head)
-      //assert(leftLine.head.head == leftLine(1).head, "LeftLine should be vertical.")
-      //assert(rightLine.head.head == rightLine(1).head, "RightLine should be vertical.")
-      (leftLine.nonEmpty, rightLine.nonEmpty) match{
+      (leftLine.nonEmpty, rightLine.nonEmpty) match {
         case (false, false) =>
           println("This case should not be possible!")
           Nil
         case (false, true) => List(rightLine)
-        case (true, false) =>List(leftLine)
-        case (true, true) => List(leftLine,rightLine)
+        case (true, false) => List(leftLine)
+        case (true, true) => List(leftLine, rightLine)
       }
     })
 
     val lineList: List[List[Int]] = vertexLineList.map(vertexList =>
       vertexList.map(vertex => polyScene.vertices.indexOf(vertex)))
 
-    PolySceneLineSegmentation(polyScene.vertices,polyScene.obstacles,polyScene.boundaries,topVertices, bottomVertices, lineList)
+    PolySceneLineSegmentation(polyScene.vertices, polyScene.obstacles, polyScene.boundaries, topVertices, bottomVertices, lineList)
   }
 
 }

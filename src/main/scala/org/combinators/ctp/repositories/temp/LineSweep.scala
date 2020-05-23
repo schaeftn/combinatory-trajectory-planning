@@ -18,35 +18,10 @@ object LineSweep {
       hullGeometry
     }
 
-    println("obstacleVertexList with length " +obstacleVertexLists.flatten.length + ":" )
-    println(obstacleVertexLists.toString())
-
-    println("vertex list with length " + polyScene.vertices.length + ":")
-    println(polyScene.vertices)
-
-    println("difference between both:")
-    println(polyScene.vertices.diff(obstacleVertexLists.flatten))
-
-    val sortedVertices = polyScene.vertices.sortWith((v1, v2) => v1.head <= v2.head)/*.filter(
-      vertex => {
-        vertex.head <= rightBoundary && vertex.head >= -rightBoundary &&
-        vertex(1) <= topBoundary && vertex(1) >= - topBoundary
-      }).sortWith((v1, v2) => v1.head <= v2.head)
-      */
-
-    println("Sorted Vertices: " + sortedVertices.toString())
+    val sortedVertices = polyScene.vertices.sortWith((v1, v2) => v1.head <= v2.head)
 
     val upExtVertices: List[List[Float]] = upwardExtendableVertices(obstacleVertexLists)
     val downExtVertices: List[List[Float]] = downwardExtendableVertices(obstacleVertexLists)
-
-    println("difference of vertices and ups: ")
-    println(polyScene.vertices.diff(upExtVertices))
-
-    println("difference of vertices and downs: ")
-    println(polyScene.vertices.diff(downExtVertices))
-
-    println("difference of vertices and ups and downs: ")
-    println(polyScene.vertices.diff(upExtVertices.union(downExtVertices)))
 
     val pairedVertices = sortedVertices.map(vertex => {
       (upExtVertices.contains(vertex), downExtVertices.contains(vertex)) match {
@@ -57,18 +32,7 @@ object LineSweep {
       }
     })
 
-    println("paired vertices: " )//+ pairedVertices.toString())
-    pairedVertices.foreach(p => {
-      println(p.toString())
-      println(hulls.map(hull => hull.distance(new GeometryFactory().createPoint(new Coordinate(p._1.head, p._1(1)))) == 0))
-    })
-
-    val initialLeft : Float = sortedVertices.head.head - 1
-
-    //val initialTop : Float = (polyScene.vertices.sortWith((v1, v2) => v1(1) >= v2(1)).head(1) + 1).max(-polyScene.vertices.sortWith((v1, v2) => v1(1) <= v2(1)).head(1) + 1)
-
-    //println("initialTop: " + initialTop.toString)
-    //println("initialLeft: " + initialLeft.toString)
+    val initialLeft: Float = sortedVertices.head.head - 1
 
     val initialOpenCells = List(List(List(initialLeft, -topBoundary), List(initialLeft, topBoundary)))
 
@@ -106,23 +70,21 @@ object LineSweep {
   //hulls, boundaryX, boundaryY are explicit parameters for the sake of pure functionality.
   //They could be accessed through global values, if one prefers an impure style
   @scala.annotation.tailrec
-  def sweepLine(sortedVertices : List[(List[Float], direction.Extendable)],
-                openCells : List[List[List[Float]]],
-                closedCells : List[List[List[Float]]],
-                hulls : Seq[Geometry],
-                boundaryX : Float,
-                boundaryY : Float) : List[List[List[Float]]] = {
+  def sweepLine(sortedVertices: List[(List[Float], direction.Extendable)],
+                openCells: List[List[List[Float]]],
+                closedCells: List[List[List[Float]]],
+                hulls: Seq[Geometry],
+                boundaryX: Float,
+                boundaryY: Float): List[List[List[Float]]] = {
     assert(openCells.nonEmpty, "There has to be at least one open Cell")
-    if(sortedVertices.isEmpty){
+    if (sortedVertices.isEmpty) {
       assert(openCells.length == 1, "When recursion stops, there should be exactly one open cell!")
-      println("end recursion")
-      return (List(boundaryX, boundaryY) :: List(boundaryX, - boundaryY) :: openCells.head) :: closedCells
+      return (List(boundaryX, boundaryY) :: List(boundaryX, -boundaryY) :: openCells.head) :: closedCells
     }
-    assert(sortedVertices.nonEmpty, "This case should be handled above")
     val first = sortedVertices.head
     val second = sortedVertices(1)
-    if(first._1.head == second._1.head){
-      println("vertical face case")
+    if (first._1.head == second._1.head) {
+
       val restVertices = sortedVertices.tail.tail
       (first, second) match {
         case ((vertexUp, direction.Up()), (vertexDown, direction.Down())) =>
@@ -174,39 +136,39 @@ object LineSweep {
           println("this case should never be reached!")
           sweepLine(restVertices, openCells, closedCells, hulls, boundaryX, boundaryY)
       }
-    } else{
-      println("vertex case")
+    } else {
+
       val restVertices = sortedVertices.tail
       first match {
         case (vertex, direction.Up()) =>
-          val top : List[Float] = computeExtendedVertex(vertex, boundaryY, hulls, (d1, d2) => d1 <= d2)
-          val newOpenCell : List[List[Float]] = List(top, vertex)
-          val cellToClose : List[List[Float]] = findOpenCell(top, boundaryY, hulls, openCells)
-          val closedCell : List[List[Float]] = newOpenCell ++ cellToClose
+          val top: List[Float] = computeExtendedVertex(vertex, boundaryY, hulls, (d1, d2) => d1 <= d2)
+          val newOpenCell: List[List[Float]] = List(top, vertex)
+          val cellToClose: List[List[Float]] = findOpenCell(top, boundaryY, hulls, openCells)
+          val closedCell: List[List[Float]] = newOpenCell ++ cellToClose
           val newOpenCells = newOpenCell :: openCells.diff(List(cellToClose))
           sweepLine(restVertices, newOpenCells, closedCell :: closedCells, hulls, boundaryX, boundaryY)
         case (vertex, direction.Down()) =>
-          val bottom : List[Float] = computeExtendedVertex(vertex, -boundaryY, hulls, (d1, d2) => d1 >= d2)
-          val newOpenCell : List[List[Float]] = List(bottom, vertex)
-          val cellToClose : List[List[Float]] = findOpenCell(bottom, -boundaryY, hulls, openCells)
-          val closedCell : List[List[Float]] = newOpenCell ++ cellToClose
+          val bottom: List[Float] = computeExtendedVertex(vertex, -boundaryY, hulls, (d1, d2) => d1 >= d2)
+          val newOpenCell: List[List[Float]] = List(bottom, vertex)
+          val cellToClose: List[List[Float]] = findOpenCell(bottom, -boundaryY, hulls, openCells)
+          val closedCell: List[List[Float]] = newOpenCell ++ cellToClose
           val newOpenCells = newOpenCell :: openCells.diff(List(cellToClose))
           sweepLine(restVertices, newOpenCells, closedCell :: closedCells, hulls, boundaryX, boundaryY)
         case (vertex, direction.UpAndDown()) =>
-          val top : List[Float] = computeExtendedVertex(vertex, boundaryY, hulls, (d1, d2) => d1 <= d2)
-          val openCellUp : List[List[Float]] = List(top, vertex)
-          val closeCellUp : List[List[Float]] = findOpenCell(top, boundaryY, hulls, openCells)
-          val bottom : List[Float] = computeExtendedVertex(vertex, -boundaryY, hulls, (d1, d2) => d1 >= d2)
-          val openCellDown : List[List[Float]] = List(bottom, vertex)
-          val closeCellDown : List[List[Float]] = findOpenCell(bottom, -boundaryY, hulls, openCells)
-          if(closeCellUp.equals(closeCellDown)){
-            val cellsToOpen : List[List[List[Float]]] = List(openCellUp, openCellDown)
-            val closedCell : List[List[Float]] = List(top, bottom) ++ closeCellUp
+          val top: List[Float] = computeExtendedVertex(vertex, boundaryY, hulls, (d1, d2) => d1 <= d2)
+          val openCellUp: List[List[Float]] = List(top, vertex)
+          val closeCellUp: List[List[Float]] = findOpenCell(top, boundaryY, hulls, openCells)
+          val bottom: List[Float] = computeExtendedVertex(vertex, -boundaryY, hulls, (d1, d2) => d1 >= d2)
+          val openCellDown: List[List[Float]] = List(bottom, vertex)
+          val closeCellDown: List[List[Float]] = findOpenCell(bottom, -boundaryY, hulls, openCells)
+          if (closeCellUp.equals(closeCellDown)) {
+            val cellsToOpen: List[List[List[Float]]] = List(openCellUp, openCellDown)
+            val closedCell: List[List[Float]] = List(top, bottom) ++ closeCellUp
             val newOpenCells = cellsToOpen ++ openCells.diff(List(closeCellUp))
             sweepLine(restVertices, newOpenCells, closedCell :: closedCells, hulls, boundaryX, boundaryY)
-          } else{
-            val newOpenCell : List[List[Float]] = List(bottom, top)
-            val newClosedCells : List[List[List[Float]]] = List(openCellUp ++ closeCellUp, openCellDown ++ closeCellDown)
+          } else {
+            val newOpenCell: List[List[Float]] = List(bottom, top)
+            val newClosedCells: List[List[List[Float]]] = List(openCellUp ++ closeCellUp, openCellDown ++ closeCellDown)
             val newOpenCells = newOpenCell :: openCells.diff(List(closeCellUp)).diff(List(closeCellDown))
             sweepLine(restVertices, newOpenCells, newClosedCells ++ closedCells, hulls, boundaryX, boundaryY)
           }
@@ -236,42 +198,32 @@ object LineSweep {
     }
   }
 
-  def findOpenCell(vertex : List[Float],
+  def findOpenCell(vertex: List[Float],
                    boundary: Float,
                    hulls: Seq[Geometry],
-                   openCells : List[List[List[Float]]]) : List[List[Float]] = {
-    val filteredHulls = hulls.filter(hull => hull.distance(new GeometryFactory().createPoint(new Coordinate(vertex.head, vertex(1))))==0)
+                   openCells: List[List[List[Float]]]): List[List[Float]] = {
+    val filteredHulls = hulls.filter(hull => hull.distance(new GeometryFactory().createPoint(new Coordinate(vertex.head, vertex(1)))) == 0)
     assert(filteredHulls.length <= 1, "A Line extended from a vertex intersects with maximal one hull.")
-    if(filteredHulls.isEmpty){
-      val filteredOpenCells = openCells.filter(cell => cell.map(vert => vert(1) == boundary).fold(false)((a,b) => a || b))
-      /*
-      assert(filteredOpenCells.length == 1, "There should be exactly one open cell to find, but there are " +
-        filteredOpenCells.length.toString + "\nwith vertex = " + vertex.toString + ", boundary = " + boundary.toString +
-        " and opencells = \n" + openCells.toString()
-      )
-       */
-      if(filteredOpenCells.isEmpty){
+    if (filteredHulls.isEmpty) {
+      val filteredOpenCells = openCells.filter(cell => cell.map(vert => vert(1) == boundary).fold(false)((a, b) => a || b))
+
+      if (filteredOpenCells.isEmpty) {
         Nil
-      }else {
+      } else {
         filteredOpenCells.head
       }
-    }else{
-      val filteredOpenCells = openCells.filter(cell => cell.map(vert => filteredHulls.head.distance(new GeometryFactory().createPoint(new Coordinate(vert.head, vert(1))))==0).fold(false)((a,b) => a || b))
-      /*
-      assert(filteredOpenCells.length == 1, "There should be exactly one open cell to find, but there are " +
-        filteredOpenCells.length.toString + "\nwith vertex = " + vertex.toString + ", boundary = " + boundary.toString +
-        " and opencells = \n" + openCells.toString()
-      )
-       */
-      if(filteredOpenCells.isEmpty){
+    } else {
+      val filteredOpenCells = openCells.filter(cell => cell.map(vert => filteredHulls.head.distance(new GeometryFactory().createPoint(new Coordinate(vert.head, vert(1)))) == 0).fold(false)((a, b) => a || b))
+
+      if (filteredOpenCells.isEmpty) {
         openCells.head
-      }else {
+      } else {
         filteredOpenCells.head
       }
     }
   }
 
-  def computeExtendedVertex(vertex : List[Float],
+  def computeExtendedVertex(vertex: List[Float],
                             boundary: Float,
                             hulls: Seq[Geometry],
                             partialOrder: (Double, Double) => Boolean): List[Float] = {
@@ -301,10 +253,17 @@ object LineSweep {
   }
 
   object direction {
+
     sealed trait Extendable
+
     case class Up() extends Extendable
+
     case class Down() extends Extendable
+
     case class UpAndDown() extends Extendable
+
     case class None() extends Extendable
+
   }
+
 }
