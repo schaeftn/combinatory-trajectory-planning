@@ -3,8 +3,8 @@ package org.combinators.ctp.repositories.temp
 import io.circe.generic.auto._
 import io.circe.parser.decode
 import org.combinators.ctp.repositories.cmp.CmpUtils
-import org.combinators.ctp.repositories.temp.GridCMP._ //{bitmapFromPolyScene, printBitmap, sceneTransform}
-import org.combinators.ctp.repositories.toplevel.{PolySceneLineSegmentation, PolygonScene, Scene}
+import org.combinators.ctp.repositories.temp.GridCMP._
+import org.combinators.ctp.repositories.toplevel.{PolygonScene, Scene}
 
 object Testing extends App with CmpUtils {
 
@@ -12,8 +12,18 @@ object Testing extends App with CmpUtils {
   val decScene: Scene = decode[Scene](sceneString).right.get
   val polyScene: PolygonScene = sceneTransform(decScene)
 
-  //Nutzung der Methoden um Polygon Scene als Bitmap auszugeben
+  val graph = VisibilityGraph(polyScene)
 
+  println("isConnected:")
+  println(graph.isConnected)
+  println("isEmpty:")
+  println(graph.isEmpty)
+  println("maxDegree:")
+  println(graph.maxDegree)
+
+
+  //Nutzung der Methoden um Polygon Scene als Bitmap auszugeben
+/*
   printBitmap(bitmapFromPolyScene(polyScene, 50, 50))
 
   val resultString = """{
@@ -165,34 +175,54 @@ object Testing extends App with CmpUtils {
   println("Python: ")
   val polySceneLinePython: PolySceneLineSegmentation = decode[PolySceneLineSegmentation](resultString).right.get
 
+  polySceneLinePython.obstacles.foreach(i => println(s"obstacle: ${i.map(polySceneLinePython.vertices)}"))
   polySceneLinePython.lines.foreach(i => println(s"line: ${i.map(polySceneLinePython.vertices)}"))
 
   printBitmap(bitmapFromPolySceneLineSegmentation(polySceneLinePython,50,50))
 
-  //val polySceneCellPython = vcdLtC2.apply(polySceneLinePython)
+  val polySceneCellPython = vcdLtC2.apply(polySceneLinePython)
 
-  //polySceneCellPython.freeCells.foreach(i => println(s"freeCell: ${i.map(polySceneCellPython.vertices)}"))
+  polySceneCellPython.obstacles.foreach(i => println(s"obstacle: ${i.map(polySceneCellPython.vertices)}"))
+  polySceneCellPython.freeCells.foreach(i => println(s"freeCell: ${i.map(polySceneCellPython.vertices)}"))
 
-  //val newPolySceneLinePython = VerticalCellToLineSegmentation(polySceneCellPython)
+  val newPolySceneLinePython = VerticalCellToLineSegmentation(polySceneCellPython)
 
-  //newPolySceneLinePython.lines.foreach(i => println(s"line: ${i.map(newPolySceneLinePython.vertices)}"))
+  newPolySceneLinePython.obstacles.foreach(i => println(s"obstacle: ${i.map(newPolySceneLinePython.vertices)}"))
+  newPolySceneLinePython.lines.foreach(i => println(s"line: ${i.map(newPolySceneLinePython.vertices)}"))
 
-  //printBitmap(bitmapFromPolySceneLineSegmentation(VerticalCellToLineSegmentation(polySceneCellPython),50,50))
+  printBitmap(bitmapFromPolySceneLineSegmentation(VerticalCellToLineSegmentation(polySceneCellPython),50,50))
 
+  println()
+  println()
+  println("#########################################################################")
   println("Scala: ")
   val polySceneLineScala: PolySceneLineSegmentation = Vcd2D(polyScene)
 
+  polySceneLineScala.obstacles.foreach(i => println(s"obstacle: ${i.map(polySceneLineScala.vertices)}"))
   polySceneLineScala.lines.foreach(i => println(s"line: ${i.map(polySceneLineScala.vertices)}"))
 
   printBitmap(bitmapFromPolySceneLineSegmentation(polySceneLineScala,50,50))
 
   val polySceneCellScala = LineSweep(polyScene)
 
+  println("obstacles:")
+  polySceneCellScala.obstacles.foreach(i => println(s"obstacle: ${i.map(polySceneCellScala.vertices)}"))
   println("free cells: ")
   polySceneCellScala.freeCells.foreach(i => println(s"freeCell: ${i.map(polySceneCellScala.vertices)}"))
 
   printBitmap(bitmapFromPolySceneLineSegmentation(VerticalCellToLineSegmentation(polySceneCellScala),50,50))
 
+  val newScalaCell = vcdLtC2.apply(polySceneLineScala)
+
+  println("obstacles:")
+  newScalaCell.obstacles.foreach(i => println(s"obstacle: ${i.map(newScalaCell.vertices)}"))
+  println("free cells: ")
+  newScalaCell.freeCells.foreach(i => println(s"freeCell: ${i.map(newScalaCell.vertices)}"))
+
+  printBitmap(bitmapFromPolySceneLineSegmentation(VerticalCellToLineSegmentation(newScalaCell),50,50))
+
+
+ */
 }
 
 
