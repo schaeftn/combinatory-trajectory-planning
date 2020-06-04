@@ -10,8 +10,6 @@ object SafetyBounding {
     val robotPoints: List[Point] = robot.map(vertex => {
       new GeometryFactory().createPoint(new Coordinate(vertex.head, vertex(1)))
     })
-    //val robotHull = new ConvexHull(robotCoordinates.toArray, new GeometryFactory())
-    //val robotGeometry = robotHull.getConvexHull
 
     def robotDiameters(coords: List[Point]): List[Double] = {
       if (coords.isEmpty) return Nil

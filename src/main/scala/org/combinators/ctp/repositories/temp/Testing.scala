@@ -12,6 +12,11 @@ object Testing extends App with CmpUtils {
   val decScene: Scene = decode[Scene](sceneString).right.get
   val polyScene: PolygonScene = sceneTransform(decScene)
 
+  val robot: List[List[Float]] = List(List(0,0), List(0,1), List(1,0), List(1,1))
+
+  val boundedScene = SafetyBounding(robot,polyScene)
+
+  /*
   val graph = VisibilityGraph(polyScene)
 
   println("isConnected:")
@@ -20,12 +25,15 @@ object Testing extends App with CmpUtils {
   println(graph.isEmpty)
   println("maxDegree:")
   println(graph.maxDegree)
+   */
 
 
   //Nutzung der Methoden um Polygon Scene als Bitmap auszugeben
-/*
-  printBitmap(bitmapFromPolyScene(polyScene, 50, 50))
 
+  printBitmap(bitmapFromPolyScene(polyScene, 100, 100))
+  println("########################")
+  printBitmap(bitmapFromPolyScene(boundedScene, 100, 100))
+/*
   val resultString = """{
                        |"vertices" :
                        |[[-79.218350,  -4.675825],
