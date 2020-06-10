@@ -11,7 +11,7 @@ import scala.math.{pow, sqrt}
 trait GeometryUtils {
   /*Works for 2D and 3D*/
   def distance(v1: List[Float], v2: List[Float]): Float = {
-    println(s"distance: v1: $v1, v2: $v2")
+    //println(s"distance: v1: $v1, v2: $v2")
     if(v1.size != v2.size)
       println(s"Warning: computation of distance requires same size of lists. v1.size: ${v1.size}, v2.size: ${v2.size}")
     sqrt((v1 zip v2).map { case (x, y) => pow(y - x, 2) }.sum).toFloat

@@ -23,8 +23,7 @@ lazy val commonSettings = Seq(
     //"-unchecked",
     "-deprecation",
     "-feature",
-    "-language:implicitConversions"
-  )
+    "-language:implicitConversions")
 ) ++ noPublishSettings
 
 

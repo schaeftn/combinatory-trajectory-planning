@@ -71,6 +71,11 @@ trait PythonTemplateUtils {
   val cdTemplateLocationTetFileBased = cdTemplateFolder + pyProps.
     getProperty("org.combinators.ctp.python.cdTemplateLocationTetFileBased")
 
+  val cdStartLocationTetFileBasedRm = cdGenFolder + pyProps.
+    getProperty("org.combinators.ctp.python.cdStartLocationTetFileBasedRm")
+  val cdTemplateLocationTetFileBasedRm = cdTemplateFolder + pyProps.
+    getProperty("org.combinators.ctp.python.cdTemplateLocationTetFileBasedRm")
+
   val graphGenFolder = pyProps.getProperty("org.combinators.ctp.python.graphGenFolder")
   val graphTemplateFolder = pyProps.getProperty("org.combinators.ctp.python.graphTemplateFolder")
 

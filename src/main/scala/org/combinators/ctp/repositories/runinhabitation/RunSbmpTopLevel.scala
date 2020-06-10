@@ -5,7 +5,7 @@ import org.combinators.cls.interpreter.{InhabitationResult, ReflectedRepository}
 import org.combinators.cls.types.syntax._
 import org.combinators.cls.types.{Constructor, Intersection, Type, Variable}
 import org.combinators.ctp.repositories._
-import org.combinators.ctp.repositories.cmp.CmpPythonRepository
+import org.combinators.ctp.repositories.cmp.CmpCdRepository
 import org.combinators.ctp.repositories.graphsearch.GraphSearchRepository
 import org.combinators.ctp.repositories.python_interop.{PlannerScheme, SubstitutionScheme}
 import org.combinators.ctp.repositories.samplebased.SbmpTopLevelRepository
@@ -14,7 +14,7 @@ import org.combinators.ctp.repositories.taxkinding.CombinatorialMotionPlanning
 import org.combinators.ctp.repositories.toplevel.{CmpTopLevel, FileBasedTopLevelSbmp, ProblemDefinitionFiles}
 
 object RunSbmpTopLevel extends App {
-  lazy val repository = new SceneRepository with CmpTopLevel with FileBasedTopLevelSbmp with CmpPythonRepository
+  lazy val repository = new SceneRepository with CmpTopLevel with FileBasedTopLevelSbmp with CmpCdRepository
     with GraphSearchRepository with SbmpTopLevelRepository {}
   lazy val cmpRepository = new CombinatorialMotionPlanning {}
 
@@ -33,6 +33,12 @@ object RunSbmpTopLevel extends App {
 
   println("Building reflected repository")
   lazy val Gamma = ReflectedRepository(repository, substitutionSpace = sbmpKinding)
+// Gamma.addCombinator()
+// map combinator name -> instance
+// Gamma.combinatorComponents.map(_._2.)
+// Gamma.staticCombinatorInfoFor().map(_._2.)
+// Dynamic repository
+
 
   println(s"Gamma.combinators.size: ${Gamma.combinators.size}")
   println(s"Gamma.combinatorComponents.size: ${Gamma.combinatorComponents.size}")

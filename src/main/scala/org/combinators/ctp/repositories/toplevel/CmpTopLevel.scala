@@ -4,12 +4,12 @@ import com.typesafe.scalalogging.LazyLogging
 import org.combinators.cls.interpreter.combinator
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
-import org.combinators.ctp.repositories.cmp.{CmpPythonRepository, CmpRoadmapRepository}
+import org.combinators.ctp.repositories.cmp.{CmpCdRepository, CmpRoadmapRepository}
 import org.combinators.ctp.repositories.scene.SceneUtils
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
 
-trait CmpTopLevel extends LazyLogging with CmpRoadmapRepository with CmpPythonRepository with SceneUtils{
+trait CmpTopLevel extends LazyLogging with CmpRoadmapRepository with CmpCdRepository with SceneUtils{
   val cmpDefaultKindingMap = Map(
     dimensionality_var -> Seq(dimensionality_two_d_t),
     sd_cell_type_var -> Seq(sd_cell_triangle_type),
@@ -72,10 +72,10 @@ trait CmpTopLevel extends LazyLogging with CmpRoadmapRepository with CmpPythonRe
               findPath: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Seq[List[Float]]):
     (Scene, MpTaskStartGoal) => PolySceneSegmentationRoadmapPath = { (scene: Scene, startGoal:MpTaskStartGoal) =>
       val polyScene = transformToPoly(scene)
-      println("top starting sSeg")
       val sceneSegmentation = toCellSegmentation(polyScene)
-      println("top starting rm")
+      println("done seg")
       val rm = constructRoadMap(sceneSegmentation, startGoal)
+      println("done rm")
       rm.withPath(findPath(rm.roadmap, startGoal))
     }
 
@@ -91,24 +91,43 @@ trait CmpTopLevel extends LazyLogging with CmpRoadmapRepository with CmpPythonRe
           rmc_cellNodeAddFct_var :&: rmc_startGoalFct_var :&: rmc_usingCentroids_var
   }
 
-  @combinator object CmpTopLevelCombinatorFileBased {
-    def apply(toCellSegmentation: ProblemDefinitionFiles => PolySceneCellSegmentation,
-              constructRoadMap: (PolySceneCellSegmentation, MpTaskStartGoal) => PolySceneSegmentationRoadmap,
-              findPath: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Seq[List[Float]]):
+//  @combinator object CmpTopLevelCombinatorFileBased {
+//    def apply(toCellSegmentation: ProblemDefinitionFiles => PolySceneCellSegmentation,
+//              constructRoadMap: (PolySceneCellSegmentation, MpTaskStartGoal) => PolySceneSegmentationRoadmap,
+//              findPath: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Seq[List[Float]]):
+//    ProblemDefinitionFiles => List[List[Float]] = { pdef:ProblemDefinitionFiles =>
+//      println("top starting sSeg")
+//      val sceneSegmentation = toCellSegmentation(pdef)
+//      println("top starting rm")
+//      val startGoal = getMpStartGoalFromProperties(pdef.problemProperties)
+//      val rm = constructRoadMap(sceneSegmentation, startGoal)
+//      findPath(rm.roadmap, startGoal).toList
+//    }
+//
+//    val semanticType =
+//        cmp_sceneSegFct_type :&: sd_poly_scene_cell_segmentation_var :&: dimensionality_var =>:
+//        cmp_cell_graph_fct :&: rmc_cellNodeAddFct_var :&: rmc_startGoalFct_var :&: rmc_usingCentroids_var :&:
+//          rmc_centroidFct_var :&: sd_cell_type_var :&: rmc_cellGraph_var :&: rmc_connectorNodes_var :&:
+//          dimensionality_var =>:
+//        cmp_graph_algorithm_var =>:
+//        cmp_algorithm_type :&: cmp_graph_algorithm_var :&: rmc_connectorNodes_var :&: rmc_centroidFct_var :&:
+//          rmc_cellGraph_var :&: sd_cell_type_var :&: sd_poly_scene_cell_segmentation_var :&: dimensionality_var :&:
+//          rmc_cellNodeAddFct_var :&: rmc_startGoalFct_var :&: rmc_usingCentroids_var
+//  }
+
+  @combinator object CmpTopLevelCombinatorFileBasedRmSeg {
+    def apply(problemToRm: ProblemDefinitionFiles => Graph[List[Float], WUnDiEdge],
+    findPath: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Seq[List[Float]]):
     ProblemDefinitionFiles => List[List[Float]] = { pdef:ProblemDefinitionFiles =>
-      println("top starting sSeg")
-      val sceneSegmentation = toCellSegmentation(pdef)
-      println("top starting rm")
-      val startGoal = getMpStartGoalFromProperties(pdef.problemProperties)
-      val rm = constructRoadMap(sceneSegmentation, startGoal)
-      findPath(rm.roadmap, startGoal).toList
+      val rm = problemToRm(pdef)
+      val startGoal = readMpStartGoalFromProperties(pdef.problemProperties)
+      findPath(rm, startGoal).toList
     }
 
     val semanticType =
-        cmp_sceneSegFct_type :&: sd_poly_scene_cell_segmentation_var :&: dimensionality_var =>:
-        cmp_cell_graph_fct :&: rmc_cellNodeAddFct_var :&: rmc_startGoalFct_var :&: rmc_usingCentroids_var :&:
-          rmc_centroidFct_var :&: sd_cell_type_var :&: rmc_cellGraph_var :&: rmc_connectorNodes_var :&:
-          dimensionality_var =>:
+      cmp_sceneSegFct_type :&: cmp_cell_graph_fct :&: sd_poly_scene_cell_segmentation_var :&: dimensionality_var :&:
+        rmc_cellNodeAddFct_var :&: rmc_startGoalFct_var :&: rmc_usingCentroids_var :&:
+        rmc_centroidFct_var :&: sd_cell_type_var :&: rmc_cellGraph_var :&: rmc_connectorNodes_var =>:
         cmp_graph_algorithm_var =>:
         cmp_algorithm_type :&: cmp_graph_algorithm_var :&: rmc_connectorNodes_var :&: rmc_centroidFct_var :&:
           rmc_cellGraph_var :&: sd_cell_type_var :&: sd_poly_scene_cell_segmentation_var :&: dimensionality_var :&:

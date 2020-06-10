@@ -29,6 +29,7 @@ object RunCmpTopLevel extends App with LazyLogging with AkkaImplicits {
       rmc_centroidFct_var -> Seq(cFct_avg_type),
       sd_poly_scene_cell_segmentation_var -> Seq(sd_seg_grid_type),
     )
+
   val cmpKinding = buildKinding(kindingMap)
 
   implicit def getTypeFromMap(v: Variable): Type = {

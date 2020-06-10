@@ -1,7 +1,7 @@
 package org.combinators.ctp.repositories.samplebased
 
 import org.combinators.cls.interpreter.combinator
-import org.combinators.cls.types.Constructor
+import org.combinators.cls.types.{Constructor, Taxonomy}
 import org.combinators.ctp.repositories.scene.SceneUtils
 import org.combinators.ctp.repositories.python_interop.{PlannerScheme, PythonTemplateUtils, PythonWrapper, SubstitutionScheme}
 import org.combinators.cls.types.syntax._
@@ -10,7 +10,7 @@ import org.combinators.ctp.repositories.toplevel._
 
 trait SbmpTopLevelRepository extends SceneUtils with PythonTemplateUtils with SbmpInputDataRepository
   with SbmpOptimizeCostRepository with SbmpSamplerRepository with SbmpValidatorRepository
-  with SbmpPlannerTemplateRepository {
+  with SbmpPlannerTemplateRepository with SbmpConfigRepository {
 
   val sbmpDefaultKindingMap = Map(sbmp_planner_var -> Seq(sbmp_planner_PRM),
     sbmp_sampler_var -> Seq(sbmp_uniform_valid_state_sampler),
@@ -33,7 +33,6 @@ trait SbmpTopLevelRepository extends SceneUtils with PythonTemplateUtils with Sb
       sbmp_planner_LBTRRT,
       sbmp_planner_TRRT,
       sbmp_planner_LazyRRT,
-      sbmp_planner_cRRT,
       sbmp_planner_RRTConnect,
       sbmp_planner_EST,
       sbmp_planner_SBL,
@@ -49,38 +48,54 @@ trait SbmpTopLevelRepository extends SceneUtils with PythonTemplateUtils with Sb
       sbmp_planner_InformedRRTstar,
       sbmp_planner_BITstar),
     sbmp_sampler_var -> Seq(
-      sbmp_roadmap_valid_state_sampler,
-      sbmp_milling_valid_state_sampler,
+//      sbmp_roadmap_valid_state_sampler,
+//      sbmp_milling_valid_state_sampler,
       sbmp_uniform_valid_state_sampler,
       sbmp_obstacle_valid_state_sampler,
       sbmp_gaussian_valid_state_sampler,
       sbmp_max_clearance_valid_state_sampler,
-      sbmp_path_optimizer_sampler),
+      sbmp_valid_path_optimizer_sampler,
+      sbmp_path_optimizer_sampler,
+      sbmp_uniform_space_sampler,
+      sbmp_gaussian_space_sampler
+    ),
     sbmp_state_validator_var -> Seq(
       sbmp_fcl_validator,
-      sbmp_cgal_validator,
-      sbmp_m5a_validator),
+//      sbmp_cgal_validator,
+//      sbmp_m5a_validator
+    ),
     sbmp_motion_validator_var -> Seq(
       sbmp_fcl_motion_validator,
       sbmp_discrete_motion_validator,
-      sbmp_m5a_motion_validator),
+      // sbmp_m5a_motion_validator
+      ),
     sbmp_cost_var -> Seq(
       sbmp_default_cost_state,
-      sbmp_cost_state_change,
-      sbmp_cost_state_change_weighted,
-      sbmp_cost_state_acceleration
+      sbmp_cost_clearance_state_change_weighted
+      //      sbmp_cost_state_change,
+      // sbmp_cost_state_acceleration
     ),
     sbmp_optimization_objective_var -> Seq(
       sbmp_opt_path_length,
-      sbmp_opt_path_clearance,
-      sbmp_opt_path_smoothness,
-      sbmp_opt_control_smoothness,
-      sbmp_m5a_integral_fct),
+      sbmp_opt_integral
+//      sbmp_opt_path_clearance,
+//      sbmp_opt_path_smoothness,
+//      sbmp_opt_control_smoothness,
+//      sbmp_m5a_integral_fct
+    ),
+    sbmp_simplification_var -> Seq(
+      sbmp_no_simplification,
+      sbmp_use_simplification
+    ),
     dimensionality_var -> Seq(
       dimensionality_three_d_t,
       dimensionality_two_d_t,
       dimensionality_n_d_t)
   )
+
+  val taxType = any_sbmp_planner_type =>: any_sbmp_sampler_type =>: any_sbmp_state_validator_type =>:
+    any_sbmp_motion_validator_type =>: any_sbmp_cost_type :&: any_sbmp_optimization_objective_type =>:
+    any_sbmp_simplification_type =>: sbmp_input_data :&: any_dimensionality_type =>: sbmp_planning_algorithm
 
   trait OmplPlannerTrait[A, B] {
     def apply(pScheme: PlannerScheme[A, B],
@@ -88,11 +103,12 @@ trait SbmpTopLevelRepository extends SceneUtils with PythonTemplateUtils with Sb
               stateValidatorSubstScheme: SubstitutionScheme,
               motionValidatorSubstScheme: SubstitutionScheme,
               optimizationCostSubstScheme: SubstitutionScheme,
+              configSubstScheme: SubstitutionScheme,
               dataSubstScheme: (A) => SubstitutionScheme
              ): (A) => B = { (input: A) =>
       println("ompltrait")
       val schemeList = List(pScheme.st, samplerSubstScheme, stateValidatorSubstScheme,
-        motionValidatorSubstScheme, optimizationCostSubstScheme, dataSubstScheme(input))
+        motionValidatorSubstScheme, optimizationCostSubstScheme, configSubstScheme, dataSubstScheme(input))
       val newScheme = schemeList.reduce(_.merge(_))
 
       val pWrapper = PythonWrapper.apply(newScheme, pScheme.startFile, pScheme.pf)
@@ -106,20 +122,41 @@ trait SbmpTopLevelRepository extends SceneUtils with PythonTemplateUtils with Sb
         sbmp_state_validator_var =>:
         sbmp_motion_validator_var =>:
         sbmp_cost_var :&: sbmp_optimization_objective_var =>:
+        sbmp_simplification_var =>:
         sbmp_input_data :&: dimensionality_var =>: //ggf plus sampler, plus motion validator?
         sbmp_planning_algorithm :&: sbmp_planner_var :&: sbmp_sampler_var :&:
           sbmp_state_validator_var :&: sbmp_motion_validator_var :&: sbmp_optimization_objective_var :&:
-          sbmp_cost_var :&: dimensionality_var
+          sbmp_cost_var :&: sbmp_simplification_var :&: dimensionality_var
   }
 
   @combinator object OmplPlannerRefinement extends
     OmplPlannerTrait[(ProblemDefinitionFiles, List[List[Float]]), List[List[Float]]] {}
+
+  @combinator object OmplPlannerRefinementTaxonomy extends
+    OmplPlannerTrait[(ProblemDefinitionFiles, List[List[Float]]), List[List[Float]]] {
+    override val semanticType = taxType
+  }
+
+  @combinator object OmplPlannerRefinementWithStates extends
+    OmplPlannerTrait[(ProblemDefinitionFiles, List[List[Float]]), (List[List[Float]], List[List[Float]])] {
+    override val semanticType = taxType
+  }
 
   @combinator object OmplPlannerStandard extends
     OmplPlannerTrait[(SceneSRT, MpTaskStartGoal), List[List[Float]]] {}
 
   @combinator object OmplPlannerProblemFile extends
     OmplPlannerTrait[ProblemDefinitionFiles, List[List[Float]]] {}
+
+  @combinator object OmplPlannerStandardTaxonomy extends
+    OmplPlannerTrait[(SceneSRT, MpTaskStartGoal), List[List[Float]]] {
+    override val semanticType = taxType
+  }
+
+  @combinator object OmplPlannerProblemFileTaxonomy extends
+    OmplPlannerTrait[ProblemDefinitionFiles, List[List[Float]]] {
+    override val semanticType = taxType
+  }
 
 
   trait EmptyTemplateScheme[A] {

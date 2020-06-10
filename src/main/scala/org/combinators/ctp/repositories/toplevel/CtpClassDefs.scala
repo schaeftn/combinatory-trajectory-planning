@@ -69,6 +69,11 @@ case class PolySceneCellSegmentation(vertices: List[List[Float]],
     PolySceneSegmentationRoadmap(self.vertices, self.obstacles, self.boundaries, self.freeCells, List.empty, g)
 }
 
+object PolySceneCellSegmentation {
+  def apply(): PolySceneCellSegmentation = PolySceneCellSegmentation(
+    List.empty[List[Float]], List.empty[List[Int]], List.empty[Float], List.empty[List[Int]])
+}
+
 case class PolySceneSegmentationRoadmap(vertices: List[List[Float]],
                                         obstacles: List[List[Int]],
                                         boundaries: List[Float],
@@ -122,6 +127,11 @@ case class MqttObstacleSRT(primitive: Int, srt: MqttTransformSRT)
 case class MqttTransformSRT(localScale: List[Float], localRot: List[Float], localTranslate: List[Float])
 
 case class PathPreds(nodes: List[Int], preds: List[Int])
+
+case class RmInput(centroids: List[List[Float]], adjacency: List[List[Int]])
+
+case class ExploredStates(exploredStates: List[List[Float]])
+
 
 /**
  * Not used yet

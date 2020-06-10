@@ -224,7 +224,7 @@ ${scene.obstacles.indices.map(id => s"    mesh.addSubModel(verts$id, tris$id)").
        |        goalRef.rotation().setIdentity()""".stripMargin
   }
 
-  def getMpStartGoalFromProperties(p: Properties) = {
+  def readMpStartGoalFromProperties(p: Properties) = {
     val startPos: List[Float] = List(
       p.getProperty("start.x").toFloat,
       p.getProperty("start.y").toFloat,

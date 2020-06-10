@@ -10,7 +10,10 @@ trait SbmpSamplerRepository extends PythonTemplateUtils {
   @combinator object SamplerUniform {
     def apply: SubstitutionScheme = {
       val fileMapping: Map[String, String] = Map( sbmpStartTemplate -> sbmpMainStartFile)
-      val substMap = Map("$sbmp_main.samplerMember$" -> "Samplers.UNIFORM")
+      val substMap = Map("$sbmp_main.samplerMember$" -> "Samplers.UNIFORM",
+        "$sbmp_main.spaceSampler$" -> "",
+        "$sbmp_main.validStateSamplerAlloc$" ->
+          "self.si.setValidStateSamplerAllocator(ob.ValidStateSamplerAllocator(getSampler))")
       SubstitutionScheme(fileMapping, substMap)
     }
 
@@ -20,7 +23,10 @@ trait SbmpSamplerRepository extends PythonTemplateUtils {
   @combinator object SamplerObstacleBased {
     def apply: SubstitutionScheme = {
       val fileMapping: Map[String, String] = Map(sbmpStartTemplate -> sbmpMainStartFile)
-      val substMap = Map("$sbmp_main.samplerMember$" -> "Samplers.OBSTACLEBASED")
+      val substMap = Map("$sbmp_main.samplerMember$" -> "Samplers.OBSTACLEBASED",
+        "$sbmp_main.spaceSampler$" -> "",
+        "$sbmp_main.validStateSamplerAlloc$" ->
+          "self.si.setValidStateSamplerAllocator(ob.ValidStateSamplerAllocator(getSampler))")
       SubstitutionScheme(fileMapping, substMap)
     }
 
@@ -30,7 +36,10 @@ trait SbmpSamplerRepository extends PythonTemplateUtils {
   @combinator object SamplerGaussian {
     def apply: SubstitutionScheme = {
       val fileMapping: Map[String, String] = Map(sbmpStartTemplate -> sbmpMainStartFile)
-      val substMap = Map("$sbmp_main.samplerMember$" -> "Samplers.GAUSSIAN")
+      val substMap = Map("$sbmp_main.samplerMember$" -> "Samplers.GAUSSIAN",
+        "$sbmp_main.spaceSampler$" -> "",
+        "$sbmp_main.validStateSamplerAlloc$" ->
+          "self.si.setValidStateSamplerAllocator(ob.ValidStateSamplerAllocator(getSampler))")
       SubstitutionScheme(fileMapping, substMap)
     }
 
@@ -40,21 +49,65 @@ trait SbmpSamplerRepository extends PythonTemplateUtils {
   @combinator object SamplerMaxClearance {
     def apply: SubstitutionScheme = {
       val fileMapping: Map[String, String] = Map(sbmpStartTemplate -> sbmpMainStartFile)
-      val substMap = Map("$sbmp_main.samplerMember$" -> "Samplers.MAXCLEARANCE")
+      val substMap = Map("$sbmp_main.samplerMember$" -> "Samplers.MAXCLEARANCE",
+        "$sbmp_main.spaceSampler$" -> "",
+        "$sbmp_main.validStateSamplerAlloc$" ->
+          "self.si.setValidStateSamplerAllocator(ob.ValidStateSamplerAllocator(getSampler))")
       SubstitutionScheme(fileMapping, substMap)
     }
 
     val semanticType = sbmp_max_clearance_valid_state_sampler
   }
 
-  @combinator object SamplerMaxPathOptimizer {
+  @combinator object SamplerValidPathOptimizer {
     def apply: SubstitutionScheme = {
       val fileMapping: Map[String, String] = Map(sbmpStartTemplate -> sbmpMainStartFile)
-      val substMap = Map("$sbmp_main.samplerMember$" -> "Samplers.CUSTOM")
+      val substMap = Map("$sbmp_main.samplerMember$" -> "Samplers.CUSTOM",
+        "$sbmp_main.spaceSampler$" -> "",
+        "$sbmp_main.validStateSamplerAlloc$" ->
+          "self.si.setValidStateSamplerAllocator(ob.ValidStateSamplerAllocator(getSampler))")
+      SubstitutionScheme(fileMapping, substMap)
+    }
+
+    val semanticType = sbmp_valid_path_optimizer_sampler
+  }
+
+  @combinator object SamplerPathOptimizer {
+    def apply: SubstitutionScheme = {
+      val fileMapping: Map[String, String] = Map(sbmpStartTemplate -> sbmpMainStartFile)
+      val substMap = Map("$sbmp_main.samplerMember$" -> "Samplers.CUSTOM",
+        "$sbmp_main.spaceSampler$" -> "space.setStateSamplerAllocator(ob.StateSamplerAllocator(getStateSpaceSampler))",
+        "$sbmp_main.validStateSamplerAlloc$" -> "")
       SubstitutionScheme(fileMapping, substMap)
     }
 
     val semanticType = sbmp_path_optimizer_sampler
+  }
+
+  @combinator object SamplerGaussSpace {
+    def apply: SubstitutionScheme = {
+      val fileMapping: Map[String, String] = Map(sbmpStartTemplate -> sbmpMainStartFile)
+      val substMap = Map("$sbmp_main.samplerMember$" -> "Samplers.GAUSSIAN",
+        "$sbmp_main.spaceSampler$" -> "space.setStateSamplerAllocator(ob.StateSamplerAllocator(getStateSpaceSampler))",
+        "$sbmp_main.validStateSamplerAlloc$" ->
+          "")
+      SubstitutionScheme(fileMapping, substMap)
+    }
+
+    val semanticType = sbmp_gaussian_space_sampler
+  }
+
+  @combinator object SamplerUniformSpace {
+    def apply: SubstitutionScheme = {
+      val fileMapping: Map[String, String] = Map(sbmpStartTemplate -> sbmpMainStartFile)
+      val substMap = Map("$sbmp_main.samplerMember$" -> "Samplers.UNIFORM",
+        "$sbmp_main.spaceSampler$" -> "space.setStateSamplerAllocator(ob.StateSamplerAllocator(getStateSpaceSampler))",
+        "$sbmp_main.validStateSamplerAlloc$" ->
+          "")
+      SubstitutionScheme(fileMapping, substMap)
+    }
+
+    val semanticType = sbmp_uniform_space_sampler
   }
 
 }

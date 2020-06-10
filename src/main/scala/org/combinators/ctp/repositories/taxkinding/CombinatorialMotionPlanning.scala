@@ -62,7 +62,7 @@ trait CombinatorialMotionPlanning {
   val sd_cell_triangle_type = Constructor("sd_cell_triangle_type")
   val sd_cell_vertical_type = Constructor("sd_cell_vertical_type")
 
-
+  val any_dimensionality_type = Constructor("any_dimensionality_type")
   val dimensionality_var = Variable("dimensionality_var")
   val dimensionality_two_d_t = Constructor("dimensionality_two_d_t")
   val dimensionality_three_d_t = Constructor("dimensionality_three_d_t")

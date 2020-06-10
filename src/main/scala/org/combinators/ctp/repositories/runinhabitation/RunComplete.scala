@@ -4,7 +4,7 @@ import org.combinators.cls.interpreter.{InhabitationResult, ReflectedRepository}
 import org.combinators.cls.types.Constructor
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.buildKinding
-import org.combinators.ctp.repositories.cmp.CmpPythonRepository
+import org.combinators.ctp.repositories.cmp.CmpCdRepository
 import org.combinators.ctp.repositories.graphsearch.GraphSearchRepository
 import org.combinators.ctp.repositories.samplebased.SbmpTopLevelRepository
 import org.combinators.ctp.repositories.scene.SceneRepository
@@ -14,7 +14,7 @@ import org.locationtech.jts.util.Stopwatch
 import org.combinators.cls.types.syntax._
 
 object RunComplete extends App {
-  lazy val repository =  new SceneRepository  with CmpTopLevel with AkkaMqttTopLevelCmp with CmpPythonRepository
+  lazy val repository =  new SceneRepository  with CmpTopLevel with AkkaMqttTopLevelCmp with CmpCdRepository
     with GraphSearchRepository with SbmpTopLevelRepository{}
   lazy val cmpRepository = new CombinatorialMotionPlanning{}
 

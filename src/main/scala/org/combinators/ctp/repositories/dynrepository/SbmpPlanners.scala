@@ -1,0 +1,89 @@
+package org.combinators.ctp.repositories.dynrepository
+
+import org.combinators.ctp.repositories.{sbmp_planner_BFMT, sbmp_planner_BITstar, sbmp_planner_BKPIECE1, sbmp_planner_EST, sbmp_planner_FMT, sbmp_planner_InformedRRTstar, sbmp_planner_KPIECE1, sbmp_planner_LBKPIECE1, sbmp_planner_LBTRRT, sbmp_planner_LazyPRM, sbmp_planner_LazyPRMStar, sbmp_planner_LazyRRT, sbmp_planner_PDST, sbmp_planner_PRM, sbmp_planner_PRMStar, sbmp_planner_RRT, sbmp_planner_RRTConnect, sbmp_planner_RRTStar, sbmp_planner_RRTXstatic, sbmp_planner_RRTsharp, sbmp_planner_SBL, sbmp_planner_SST, sbmp_planner_STRIDE, sbmp_planner_TRRT, sbmp_planner_cRRT}
+
+case class GeometricPlannerMetaData(usesSpaceSampling: Boolean,
+                                    usesValidStateSampling: Boolean,
+                                    usesInformedSampler: Boolean,
+                                    usesOptObjective: Boolean)
+
+object SbmpPlanners extends Enumeration {
+  type EnumType = Value
+  val sbmp_planner_PRM, // uses valid state sampler, space sampling as fallback, invokes sample()
+  sbmp_planner_PRMStar, // see PRM
+  sbmp_planner_LazyPRM, // uses space sampling, invokes sampleUniform()
+  sbmp_planner_LazyPRMStar, //see LazyPRM
+  sbmp_planner_SST, // uses space sampling, invokes sampleUniform(), uses si motion validator
+  sbmp_planner_RRT, // uses space sampling, invokes sampleUniform()
+  sbmp_planner_RRTStar, // uses space sampling, invokes sampleUniform(), Informed Sampler, RejectionInfSampler, OrderedInfSampler, invokes sampleUniform)=
+  sbmp_planner_LBTRRT, // uses space sampling, invokes sampleUniform()
+  sbmp_planner_TRRT, // uses space sampling, invokes sampleUniform()
+  sbmp_planner_LazyRRT, // uses space sampling, invokes sampleUniform()
+  sbmp_planner_RRTConnect, // uses space sampling, invokes sampleUniform()
+  sbmp_planner_EST, // uses valid state sampler, invokes sample() and sampleNear()
+  sbmp_planner_SBL, // uses valid state sampler, invokes sample() and sampleNear()
+  sbmp_planner_LBKPIECE1, // uses space sampling, invokes sampleNear(), discretization motion
+  sbmp_planner_KPIECE1, // uses space sampling, invokes sampleNear(), discretization motion
+  sbmp_planner_BKPIECE1, // uses valid state sampling, invokes sampleNear(), discretization motion
+  sbmp_planner_STRIDE, // uses valid state sampling, invokes sampleNear(), tree motion (GNAT)
+  sbmp_planner_PDST, // uses space sampling, invokes sampleUniform(), GoalSampleableRegion sampleGoal()
+  sbmp_planner_FMT, // uses space sampling, invokes sampleUniform(), uses si state validator
+  sbmp_planner_BFMT, // uses space sampling, invokes sampleUniform(), NearestNeighborsGNAT, BinaryHeap
+  sbmp_planner_RRTsharp, // see RRTXstatic
+  sbmp_planner_RRTXstatic, // uses space sampling, invokes sampleUniform(), GoalSampleableRegion sampleGoal(), informed sampler
+  sbmp_planner_InformedRRTstar, // see RRTStar
+  sbmp_planner_BITstar, // uses space sampling, invokes sampleUniform() (in InplicitGraph data structure), uses spaceinformation.isValid
+  not_specified
+  = Value
+
+  val plannerInfo: Map[Value, GeometricPlannerMetaData] = Map(
+    sbmp_planner_PRM -> GeometricPlannerMetaData(usesSpaceSampling = true, usesValidStateSampling = true,
+      usesInformedSampler = false, usesOptObjective = true),
+    sbmp_planner_PRMStar -> GeometricPlannerMetaData(usesSpaceSampling = true, usesValidStateSampling = true,
+      usesInformedSampler = false, usesOptObjective = true),
+    sbmp_planner_LazyPRM -> GeometricPlannerMetaData(usesSpaceSampling = true, usesValidStateSampling = false,
+      usesInformedSampler = false, usesOptObjective = true),
+    sbmp_planner_LazyPRMStar -> GeometricPlannerMetaData(usesSpaceSampling = true, usesValidStateSampling = false,
+      usesInformedSampler = false, usesOptObjective = true),
+    sbmp_planner_SST -> GeometricPlannerMetaData(usesSpaceSampling = true, usesValidStateSampling = false,
+      usesInformedSampler = false, usesOptObjective = true),
+    sbmp_planner_RRT -> GeometricPlannerMetaData(usesSpaceSampling = true, usesValidStateSampling = false,
+      usesInformedSampler = false, usesOptObjective = false),
+    sbmp_planner_RRTStar -> GeometricPlannerMetaData(usesSpaceSampling = true, usesValidStateSampling = false,
+      usesInformedSampler = true, usesOptObjective = true),
+    sbmp_planner_LBTRRT -> GeometricPlannerMetaData(usesSpaceSampling = true, usesValidStateSampling = false,
+      usesInformedSampler = false, usesOptObjective = false),
+    sbmp_planner_TRRT -> GeometricPlannerMetaData(usesSpaceSampling = true, usesValidStateSampling = false,
+      usesInformedSampler = false, usesOptObjective = true),
+    sbmp_planner_LazyRRT -> GeometricPlannerMetaData(usesSpaceSampling = true, usesValidStateSampling = false,
+      usesInformedSampler = false, usesOptObjective = false),
+    sbmp_planner_RRTConnect -> GeometricPlannerMetaData(usesSpaceSampling = true, usesValidStateSampling = false,
+      usesInformedSampler = false, usesOptObjective = false),
+    sbmp_planner_EST -> GeometricPlannerMetaData(usesSpaceSampling = false, usesValidStateSampling = true,
+      usesInformedSampler = false, usesOptObjective = false),
+    sbmp_planner_SBL -> GeometricPlannerMetaData(usesSpaceSampling = false, usesValidStateSampling = true,
+      usesInformedSampler = false, usesOptObjective = false),
+    sbmp_planner_LBKPIECE1 -> GeometricPlannerMetaData(usesSpaceSampling = true, usesValidStateSampling = false,
+      usesInformedSampler = false, usesOptObjective = false),
+    sbmp_planner_KPIECE1 -> GeometricPlannerMetaData(usesSpaceSampling = true, usesValidStateSampling = false,
+      usesInformedSampler = false, usesOptObjective = false),
+    sbmp_planner_BKPIECE1 -> GeometricPlannerMetaData(usesSpaceSampling = true, usesValidStateSampling = false,
+      usesInformedSampler = false, usesOptObjective = false),
+    sbmp_planner_STRIDE -> GeometricPlannerMetaData(usesSpaceSampling = false, usesValidStateSampling = true,
+      usesInformedSampler = false, usesOptObjective = false),
+    sbmp_planner_PDST -> GeometricPlannerMetaData(usesSpaceSampling = true, usesValidStateSampling = false,
+      usesInformedSampler = false, usesOptObjective = false),
+    sbmp_planner_FMT -> GeometricPlannerMetaData(usesSpaceSampling = true, usesValidStateSampling = false,
+      usesInformedSampler = false, usesOptObjective = true),
+    sbmp_planner_BFMT -> GeometricPlannerMetaData(usesSpaceSampling = true, usesValidStateSampling = false,
+      usesInformedSampler = false, usesOptObjective = true),
+    sbmp_planner_RRTsharp -> GeometricPlannerMetaData(usesSpaceSampling = true, usesValidStateSampling = false,
+      usesInformedSampler = true, usesOptObjective = true),
+    sbmp_planner_RRTXstatic -> GeometricPlannerMetaData(usesSpaceSampling = true, usesValidStateSampling = false,
+      usesInformedSampler = true, usesOptObjective = true),
+    sbmp_planner_InformedRRTstar -> GeometricPlannerMetaData(usesSpaceSampling = true, usesValidStateSampling = false,
+      usesInformedSampler = true, usesOptObjective = true),
+    sbmp_planner_BITstar -> GeometricPlannerMetaData(usesSpaceSampling = true, usesValidStateSampling = false,
+      usesInformedSampler = true, usesOptObjective = true),
+  )
+}

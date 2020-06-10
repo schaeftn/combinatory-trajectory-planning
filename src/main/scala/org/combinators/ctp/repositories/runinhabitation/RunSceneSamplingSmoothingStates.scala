@@ -5,21 +5,20 @@ import akka.stream.alpakka.mqtt.MqttMessage
 import akka.stream.scaladsl.Sink
 import com.typesafe.scalalogging.LazyLogging
 import org.combinators.cls.interpreter.{InhabitationResult, ReflectedRepository}
+import org.combinators.cls.types.syntax._
 import org.combinators.cls.types.{Constructor, Intersection, Type, Variable}
+import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.cmp.CmpCdRepository
 import org.combinators.ctp.repositories.graphsearch.GraphSearchRepository
+import org.combinators.ctp.repositories.python_interop.{PlannerScheme, SubstitutionScheme}
 import org.combinators.ctp.repositories.samplebased.SbmpTopLevelRepository
 import org.combinators.ctp.repositories.scene.SceneRepository
 import org.combinators.ctp.repositories.taxkinding.CombinatorialMotionPlanning
-import org.combinators.ctp.repositories.toplevel.{AkkaImplicits, AkkaMqttTopLevelCmp, AkkaMqttTopLevelCmpSbmp, CmpTopLevel, ProblemDefinitionFiles}
-import org.combinators.ctp.repositories._
-import org.combinators.cls.types.syntax._
-import org.combinators.ctp.repositories.python_interop.{PlannerScheme, SubstitutionScheme}
-import org.combinators.ctp.repositories.runinhabitation.RunSbmpTopLevel.{Gamma, getTypeFromMap, kindingMap, resolveTypeExpression}
+import org.combinators.ctp.repositories.toplevel.{AkkaMqttTopLevelCmpSbmp, CmpTopLevel, ProblemDefinitionFiles}
 
 import scala.concurrent.Future
 
-object RunSceneSamplingSmoothing extends App with LazyLogging {
+object RunSceneSamplingSmoothingStates extends App with LazyLogging {
   lazy val repository = new SceneRepository with CmpTopLevel with CmpCdRepository
     with GraphSearchRepository with SbmpTopLevelRepository with AkkaMqttTopLevelCmpSbmp {}
   lazy val cmpRepository = new CombinatorialMotionPlanning {}
@@ -91,7 +90,7 @@ object RunSceneSamplingSmoothing extends App with LazyLogging {
         sbmp_planner_var :&: sbmp_sampler_var :&: sbmp_state_validator_var :&: sbmp_motion_validator_var :&:
         sbmp_optimization_objective_var :&: sbmp_cost_var :&: cmp_graph_algorithm_var :&: rmc_connectorNodes_var :&:
         rmc_centroidFct_var :&: rmc_cellGraph_var :&: sd_cell_type_var :&: sd_poly_scene_cell_segmentation_var :&:
-        rmc_cellNodeAddFct_var :&: rmc_startGoalFct_var :&: rmc_usingCentroids_var))
+        rmc_cellNodeAddFct_var :&: rmc_startGoalFct_var :&: rmc_usingCentroids_var) :&: Constructor("ShowStates"))
 
   println("...")
   println("done")

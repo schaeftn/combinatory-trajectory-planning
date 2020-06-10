@@ -1,18 +1,12 @@
 package org.combinators.ctp.repositories.runinhabitation
 
-import java.util.Properties
-
-import akka.Done
-import akka.stream.alpakka.mqtt.MqttMessage
-import akka.stream.scaladsl.{Sink, Source}
 import com.typesafe.scalalogging.LazyLogging
 import org.combinators.cls.interpreter.{InhabitationResult, ReflectedRepository}
 import org.combinators.cls.types.syntax._
 import org.combinators.cls.types.{Constructor, Intersection, Type, Variable}
-import org.combinators.ctp.repositories.{dimensionality_var, rmc_connectorNodes_var, _}
+import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.geometry.{GeometricRepository, GeometryUtils}
 import org.combinators.ctp.repositories.graphsearch.{GraphSearchPyRepository, GraphSearchRepository}
-import org.combinators.ctp.repositories.samplebased.SbmpTopLevelRepository
 import org.combinators.ctp.repositories.scene.SceneRepository
 import org.combinators.ctp.repositories.taxkinding.CombinatorialMotionPlanning
 import org.combinators.ctp.repositories.toplevel._
@@ -20,26 +14,24 @@ import org.locationtech.jts.util.Stopwatch
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
 
-import scala.concurrent.Future
-
-object RunAkkaTopLevelCmp extends App with LazyLogging with AkkaImplicits {
-  lazy val repository = new SceneRepository
-    with CmpTopLevel with AkkaMqttTopLevelCmp with GraphSearchRepository {}
-
-  lazy val cmpRepository = new CombinatorialMotionPlanning {}
+object RunCmpTopLevelFileRm extends App with LazyLogging with AkkaImplicits {
+  lazy val repository = new SceneRepository with GeometricRepository with AkkaMqttComponents
+    with CmpTopLevel with AkkaMqttTopLevelCmp with GeometryUtils
+    with GraphSearchRepository with GraphSearchPyRepository{}
+  lazy val cmpRepository = new CombinatorialMotionPlanning{}
 
   val kindingMap = repository.cmpDefaultKindingMap ++
     Map(
-      rmc_connectorNodes_var -> Seq(rmc_cn_withConnectorNodes),
+      rmc_connectorNodes_var -> Seq(rmc_cn_withoutConnectorNodes),
       rmc_cellNodeAddFct_var -> Seq(rmc_cna_withoutCellNodes_type),
-      rmc_cellGraph_var -> Seq(rmc_cg_centroidCellVertices),
+      rmc_cellGraph_var -> Seq(rmc_cg_centroidsOnly),
       rmc_usingCentroids_var -> Seq(rm_withCentroids_type),
       rmc_startGoalFct_var -> Seq(rmc_startGoal_nn_type),
       cmp_graph_algorithm_var -> Seq(cmp_graph_dijkstra_type),
-      rmc_centroidFct_var -> Seq(cFct_centroids_naive_type),
-      dimensionality_var -> Seq(dimensionality_two_d_t),
-      sd_poly_scene_cell_segmentation_var -> Seq(sd_vertical_cell_decomposition_type),
-      sd_cell_type_var -> Seq(sd_cell_vertical_type)
+      rmc_centroidFct_var -> Seq(cFct_avg_type),
+      sd_poly_scene_cell_segmentation_var -> Seq(sd_seg_grid_type),
+      dimensionality_var -> Seq(dimensionality_three_d_t),
+      sd_poly_scene_cell_segmentation_var -> Seq(sd_seg_triangles_simple_type),
     )
 
   val cmpKinding = buildKinding(kindingMap)
@@ -57,7 +49,6 @@ object RunAkkaTopLevelCmp extends App with LazyLogging with AkkaImplicits {
     case Constructor(name, arguments@_*) => Constructor(name, arguments: _*)
   }
 
-
   lazy val Gamma = ReflectedRepository(repository, substitutionSpace = cmpKinding)
 
   println("kinding: " + Gamma.substitutionSpace.toString)
@@ -65,42 +56,38 @@ object RunAkkaTopLevelCmp extends App with LazyLogging with AkkaImplicits {
 
   println(s"# of combinators: ${Gamma.combinators.size}")
 
-  val watch: Stopwatch = new Stopwatch
+  val watch:Stopwatch = new Stopwatch
   watch.start()
 
   val ihBatch = Gamma.InhabitationBatchJob[ProblemDefinitionFiles => Graph[List[Float], WUnDiEdge]](
     resolveTypeExpression(cmp_sceneSegFct_type :&: cmp_cell_graph_fct :&: sd_poly_scene_cell_segmentation_var :&:
-      dimensionality_var :&:
-      rmc_cellNodeAddFct_var :&: rmc_startGoalFct_var :&: rmc_usingCentroids_var :&:
-      rmc_centroidFct_var :&: sd_cell_type_var :&: rmc_cellGraph_var :&: rmc_connectorNodes_var)  )
-    .addJob[(Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Seq[List[Float]]](
-      resolveTypeExpression(cmp_graph_algorithm_var))
-    .addJob[Sink[MqttMessage, Future[Done]]](
-      resolveTypeExpression(p_mqttAkkaSink_type :&: cmp_scene_graph_path :&: dimensionality_var))
-    .addJob[Unit](
-      resolveTypeExpression(
-        p_mqttAkkaComposition_type :&: cmp_scene_graph_path :&: cmp_graph_algorithm_var :&: rmc_connectorNodes_var :&:
-          rmc_centroidFct_var :&: rmc_cellGraph_var :&: sd_cell_type_var :&: sd_poly_scene_cell_segmentation_var :&:
-          dimensionality_var :&: rmc_cellNodeAddFct_var :&: rmc_startGoalFct_var :&: rmc_usingCentroids_var)
-    )
+      dimensionality_var :&: rmc_cellNodeAddFct_var :&: rmc_startGoalFct_var :&: rmc_usingCentroids_var :&:
+      rmc_centroidFct_var :&: sd_cell_type_var :&: rmc_cellGraph_var :&: rmc_connectorNodes_var))
+    .addJob[(Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Seq[List[Float]]](resolveTypeExpression(cmp_graph_algorithm_var))
+    .addJob[ProblemDefinitionFiles => List[List[Float]]](resolveTypeExpression(cmp_algorithm_type :&:
+      cmp_graph_algorithm_var :&: rmc_connectorNodes_var :&: rmc_centroidFct_var :&: rmc_cellGraph_var :&:
+      sd_cell_type_var :&: sd_poly_scene_cell_segmentation_var :&: dimensionality_var :&:
+      rmc_cellNodeAddFct_var :&: rmc_startGoalFct_var :&: rmc_usingCentroids_var))
+
+
 
   def getResultList(b: Gamma.InhabitationBatchJob) = {
     @scala.annotation.tailrec
-    def getElements(l: List[InhabitationResult[Any]], bnew: b.ResultType): List[InhabitationResult[Any]] =
-      bnew match {
-        case (newJob: b.ResultType, result: InhabitationResult[Any]) => getElements(result +: l, newJob)
-        case a: InhabitationResult[Any] => a +: l
-      }
-
+    def getElements(l: List[InhabitationResult[Any]], bnew: b.ResultType):List[InhabitationResult[Any]] =
+    bnew match {
+      case (newJob:b.ResultType, result:InhabitationResult[Any]) => getElements(result +: l, newJob)
+      case a: InhabitationResult[Any] => a +: l
+    }
     getElements(List.empty, b.run())
   }
+
 
   val l = getResultList(ihBatch)
 
   watch.stop()
   println(s"elapsed time ${watch.getTimeString}")
 
-  l.map(i => println((if (i.isEmpty) "inhabitant not found" else "inhabitant found") + "," + i.target.toString()))
+  l.map(i => println((if (i.isEmpty) "inhabitant not found" else "inhabitant found")  + "," +  i.target.toString()))
 
   l.last.interpretedTerms.index(0)
 

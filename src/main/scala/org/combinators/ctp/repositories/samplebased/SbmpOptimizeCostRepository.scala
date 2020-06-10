@@ -6,7 +6,6 @@ import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.python_interop.{PythonTemplateUtils, SubstitutionScheme}
 
 trait SbmpOptimizeCostRepository extends PythonTemplateUtils {
-
   @combinator object WeightedStateIntegralStateChange {
     def apply: SubstitutionScheme = {
       val fileMapping: Map[String, String] = Map(sbmpStartTemplate->sbmpMainStartFile)
@@ -15,8 +14,8 @@ trait SbmpOptimizeCostRepository extends PythonTemplateUtils {
       )
       SubstitutionScheme(fileMapping, substMap)
     }
-    val semanticType = sbmp_cost_state_change_weighted
 
+    val semanticType = sbmp_cost_clearance_state_change_weighted :&: sbmp_opt_integral
   }
 
   @combinator object DefaultOptimization {
