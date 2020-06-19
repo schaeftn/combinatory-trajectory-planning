@@ -286,9 +286,19 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
   }
 
   @combinator object BITstarPlannerTemplate
-    extends CombinatorPlannerTemplate[SceneSRT, List[List[Float]]] {
-    override val pf: (SceneSRT, String) => List[List[Float]] =
-      (_: SceneSRT, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
+    extends CombinatorPlannerTemplate[(SceneSRT, MpTaskStartGoal), List[List[Float]]] {
+    override val pf: ((SceneSRT, MpTaskStartGoal), String) => List[List[Float]] =
+      (_: (SceneSRT, MpTaskStartGoal), plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
+    override val st: SubstitutionScheme = defaultPlannerSubstScheme("BITstar")
+    override val startFile: String = sbmpMainStartFile
+
+    val semanticType = sbmp_planner_BITstar
+  }
+
+  @combinator object BITstarPlannerTemplatePdFiles
+    extends CombinatorPlannerTemplate[ProblemDefinitionFiles, List[List[Float]]] {
+    override val pf: (ProblemDefinitionFiles, String) => List[List[Float]] =
+      (_: ProblemDefinitionFiles, plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
     override val st: SubstitutionScheme = defaultPlannerSubstScheme("BITstar")
     override val startFile: String = sbmpMainStartFile
 

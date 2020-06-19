@@ -54,16 +54,19 @@ object RunAkkaTopLevelCmp extends App with LazyLogging with AkkaImplicits {
   def resolveTypeExpression(t: Type): Type = t match {
     case Intersection(a, b) => Intersection(resolveTypeExpression(a), resolveTypeExpression(b))
     case Variable(a) => getTypeFromMap(Variable(a))
-    case Constructor(name, arguments@_*) => Constructor(name, arguments: _*)
+    case Constructor(name, arguments) => Constructor(name, arguments)
   }
 
+  val watch1: Stopwatch = new Stopwatch
+  watch1.start()
 
   lazy val Gamma = ReflectedRepository(repository, substitutionSpace = cmpKinding)
 
   println("kinding: " + Gamma.substitutionSpace.toString)
   println("Reflected Repository built, starting inhabitation")
-
-  println(s"# of combinators: ${Gamma.combinators.size}")
+  watch1.stop()
+  println(s"elapsed time ${watch1.getTimeString}")
+  //println(s"# of combinators: ${Gamma.combinators.size}")
 
   val watch: Stopwatch = new Stopwatch
   watch.start()
@@ -95,14 +98,15 @@ object RunAkkaTopLevelCmp extends App with LazyLogging with AkkaImplicits {
     getElements(List.empty, b.run())
   }
 
-  val l = getResultList(ihBatch)
+  val res = ihBatch.run()
+  //val l = getResultList(ihBatch)
 
   watch.stop()
   println(s"elapsed time ${watch.getTimeString}")
 
-  l.map(i => println((if (i.isEmpty) "inhabitant not found" else "inhabitant found") + "," + i.target.toString()))
+  // l.map(i => println((if (i.isEmpty) "inhabitant not found" else "inhabitant found") + "," + i.target.toString()))
 
-  l.last.interpretedTerms.index(0)
+  // l.last.interpretedTerms.index(0)
 
   println("Done")
 }

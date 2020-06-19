@@ -10,7 +10,7 @@ object run_python_tetrahedralize extends App {
   val tetStartLocation = connectionSettings.getProperty("org.combinators.ctp.python.cdStartLocationTet")
 
   val foo = s"python3 $tetStartLocation"
-  val result = foo.lineStream_!
+  val result = foo.lazyLines_!
   val resultString = result.takeWhile(_ => true).foldLeft("")((b, s) => b.concat(s + "\n"))
   println(resultString)
 }

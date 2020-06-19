@@ -54,8 +54,8 @@ trait AkkaMqttTopLevelCmp extends LazyLogging with AkkaImplicits with AkkaMqttCo
 
   @combinator object AkkaGraphSceneSeg2D {
     def apply(p:Properties,
-              sceneSource: Source[Scene, Future[Done]],
-              taskSource: Source[MpTaskStartGoal, Future[Done]],
+              sceneSource: Source[Option[Scene], Future[Done]],
+              taskSource: Source[Option[MpTaskStartGoal], Future[Done]],
               composedFunction: (Scene, MpTaskStartGoal) => PolySceneSegmentationRoadmapPath,
               sceneSink: Sink[MqttMessage, Future[Done]]): Unit = {
       def toMqttMsg(s: PolySceneSegmentationRoadmapPath) = {
@@ -64,13 +64,21 @@ trait AkkaMqttTopLevelCmp extends LazyLogging with AkkaImplicits with AkkaMqttCo
       }
 
       val streamGraph: RunnableGraph[NotUsed] = RunnableGraph.fromGraph(GraphDSL.create() { implicit b =>
-        val zip = b.add(Zip[Scene, MpTaskStartGoal])
-        sceneSource ~> zip.in0
-        taskSource ~> zip.in1
+        val zip = b.add(Zip[Option[Scene], Option[MpTaskStartGoal]])
+        sceneSource.filter {
+          case Some(_) => true
+          case _ => logger.info("Error while decoding Scene. Ignoring message.")
+            false
+        } ~> zip.in0
+        taskSource.filter {
+          case Some(_) => true
+          case _ => logger.info("Error while decoding task. Ignoring message.")
+            false
+        } ~> zip.in1
         zip.out.map {
           case (a, b) =>
             logger.info("running composedfct")
-            val result = composedFunction(a, b)
+            val result = composedFunction(a.get, b.get)
             logger.info("post composedfct")
             println(toMqttMsg(result))
             toMqttMsg(result)
@@ -110,19 +118,25 @@ trait AkkaMqttTopLevelCmp extends LazyLogging with AkkaImplicits with AkkaMqttCo
       logger.info(s"Refinement start")
 
 
-      val streamGraph: ProblemDefinitionFiles => RunnableGraph[NotUsed] = pDef =>
+      val streamGraph: Option[ProblemDefinitionFiles] => RunnableGraph[NotUsed] = pDef =>
         RunnableGraph.fromGraph(GraphDSL.create() { implicit b =>
-          logger.info("running composedfct")
-          val cmpPath = problemToRm(pDef)
-          val path = findPath(cmpPath, readMpStartGoalFromProperties(pDef.problemProperties))
-          println(s"found path: $path")
-          val rmData = PolySceneSegmentationRoadmapPath(List.empty[List[Float]],
-            List.empty[List[Int]],
-            List.empty[Float],
-            List.empty[List[Int]],
-            cmpPath,
-            path)
-          Source.single(toMqttMsg(rmData)) ~> sceneSink
+          Source.single(pDef).filter {
+            case Some(_) => true
+            case _ => false
+          }.map(i => i.get).map { pDefinition => {
+            logger.info("running composedfct")
+            val cmpPath = problemToRm(pDefinition)
+            val path = findPath(cmpPath, readMpStartGoalFromProperties(pDefinition.problemProperties))
+            println(s"found path: $path")
+            val rmData = PolySceneSegmentationRoadmapPath(List.empty[List[Float]],
+              List.empty[List[Int]],
+              List.empty[Float],
+              List.empty[List[Int]],
+              cmpPath,
+              path)
+            toMqttMsg(rmData)
+          }
+          } ~> sceneSink
           ClosedShape
         })
 

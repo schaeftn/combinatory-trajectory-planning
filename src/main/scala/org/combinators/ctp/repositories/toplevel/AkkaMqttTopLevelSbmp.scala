@@ -1,6 +1,6 @@
 package org.combinators.ctp.repositories.toplevel
 
-import java.util.Properties
+import java.util.{Properties, UUID}
 
 import akka.stream.ClosedShape
 import akka.stream.alpakka.mqtt.MqttMessage
@@ -20,11 +20,13 @@ import org.combinators.ctp.repositories.scene._
 import scala.concurrent.Future
 
 
-trait AkkaMqttTopLevelSbmp extends LazyLogging with AkkaImplicits with AkkaMqttComponents {
+trait AkkaMqttTopLevelSbmp extends LazyLogging with AkkaImplicits with AkkaMqttComponents with FileBasedAkkaAgent {
+
+
   @combinator object SampleBasedMpAkka {
     def apply(p: Properties,
-              sceneSource: Source[SceneSRT, Future[Done]],
-              taskSource: Source[MpTaskStartGoal, Future[Done]],
+              sceneSource: Source[Option[SceneSRT], Future[Done]],
+              taskSource: Source[Option[MpTaskStartGoal], Future[Done]],
               composedFunction: (SceneSRT, MpTaskStartGoal) => List[List[Float]],
               sceneSink: Sink[MqttMessage, Future[Done]]): Unit = {
       logger.info(s"SampleBasedAkka Start")
@@ -34,11 +36,10 @@ trait AkkaMqttTopLevelSbmp extends LazyLogging with AkkaImplicits with AkkaMqttC
         MqttMessage(topic, ByteString(s.asJson.toString()))
       }
 
-
       val streamGraph: RunnableGraph[NotUsed] = RunnableGraph.fromGraph(GraphDSL.create() { implicit b =>
         val zip = b.add(Zip[SceneSRT, MpTaskStartGoal])
-        sceneSource ~> zip.in0
-        taskSource ~> zip.in1
+        sceneSource.filter(filterOption).map(_.get) ~> zip.in0
+        taskSource.filter(filterOption).map(_.get) ~> zip.in1
         zip.out.map {
           case (a, b) =>
             logger.info("running composedfct")
@@ -67,4 +68,45 @@ trait AkkaMqttTopLevelSbmp extends LazyLogging with AkkaImplicits with AkkaMqttC
         sbmp_planner_var :&: sbmp_sampler_var :&: sbmp_state_validator_var :&: sbmp_motion_validator_var :&:
         sbmp_optimization_objective_var :&: sbmp_cost_var
   }
+
+  @combinator object SampleBasedMpAkkaFlexTopic extends PropertyFiles {
+    def apply(
+               sceneSource: UUID => Source[Option[SceneSRT], Future[Done]],
+               taskSource: UUID => Source[Option[MpTaskStartGoal], Future[Done]],
+               composedFunction: ((SceneSRT, MpTaskStartGoal)) => List[List[Float]],
+               sceneSink: Sink[MqttMessage, Future[Done]]): UUID => Unit = { uuid =>
+      logger.info(s"SampleBasedAkka Start")
+      val streamGraph: RunnableGraph[NotUsed] = RunnableGraph.fromGraph(GraphDSL.create() { implicit b =>
+        def toMqttMsg(s: List[List[Float]]) = {
+          val topic = mqttProperties.getProperty("org.combinators.ctp.ctpPathfromScala") + "." + uuid
+          MqttMessage(topic, ByteString(s.asJson.toString()))
+        }
+
+        val zip = b.add(Zip[SceneSRT, MpTaskStartGoal])
+        sceneSource(uuid).filter(filterOption).map(_.get) ~> zip.in0
+        taskSource(uuid).filter(filterOption).map(_.get) ~> zip.in1
+        zip.out.map {
+          case (a, b) =>
+            logger.info("running composedfct")
+            val result = composedFunction(a, b)
+            logger.info("post composedfct")
+            logger.info(s"Result: $result")
+            toMqttMsg(result)
+        } ~> sceneSink
+        ClosedShape
+      })
+      streamGraph.run()
+
+      logger.info(s"Sample-based planning. Listening: SceneSRT and TaskStartGoal")
+      scala.io.StdIn.readLine()
+      logger.info(s"Disconnecting from MqttClient")
+    }
+
+    val semanticType = p_mqttAkkaSource_type :&: sd_unity_scene_srt_type =>:
+      p_mqttAkkaSource_type :&: mpt_start_goal_position_type =>:
+      sbmp_planning_algorithm =>:
+      p_mqttAkkaSink_type =>:
+      p_mqttAkkaComposition_type
+  }
+
 }

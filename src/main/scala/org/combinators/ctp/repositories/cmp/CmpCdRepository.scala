@@ -18,6 +18,9 @@ import org.locationtech.jts.algorithm.ConvexHull
 import org.locationtech.jts.geom.{Coordinate, Geometry, GeometryFactory, LineSegment, Point}
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
+import scala.collection.parallel.ParSeq
+import scala.collection.parallel.CollectionConverters._
+
 
 trait CmpCdRepository extends PythonTemplateUtils with CmpUtils with SceneUtils {
   // Pymesh without parameters; only adds cfree triangles
@@ -231,7 +234,7 @@ trait CmpCdRepository extends PythonTemplateUtils with CmpUtils with SceneUtils 
       val freeGridCells = gridCells.filter(i => !hulls.exists(g => g.intersects(i._1)))
       val freeGridCellsFloatVals: IndexedSeq[List[List[Float]]] = freeGridCells.map(_._2.map(coord => List(coord.x.toFloat, coord.y.toFloat)).distinct)
       println("getting new Vertices")
-      val newVertices = freeGridCellsFloatVals.flatten.distinct.toIndexedSeq
+      val newVertices = freeGridCellsFloatVals.flatten.distinct
       println("getting freeCells")
       val freeCells = freeGridCellsFloatVals.par.map(i => i.par.map(k => newVertices.indexOf(k) + polyScene.vertices.size).toList)
       println("...")

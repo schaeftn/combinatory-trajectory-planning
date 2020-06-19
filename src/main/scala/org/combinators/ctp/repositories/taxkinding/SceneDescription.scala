@@ -27,6 +27,8 @@ trait SceneDescription {
   val sd_seg_triangles_para_type = Constructor("sd_seg_triangles_para_type")
   val sd_seg_grid_type = Constructor("sd_seg_grid_type")
 
+  val util_file_list_type = Constructor("util_file_list_type")
+  val util_file_reader_type = Constructor("util_file_reader_type")
 /*  val cmp_vertical_cell_decomposition_type = Constructor("cmp_vertical_cell_decomposition")
   val cmp_tetrahedralization_cd_type = Constructor("cmp_tetrahedralization_cd_type")
   val cmp_wavefront_cell_decomposition_type = Constructor("cmp_wavefront_cell_decomposition")

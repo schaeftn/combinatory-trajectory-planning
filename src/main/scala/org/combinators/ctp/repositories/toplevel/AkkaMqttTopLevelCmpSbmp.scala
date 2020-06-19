@@ -6,7 +6,7 @@ import java.util.Properties
 import akka.stream.ClosedShape
 import akka.stream.alpakka.mqtt.MqttMessage
 import akka.stream.scaladsl.GraphDSL.Implicits._
-import akka.stream.scaladsl.{GraphDSL, RunnableGraph, Sink, Source, Zip}
+import akka.stream.scaladsl.{Flow, GraphDSL, RunnableGraph, Sink, Source, Zip}
 import akka.util.ByteString
 import akka.{Done, NotUsed}
 import com.typesafe.scalalogging.LazyLogging
@@ -36,13 +36,19 @@ trait AkkaMqttTopLevelCmpSbmp extends LazyLogging with AkkaImplicits with AkkaMq
         MqttMessage(topic, ByteString(s.asJson.toString()))
       }
 
-      val streamGraph: ProblemDefinitionFiles => RunnableGraph[NotUsed] = pDef =>
+      val streamGraph: Option[ProblemDefinitionFiles] => RunnableGraph[NotUsed] = pDef =>
         RunnableGraph.fromGraph(GraphDSL.create() { implicit b =>
-          logger.info("running composedfct")
-          val cmpPath = cmpFileBased(pDef)
-          val path = composedFunction((pDef, cmpPath))
-          println(s"found path: $path")
-          Source.single(toMqttMsg(path)) ~> sceneSink
+          Source.single(pDef).filter {
+            case Some(_) => true
+            case _ => false
+          }.map(i => i.get).map { pDefinition => {
+            logger.info("running composedfct")
+            val cmpPath = cmpFileBased(pDefinition)
+            val path = composedFunction((pDefinition, cmpPath))
+            println(s"found path: $path")
+            toMqttMsg(path)
+          }
+          } ~> sceneSink
           ClosedShape
         })
 
@@ -113,13 +119,21 @@ trait AkkaMqttTopLevelCmpSbmp extends LazyLogging with AkkaImplicits with AkkaMq
         List(MqttMessage(pathTopic, ByteString(path.asJson.toString())), MqttMessage(stateTopic, ByteString(states.asJson.toString())))
       }
 
-      val streamGraph: ProblemDefinitionFiles => RunnableGraph[NotUsed] = pDef =>
+
+      val streamGraph: Option[ProblemDefinitionFiles] => RunnableGraph[NotUsed] = pDef =>
         RunnableGraph.fromGraph(GraphDSL.create() { implicit b =>
-          logger.info("running composedfct")
-          val cmpPath = cmpFileBased(pDef)
-          val path = composedFunction((pDef, cmpPath))
-          println(s"found path: $path")
-          Source(toMqttMsg(path._1, path._2)) ~> sceneSink
+          logger.info("SampleBasedMpAkkaRefinementStates: REQUIRES TESTING, stream fan-out")
+          Source.single(pDef).filter {
+            case Some(_) => true
+            case _ => false
+          }.map(i => i.get).flatMapConcat { pDefinition => {
+            logger.info("running composedfct")
+            val cmpPath = cmpFileBased(pDefinition)
+            val path = composedFunction((pDefinition, cmpPath))
+            println(s"found path: $path")
+            Source(toMqttMsg(path._1, path._2))
+          }
+          } ~> sceneSink
           ClosedShape
         })
 

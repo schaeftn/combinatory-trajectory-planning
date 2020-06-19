@@ -8,9 +8,9 @@ trait ObjectModel {
   val t_om_two_dim = Constructor("t_coverage_path")
   val t_om_n_dim = Constructor("t_clearance_path")
 
-  def t_om_union(t: Type*) = Constructor("t_om_union", t:_*)
-  def t_om_substraction(t1: Type, t2: Type) = Constructor("t_om_substraction", t1, t2)
-  def t_intersection(t: Type*) = Constructor("t_om_intersection", t:_*)
+//  def t_om_union(t: Type*) = Constructor("t_om_union", t:_*)
+//  def t_om_substraction(t1: Type, t2: Type) = Constructor("t_om_substraction", t1, t2)
+//  def t_intersection(t: Type*) = Constructor("t_om_intersection", t:_*)
 
   val var_om_primitive = Variable("var_om_primitive")
   val t_om_AABB = Constructor("t_om_AABB")

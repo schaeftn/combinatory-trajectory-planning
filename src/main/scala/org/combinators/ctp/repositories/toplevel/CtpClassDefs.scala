@@ -29,15 +29,21 @@ case class ProblemDefinitionFiles(
                                    problemProperties: Properties)
 
 object ProblemDefinitionFiles{
-  def apply(cfgFile: String): ProblemDefinitionFiles = {
+  def apply(cfgFile: String): Option[ProblemDefinitionFiles] = {
     val probFolder = PropertyFiles.problemsProperties.getProperty("org.combinators.ctp.problemFolder")
 
     val cfgProperties = new Properties()
-    cfgProperties.load(new FileInputStream(probFolder + cfgFile))
+    try {
+      cfgProperties.load(new FileInputStream(probFolder + cfgFile))
 
-    val eFile = probFolder + cfgProperties.getProperty("world").split("dae").head  + "obj"
-    val robotFile = probFolder + cfgProperties.getProperty("robot").split("dae").head + "obj"
-    ProblemDefinitionFiles(eFile, robotFile, cfgProperties)
+      val eFile = probFolder + cfgProperties.getProperty("world").split("dae").head + "obj"
+      val robotFile = probFolder + cfgProperties.getProperty("robot").split("dae").head + "obj"
+      Some(ProblemDefinitionFiles(eFile, robotFile, cfgProperties))
+    }
+    catch { case e: Exception =>
+      e.printStackTrace()
+      None
+    }
   }
 }
 

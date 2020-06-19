@@ -54,7 +54,7 @@ object RunAkkaTopLevelSbmp extends App with LazyLogging with AkkaImplicits {
   def resolveTypeExpression(t: Type): Type = t match {
     case Intersection(a, b) => Intersection(resolveTypeExpression(a), resolveTypeExpression(b))
     case Variable(a) => getTypeFromMap(Variable(a))
-    case Constructor(name, arguments@_*) => Constructor(name, arguments: _*)
+    case Constructor(name, arguments) => Constructor(name, arguments)
   }
 
 
@@ -71,7 +71,7 @@ object RunAkkaTopLevelSbmp extends App with LazyLogging with AkkaImplicits {
   val ihBatch = Gamma.InhabitationBatchJob[Properties](p_unityConnectionProperties_type)
     .addJob[Source[Scene, Future[Done]]](p_mqttAkkaSource_type :&: sd_unity_scene_type :&:
       getTypeFromMap(dimensionality_var))
-    .addJob[Source[MpTaskStartGoal, Future[Done]]](p_mqttAkkaSource_type :&: mpt_start_goal_position_type :&:
+    .addJob[Source[Option[MpTaskStartGoal], Future[Done]]](p_mqttAkkaSource_type :&: mpt_start_goal_position_type :&:
       getTypeFromMap(dimensionality_var))
     .addJob[(Scene, MpTaskStartGoal) => PolySceneSegmentationRoadmapPath](
       cmp_algorithm_type :&:

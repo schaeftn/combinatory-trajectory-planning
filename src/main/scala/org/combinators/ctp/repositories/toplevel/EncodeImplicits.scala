@@ -5,6 +5,7 @@ import akka.stream.{ActorMaterializer, Materializer}
 import io.circe.{Encoder, Json}
 import io.circe.generic.auto._
 import io.circe.syntax._
+import org.combinators.ctp.repositories.dynrepository._
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
 
@@ -32,6 +33,19 @@ trait EncodeImplicits {
       ("plength", Json.fromFloat(c).get)
     )
   }
+
+  implicit val plannerEncoder: Encoder[SbmpPlanners.Value] = Encoder.encodeEnumeration(SbmpPlanners)
+  implicit val samplerEncoder: Encoder[SbmpSamplers.Value] = Encoder.encodeEnumeration(SbmpSamplers)
+  implicit val stateValidatorEncoder: Encoder[SbmpStateValidators.Value] = Encoder.encodeEnumeration(SbmpStateValidators)
+  implicit val motionValidatorEncoder: Encoder[SbmpMotionValidators.Value] = Encoder.encodeEnumeration(SbmpMotionValidators)
+  implicit val costEncoder: Encoder[SbmpCosts.Value] = Encoder.encodeEnumeration(SbmpCosts)
+  implicit val optObjEncoder: Encoder[SbmpOptObjective.Value] = Encoder.encodeEnumeration(SbmpOptObjective)
+  implicit val simplificationEncoder: Encoder[SbmpSimplification.Value] = Encoder.encodeEnumeration(SbmpSimplification)
+  implicit val sceneInputEncoder: Encoder[SbmpSceneInput.Value] = Encoder.encodeEnumeration(SbmpSceneInput)
+  implicit val dimensionalityEncoder: Encoder[SbmpDimensionality.Value] = Encoder.encodeEnumeration(SbmpDimensionality)
+
+
+
 }
 
 

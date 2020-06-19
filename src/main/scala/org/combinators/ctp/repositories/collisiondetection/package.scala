@@ -8,7 +8,7 @@ import org.combinators.ctp.repositories.toplevel.BoundingBoxData
 
 package object collisiondetection {
   val twoSphereCollisionFunction: Type = Constructor("twoSphereCollisionFunction")
-  val sphereBoxColFun: Type = Constructor("colfun", Constructor("box"), Constructor("sphere"))
+  //val sphereBoxColFun: Type = Constructor("colfun", Constructor("box"), Constructor("sphere"))
 
   val v_colFunctions: Variable = Variable("v_colFunctions")
 

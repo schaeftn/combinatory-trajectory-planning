@@ -62,7 +62,7 @@ object RunSceneSamplingSmoothingStates extends App with LazyLogging {
   def resolveTypeExpression(t: Type): Type = t match {
     case Intersection(a, b) => Intersection(resolveTypeExpression(a), resolveTypeExpression(b))
     case Variable(a) => getTypeFromMap(Variable(a))
-    case Constructor(name, arguments@_*) => Constructor(name, arguments: _*)
+    case Constructor(name, arguments) => Constructor(name, arguments)
   }
 
   val ihBatch = Gamma.InhabitationBatchJob[ProblemDefinitionFiles => List[List[Float]]](

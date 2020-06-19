@@ -11,13 +11,14 @@ import org.combinators.ctp.repositories.scene._
 //Contains all combinators that produce substitution schemes for given scene representations
 trait SbmpInputDataRepository extends SceneUtils with PythonTemplateUtils {
   @combinator object SceneSrtToFclSceneData{
-    def apply: (SceneSRT, MpTaskStartGoal) => SubstitutionScheme = {
-      (scene: SceneSRT, task: MpTaskStartGoal) =>
+    def apply: ((SceneSRT, MpTaskStartGoal)) => SubstitutionScheme = {
+      case (scene: SceneSRT, task: MpTaskStartGoal) =>
         val fileMapping: Map[String, String] = Map(sbmpStartTemplate -> sbmpMainStartFile,
           fclSceneDataTemplate -> fclSceneDataFile)
         val substituteMap: Map[String, String] = {
           Map("$fcl_scene_data.data$" -> sceneSRTtoFclPythonString(scene),
-          "$sbmp_main.startstop$"-> taskGoalStartToPythonOMPLString(task))}
+          "$sbmp_main.startstop$"-> taskGoalStartToPythonOMPLString(task),
+            "$sbmp_main.r3bounds$" -> getOmplBoundsFromScene(scene))}
         SubstitutionScheme(fileMapping, substituteMap)
     }
     val semanticType = sbmp_input_data :&: dimensionality_three_d_t

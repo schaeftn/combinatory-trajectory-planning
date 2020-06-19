@@ -224,6 +224,21 @@ ${scene.obstacles.indices.map(id => s"    mesh.addSubModel(verts$id, tris$id)").
        |        goalRef.rotation().setIdentity()""".stripMargin
   }
 
+  def getOmplBoundsFromScene(s: SceneSRT):String = {
+    s"""        # create R^3 Bounds
+       |        bounds = ob.RealVectorBounds(3) #
+       |        bounds.setLow(0, ${-s.boundaries(0)/2})
+       |        bounds.setHigh(0, ${s.boundaries(0)/2})
+       |        bounds.setLow(1, ${-s.boundaries(1)/2})
+       |        bounds.setHigh(1, ${s.boundaries(1)/2})
+       |        bounds.setLow(2, ${-s.boundaries(2)/2})
+       |        bounds.setHigh(2, ${s.boundaries(2)/2})
+       |        bounds.check()
+       |        space.setBounds(bounds)
+       |        """.stripMargin
+  }
+
+
   def readMpStartGoalFromProperties(p: Properties) = {
     val startPos: List[Float] = List(
       p.getProperty("start.x").toFloat,

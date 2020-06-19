@@ -8,9 +8,9 @@ import org.combinators.cls.types.syntax._
 trait GeometricModelTypes {
   val gm_dim = Variable("var_gm_dim")
 
-  def gm_union(t: Type*) = Constructor("gm_union", t:_*)
-  def gm_substraction(t1: Type, t2: Type) = Constructor("gm_substraction", t1, t2)
-  def t_intersection(t: Type*) = Constructor("gm_intersection", t:_*)
+//  def gm_union(t: Type*) = Constructor("gm_union", t:_*)
+//  def gm_substraction(t1: Type, t2: Type) = Constructor("gm_substraction", t1, t2)
+//  def t_intersection(t: Type*) = Constructor("gm_intersection", t:_*)
 
   //  semantic type for list with procedural geometries
   val gm_procedural_type = Constructor("gm_procedural_type")

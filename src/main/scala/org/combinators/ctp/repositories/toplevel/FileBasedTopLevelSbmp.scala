@@ -1,6 +1,6 @@
 package org.combinators.ctp.repositories.toplevel
 
-import java.util.Properties
+import java.util.{Properties, UUID}
 
 import akka.stream.ClosedShape
 import akka.stream.alpakka.mqtt.MqttMessage
@@ -13,28 +13,35 @@ import io.circe.syntax._
 import org.combinators.cls.interpreter.combinator
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
-import scala.io.StdIn._
 
+import scala.io.StdIn._
 import scala.concurrent.Future
 import java.io.File
 
 trait FileBasedTopLevelSbmp extends LazyLogging with AkkaImplicits with AkkaMqttComponents {
+
   @combinator object FileBasedTopLevelSbmp {
     def apply(composedFunction: ProblemDefinitionFiles => List[List[Float]],
               sceneSink: Sink[MqttMessage, Future[Done]]): Unit = {
-      logger.info(s"SampleBasedAkka Start")
+      logger.info(s"FileBasedTopLevelSbmp: SampleBasedAkka Start")
 
       def toMqttMsg(s: List[List[Float]]) = {
         val topic = mqttProperties.getProperty("org.combinators.ctp.ctpPathfromScala")
         MqttMessage(topic, ByteString(s.asJson.toString()))
       }
 
-      val streamGraph: ProblemDefinitionFiles => RunnableGraph[NotUsed] = pDef =>
+      val streamGraph: Option[ProblemDefinitionFiles] => RunnableGraph[NotUsed] = pDef =>
         RunnableGraph.fromGraph(GraphDSL.create() { implicit b =>
-          logger.info("running composedfct")
-          val path = composedFunction(pDef)
-          println(s"found path: $path")
-          Source.single(toMqttMsg(path)) ~> sceneSink
+          Source.single(pDef).filter {
+            case Some(_) => true
+            case _ => false
+          }.map(i => i.get).map { pDefinition => {
+            logger.info("FileBasedTopLevelSbmp: Running composed function")
+            val path = composedFunction(pDefinition)
+            println(s"FileBasedTopLevelSbmp: Found path: $path")
+            toMqttMsg(path)
+          }
+          } ~> sceneSink
           ClosedShape
         })
 
@@ -80,9 +87,22 @@ trait FileBasedTopLevelSbmp extends LazyLogging with AkkaImplicits with AkkaMqtt
       sbmp_planning_algorithm :&: sbmp_planner_var :&: sbmp_sampler_var :&:
         sbmp_state_validator_var :&: sbmp_motion_validator_var :&: sbmp_optimization_objective_var :&:
         sbmp_cost_var =>:
-      p_mqttAkkaSink_type :&: cmp_path_only :&: dimensionality_var =>:
+        p_mqttAkkaSink_type :&: cmp_path_only :&: dimensionality_var =>:
         p_fileToAkka_type :&: dimensionality_var :&: cmp_path_only :&:
-        sbmp_planner_var :&: sbmp_sampler_var :&: sbmp_state_validator_var :&: sbmp_motion_validator_var :&:
-        sbmp_optimization_objective_var :&: sbmp_cost_var
+          sbmp_planner_var :&: sbmp_sampler_var :&: sbmp_state_validator_var :&: sbmp_motion_validator_var :&:
+          sbmp_optimization_objective_var :&: sbmp_cost_var
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
 }

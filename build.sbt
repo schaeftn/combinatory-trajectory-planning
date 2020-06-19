@@ -1,12 +1,12 @@
 import sbt.Keys._
 import sbt.Resolver
 
-val circeVersion = "0.11.1"
+val circeVersion = "0.12.3"
 
 lazy val commonSettings = Seq(
   organization := "org.combinators",
 
-  scalaVersion := "2.12.8",
+  scalaVersion := "2.13.1",
   crossScalaVersions := Seq("2.11.12", scalaVersion.value),
 
   resolvers ++= Seq(
@@ -16,8 +16,6 @@ lazy val commonSettings = Seq(
     Resolver.typesafeRepo("snapshots"),
     "apache-snapshot" at "https://repository.apache.org/snapshots/"
   ),
-  
-  addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full),
 
   scalacOptions ++= Seq(
     //"-unchecked",
@@ -31,17 +29,19 @@ lazy val root = (Project(id = "combinatory-trajectory-planning", base = file("."
   .settings(commonSettings: _*)
   .settings(
     moduleName := "cls-graph-search",
-      libraryDependencies ++= Seq(
-      "org.combinators" %% "cls-scala" % "2.1.0+7-9e42ea3e",
-      "org.scalactic" %% "scalactic" % "3.0.5" % "test",
-      "org.scalatest" %% "scalatest" % "3.0.5" % "test",
+    libraryDependencies ++= Seq(
+      //"org.combinators" %% "cls-scala" % "2.1.0+7-9e42ea3e",
+      "org.combinators" %% "cls-scala" % "2.2.0-TEMP",
+      "org.scalactic" %% "scalactic" % "3.1.2" % "test",
+      "org.scalatest" %% "scalatest" % "3.1.2" % "test",
+      "org.scala-lang.modules" %% "scala-parallel-collections" % "0.2.0",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
       "org.apache.poi" % "poi" % "3.9",
       "org.apache.poi" % "poi-ooxml" % "3.9",
       "com.lightbend.akka" %% "akka-stream-alpakka-mqtt" % "2.0.0-M1",
       "com.typesafe.scala-logging" %% "scala-logging" % "3.9.0",
-      "org.scala-graph" %% "graph-core" % "1.12.5",
-      "org.scala-graph" %% "graph-json" % "1.12.1",
+      "org.scala-graph" %% "graph-core" % "1.13.2",
+      "org.scala-graph" %% "graph-json" % "1.13.0",
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.0",
       "org.locationtech.jts" % "jts-core" % "1.16.1",
       "com.dreizak" % "miniball" % "1.0.3",

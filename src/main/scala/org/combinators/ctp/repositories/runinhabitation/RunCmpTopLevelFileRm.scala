@@ -46,7 +46,7 @@ object RunCmpTopLevelFileRm extends App with LazyLogging with AkkaImplicits {
   def resolveTypeExpression(t: Type): Type = t match {
     case Intersection(a, b) => Intersection(resolveTypeExpression(a), resolveTypeExpression(b))
     case Variable(a) => getTypeFromMap(Variable(a))
-    case Constructor(name, arguments@_*) => Constructor(name, arguments: _*)
+    case Constructor(name, arguments) => Constructor(name, arguments)
   }
 
   lazy val Gamma = ReflectedRepository(repository, substitutionSpace = cmpKinding)
