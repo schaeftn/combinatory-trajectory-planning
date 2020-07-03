@@ -7,23 +7,23 @@ import scala.io.Source
 import scala.sys.process._
 
 case class SubstitutionScheme(f: Map[String, String], substitutes: Map[String, String])
-  extends PythonTemplateUtils {
+  extends PythonTemplateUtils with LazyLogging {
   self =>
   def executeTemplating() = {
     f.map { case (template, target) =>
-      println(s"Trying to read template file: $template")
+      logger.debug(s"Trying to read template file: $template")
       val templateSource = Source.fromFile(template)
       val content = templateSource.getLines.mkString("\n")
       assert(content.length > 0)
       templateSource.close
       val newContent = substitutes.foldLeft(content) { case (a: String, (b: String, c: String)) => a.replace(b, c) }
-      println(s"Template file $template read")
-      println("Replaced file contents: \n" + newContent)
-      println(s"Attempting to write file $target")
+      logger.debug(s"Template file $template read")
+      logger.debug("Replaced file contents: \n" + newContent)
+      logger.debug(s"Attempting to write file $target")
       val bw = new BufferedWriter(new FileWriter(target))
       bw.write(newContent)
       bw.close()
-      println("outFile written")
+      logger.debug("outFile written")
     }
   }
 
@@ -57,9 +57,10 @@ abstract case class SimplePythonWrapper[B](t: SubstitutionScheme, startFile: Str
 
   def computeResult: B = {
     generateFiles()
+    logger.info(s"Python files generated. Running Python.")
     val resultString: String = executePythonFile()
-    println(s"ResultString (computeResult): ")
-    println(s"$resultString")
+    logger.debug(s"ResultString (computeResult): ")
+    logger.debug(s"$resultString")
     parseResult(resultString)
   }
 }
@@ -67,11 +68,11 @@ abstract case class SimplePythonWrapper[B](t: SubstitutionScheme, startFile: Str
 abstract case class PythonWrapperModifier[A, B](t: SubstitutionScheme, startFile: String)
   extends PythonWrapper[B](t, startFile) {
   def computeResult: A => B = { input: A =>
-    println(s"Generating files... ")
+    logger.debug(s"Generating files... ")
     generateFiles()
     val resultString: String = executePythonFile()
-    println(s"ResultString (computeResult): ")
-    println(s"$resultString")
+    logger.debug(s"ResultString (computeResult): ")
+    logger.debug(s"$resultString")
     parseResultAndModifyInput(input, resultString)
   }
 

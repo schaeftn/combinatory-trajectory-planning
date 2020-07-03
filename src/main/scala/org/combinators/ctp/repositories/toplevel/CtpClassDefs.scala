@@ -3,6 +3,7 @@ package org.combinators.ctp.repositories.toplevel
 import java.io.FileInputStream
 import java.util.Properties
 
+import com.typesafe.scalalogging.LazyLogging
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.geometry.{PpPolyhedronMesh, PpSurfaceMesh}
 import scalax.collection.Graph
@@ -24,21 +25,23 @@ case class MeshScene(boundaries: List[List[Float]], obstacles: List[PpSurfaceMes
 }
 
 case class ProblemDefinitionFiles(
+                                   cfgFileName: String,
                                    envModelLocation: String,
                                    robotModelLocation: String,
                                    problemProperties: Properties)
 
-object ProblemDefinitionFiles{
+object ProblemDefinitionFiles extends LazyLogging{
   def apply(cfgFile: String): Option[ProblemDefinitionFiles] = {
     val probFolder = PropertyFiles.problemsProperties.getProperty("org.combinators.ctp.problemFolder")
 
     val cfgProperties = new Properties()
     try {
+      logger.debug(s"Loading cfg file: ${probFolder + cfgFile}")
       cfgProperties.load(new FileInputStream(probFolder + cfgFile))
 
       val eFile = probFolder + cfgProperties.getProperty("world").split("dae").head + "obj"
       val robotFile = probFolder + cfgProperties.getProperty("robot").split("dae").head + "obj"
-      Some(ProblemDefinitionFiles(eFile, robotFile, cfgProperties))
+      Some(ProblemDefinitionFiles(cfgFile, eFile, robotFile, cfgProperties))
     }
     catch { case e: Exception =>
       e.printStackTrace()

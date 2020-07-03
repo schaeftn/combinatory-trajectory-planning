@@ -195,11 +195,11 @@ trait AkkaMqttComponents extends LazyLogging with EncodeImplicits with PropertyF
       val topic = mqttProperties.getProperty("org.combinators.ctp.fileBasedSbmpRequest")
 
       val connectionSettings = MqttConnectionSettings(broker, "cls/ProblemFileLoader",
-        new MemoryPersistence).withAutomaticReconnect(true)
+        new MemoryPersistence).withAutomaticReconnect(true).withCleanSession(true)
 
       MqttSource.atLeastOnce(
         connectionSettings,
-        MqttSubscriptions(topic + "."+uuid, MqttQoS.AtLeastOnce),
+        MqttSubscriptions(topic + "."+uuid, MqttQoS.ExactlyOnce),
         bufferSize = 8).map { i =>
         logger.info(s"Received config file string: ${i.message.payload.utf8String}")
         ProblemDefinitionFiles(i.message.payload.utf8String)

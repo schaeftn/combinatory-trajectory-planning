@@ -15,25 +15,15 @@ import org.combinators.cls.interpreter.combinator
 import org.combinators.cls.types.Constructor
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
+import scala.concurrent.duration._
+import scala.language.postfixOps
+import scala.concurrent.{Await, ExecutionContext, Future}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.io.StdIn._
 
 trait FileBasedAkkaAgent extends LazyLogging with AkkaImplicits with PropertyFiles {
-
-/*  @combinator object TopLevelFileAkka {
-    def apply(g1: RunnableGraph[NotUsed], g2: UUID => RunnableGraph[NotUsed]): UUID => Unit = { uuid =>
-      g1.run()
-      g2(uuid).run
-
-    }
-
-    val semanticType =
-      p_mqttAkkaComposition_type :&: util_file_list_type =>:
-        p_mqttAkkaComposition_type :&: util_file_reader_type =>:
-        Constructor("foo")
-  }*/
-
+  implicit val ec: ExecutionContext=  ExecutionContext.global
   /*Akka endpoint that lists available problem instances*/
   @combinator object ProblemFileListAkkaAgent {
     def apply(sourceMqtt: Source[MqttMessage, Future[Done]],
@@ -78,18 +68,25 @@ trait FileBasedAkkaAgent extends LazyLogging with AkkaImplicits with PropertyFil
               composedFunction: (ProblemDefinitionFiles => List[List[Float]])): UUID => Unit = {
       uuid =>
         logger.info(s"FileBasedTopLevelSbmpAkka starting.")
-        val topic = mqttProperties.getProperty("org.combinators.ctp.fileBasedSbmpResoponse") + "." + uuid.toString
+        val topic = mqttProperties.getProperty("org.combinators.ctp.fileBasedSbmpResponse") + "." + uuid.toString
 
         def streamGraph: RunnableGraph[NotUsed] = {
           RunnableGraph.fromGraph(GraphDSL.create() { implicit b =>
             def toMqttMsg(s: List[List[Float]]) =
               MqttMessage(topic , ByteString(s.asJson.toString()))
 
-            def errorMessage(s:String): MqttMessage = MqttMessage(topic , ByteString(s"Failed to load config file $s"))
+            def errorMessage(s: String): MqttMessage = MqttMessage(topic, ByteString(s"Failed to load config file $s"))
 
-            sourceMqtt(uuid).map {
-              case Some(i) => {toMqttMsg(composedFunction(i))}
-              case None =>  errorMessage("Error occured in FileBasedTopLevelSbmpAkka")
+            sourceMqtt(uuid).mapAsync(10) {
+              case Some(i) => {
+                val f = Future {
+                  composedFunction(i)
+                }
+                val out = f.map(toMqttMsg)
+                out.onComplete(i => logger.info(s"Sending result via Mqtt: $i"))
+                out
+              }
+              case None => Future{errorMessage("Error occured in FileBasedTopLevelSbmpAkka")}
             } ~> sceneSink
             ClosedShape
           })

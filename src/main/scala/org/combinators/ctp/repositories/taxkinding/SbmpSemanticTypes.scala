@@ -18,7 +18,7 @@ trait SbmpSemanticTypes {
 //  val sbmp_planner_VFRRT = Constructor("sbmp_planner_VFRRT") // no py bindings available
 //  val sbmp_planner_pRRT = Constructor("sbmp_planner_pRRT") // no py bindings available
   val sbmp_planner_LazyRRT = Constructor("sbmp_planner_LazyRRT")
-  val sbmp_planner_cRRT = Constructor("sbmp_planner_cRRT")
+  //val sbmp_planner_cRRT = Constructor("sbmp_planner_cRRT") //control planner
   val sbmp_planner_RRTConnect = Constructor("sbmp_planner_RRTConnect")
 
   val sbmp_planner_EST = Constructor("sbmp_planner_EST")
@@ -51,7 +51,7 @@ trait SbmpSemanticTypes {
   val sbmp_obstacle_valid_state_sampler = Constructor("sbmp_obstacle_valid_state_sampler")
   val sbmp_gaussian_valid_state_sampler = Constructor("sbmp_gaussian_valid_state_sampler")
   val sbmp_max_clearance_valid_state_sampler = Constructor("sbmp_max_clearance_valid_state_sampler")
-  val sbmp_valid_path_optimizer_sampler = Constructor("sbmp_path_optimizer_sampler")
+  val sbmp_valid_path_optimizer_sampler = Constructor("sbmp_valid_path_optimizer_sampler")
   val sbmp_path_optimizer_sampler = Constructor("sbmp_path_optimizer_sampler")
   val sbmp_uniform_space_sampler = Constructor("sbmp_uniform_space_sampler")
   val sbmp_gaussian_space_sampler = Constructor("sbmp_gaussian_space_sampler")
@@ -95,13 +95,12 @@ trait SbmpSemanticTypes {
   val taxMapList = Map(
     "any_sbmp_planner_type" -> List("sbmp_planner_PRM", "sbmp_planner_PRMStar", "sbmp_planner_LazyPRM",
       "sbmp_planner_LazyPRMStar", "sbmp_planner_SST", "sbmp_planner_RRT", "sbmp_planner_RRTStar", "sbmp_planner_LBTRRT",
-      "sbmp_planner_TRRT", "sbmp_planner_LazyRRT", "sbmp_planner_cRRT", "sbmp_planner_RRTConnect", "sbmp_planner_EST",
+      "sbmp_planner_TRRT", "sbmp_planner_LazyRRT", "sbmp_planner_RRTConnect", "sbmp_planner_EST",
       "sbmp_planner_SBL", "sbmp_planner_LBKPIECE1", "sbmp_planner_KPIECE1", "sbmp_planner_BKPIECE1",
       "sbmp_planner_STRIDE", "sbmp_planner_PDST", "sbmp_planner_FMT", "sbmp_planner_BFMT", "sbmp_planner_RRTsharp",
       "sbmp_planner_RRTXstatic", "sbmp_planner_InformedRRTstar", "sbmp_planner_BITstar"),
     "any_sbmp_sampler_type" -> List("sbmp_uniform_valid_state_sampler", "sbmp_obstacle_valid_state_sampler",
-      "sbmp_gaussian_valid_state_sampler", "sbmp_max_clearance_valid_state_sampler", "sbmp_path_optimizer_sampler",
-      "sbmp_path_optimizer_sampler", "sbmp_uniform_space_sampler", "sbmp_gaussian_space_sampler"),
+      "sbmp_gaussian_valid_state_sampler", "sbmp_max_clearance_valid_state_sampler", "sbmp_uniform_space_sampler", "sbmp_gaussian_space_sampler"),
     "any_sbmp_state_validator_type" -> List("sbmp_fcl_validator"),
     "any_sbmp_motion_validator_type" -> List("sbmp_fcl_motion_validator", "sbmp_discrete_motion_validator"),
     "any_sbmp_optimization_objective_type" -> List("sbmp_path_length", "sbmp_opt_integral"),

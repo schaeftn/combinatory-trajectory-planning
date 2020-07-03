@@ -27,6 +27,7 @@ import org.combinators.ctp.repositories.runinhabitation.RunAkkaTopLevelCmp.{Gamm
 import org.combinators.ctp.repositories.taxkinding.SbmpSemanticTypes
 import org.combinators.ctp.repositories.{any_dimensionality_type, any_sbmp_optimization_objective_type, sbmp_planning_algorithm, util_file_reader_type}
 import org.combinators.cls.types.syntax._
+import org.combinators.ctp.repositories.benchmarks.BenchmarkClient
 
 import scala.concurrent.Future
 import scala.concurrent.Future
@@ -102,6 +103,7 @@ object AkkaInhabitationAgent extends App with AkkaImplicits with LazyLogging wit
   println(UUID.randomUUID().toString)
   //alg.buildRepository.inhabit[Unit](Constructor("anyPlanner"))
   logger.info(s"Mqtt inhabitation agent running.")
+
   scala.io.StdIn.readLine()
   logger.info(s"Mqtt inhabitation agent disconnecting.")
   println("dnot")
@@ -156,10 +158,11 @@ object MpEndpoint extends LazyLogging with SbmpSemanticTypes {
     val l = getResultList(ihResult)
     l.foreach(i => println((if (i.isEmpty) "inhabitant not found" else "inhabitant found") + "," + i.target.toString()))
 
-    if (l.isEmpty) {
+    if (l.isEmpty || l.last.isEmpty) {
       logger.info("Inhabitation empty")
       None
     } else {
+      logger.info("Running inhabitant.")
       val asd = new MpEndpoint(sbmpAlg.id, sbmpAlg,
         l.last.interpretedTerms.index(0).asInstanceOf[UUID=> Unit])
       logger.debug("repository built, inhab running")

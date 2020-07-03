@@ -1,5 +1,6 @@
 package org.combinators.ctp.repositories.samplebased
 
+import com.typesafe.scalalogging.LazyLogging
 import org.combinators.cls.interpreter.combinator
 import org.combinators.cls.types.{Constructor, Taxonomy}
 import org.combinators.ctp.repositories.scene.SceneUtils
@@ -10,7 +11,7 @@ import org.combinators.ctp.repositories.toplevel._
 
 trait SbmpTopLevelRepository extends SceneUtils with PythonTemplateUtils with SbmpInputDataRepository
   with SbmpOptimizeCostRepository with SbmpSamplerRepository with SbmpValidatorRepository
-  with SbmpPlannerTemplateRepository with SbmpConfigRepository {
+  with SbmpConfigRepository with LazyLogging{
 
   val sbmpDefaultKindingMap = Map(sbmp_planner_var -> Seq(sbmp_planner_PRM),
     sbmp_sampler_var -> Seq(sbmp_uniform_valid_state_sampler),
@@ -103,16 +104,15 @@ trait SbmpTopLevelRepository extends SceneUtils with PythonTemplateUtils with Sb
               stateValidatorSubstScheme: SubstitutionScheme,
               motionValidatorSubstScheme: SubstitutionScheme,
               optimizationCostSubstScheme: SubstitutionScheme,
-              configSubstScheme: SubstitutionScheme,
-              dataSubstScheme: (A) => SubstitutionScheme
-             ): (A) => B = { (input: A) =>
-      println("ompltrait")
+              simplificationSubstScheme: SubstitutionScheme,
+              dataSubstScheme: (A) => SubstitutionScheme): (A) => B = { (input: A) =>
+      logger.debug("OmplPlannerTrait: Starting")
       val schemeList = List(pScheme.st, samplerSubstScheme, stateValidatorSubstScheme,
-        motionValidatorSubstScheme, optimizationCostSubstScheme, configSubstScheme, dataSubstScheme(input))
+        motionValidatorSubstScheme, optimizationCostSubstScheme, simplificationSubstScheme, dataSubstScheme(input))
       val newScheme = schemeList.reduce(_.merge(_))
 
       val pWrapper = PythonWrapper.apply(newScheme, pScheme.startFile, pScheme.pf)
-      println("pWrapper starting")
+      logger.debug("OmplPlannerTrait: Starting PyWrapper")
       pWrapper.computeResult(input)
     }
 

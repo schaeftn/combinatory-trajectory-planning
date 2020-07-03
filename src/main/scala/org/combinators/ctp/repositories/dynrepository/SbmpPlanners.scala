@@ -1,7 +1,5 @@
 package org.combinators.ctp.repositories.dynrepository
 
-import org.combinators.ctp.repositories.{sbmp_planner_BFMT, sbmp_planner_BITstar, sbmp_planner_BKPIECE1, sbmp_planner_EST, sbmp_planner_FMT, sbmp_planner_InformedRRTstar, sbmp_planner_KPIECE1, sbmp_planner_LBKPIECE1, sbmp_planner_LBTRRT, sbmp_planner_LazyPRM, sbmp_planner_LazyPRMStar, sbmp_planner_LazyRRT, sbmp_planner_PDST, sbmp_planner_PRM, sbmp_planner_PRMStar, sbmp_planner_RRT, sbmp_planner_RRTConnect, sbmp_planner_RRTStar, sbmp_planner_RRTXstatic, sbmp_planner_RRTsharp, sbmp_planner_SBL, sbmp_planner_SST, sbmp_planner_STRIDE, sbmp_planner_TRRT, sbmp_planner_cRRT}
-
 case class GeometricPlannerMetaData(usesSpaceSampling: Boolean,
                                     usesValidStateSampling: Boolean,
                                     usesInformedSampler: Boolean,

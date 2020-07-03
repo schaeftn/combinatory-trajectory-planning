@@ -17,6 +17,11 @@ trait GeometryUtils {
     sqrt((v1 zip v2).map { case (x, y) => pow(y - x, 2) }.sum).toFloat
   }
 
+  def path_distance(p: List[List[Float]]): Float = {
+    val distances = (p zip p.tail) map { case (a, b) => distance(a, b) }
+    distances.sum
+  }
+
   def commons_distance(v1: List[Float], v2: List[Float]): Float = {
     val t = new EuclideanDistance()
     t.compute(v1.map(_.toDouble).toArray, v2.map(_.toDouble).toArray).toFloat

@@ -6,7 +6,7 @@ import org.combinators.ctp.repositories.python_interop.{PlannerScheme, PythonTem
 import org.combinators.ctp.repositories.scene.SceneUtils
 import org.combinators.ctp.repositories.toplevel._
 
-trait SbmpControlPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils with SbmpPlannerTemplateRepository {
+trait SbmpControlPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils {
 
   /*
   * different main template

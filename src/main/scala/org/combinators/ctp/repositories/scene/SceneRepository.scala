@@ -39,7 +39,7 @@ trait SceneRepository extends SceneDescription with CtpTaxonomy with GeometricRe
       logger.debug("scene to poly after: " + obstacleVertexTuple)
 
       val (_, objList, globalVertices) = obstacleVertexTuple.
-        foldLeft(0, List.empty[Range], List.empty[List[Float]]) {
+        foldLeft(0: Int, List.empty[Range], List.empty[List[Float]]) {
           case ((id, obsVertices, globalVertices), obstacleVertices) =>
             (id + obstacleVertices.vertices.size,
               Range(id, id + obstacleVertices.vertices.size) +: obsVertices,
