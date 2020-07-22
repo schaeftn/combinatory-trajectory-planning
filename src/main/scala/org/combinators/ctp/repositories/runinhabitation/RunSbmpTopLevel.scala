@@ -81,7 +81,7 @@ object RunSbmpTopLevel extends App {
         getTypeFromMap(sbmp_motion_validator_var) :&:
         getTypeFromMap(sbmp_optimization_objective_var) :&:
         getTypeFromMap(sbmp_cost_var))
-    .addJob[PlannerScheme[ProblemDefinitionFiles, List[List[Float]]]](resolveTypeExpression(sbmp_planner_var))
+    .addJob[PlannerScheme[List[List[Float]]]](resolveTypeExpression(sbmp_planner_var))
     .addJob[SubstitutionScheme](resolveTypeExpression(sbmp_sampler_var))
     .addJob[SubstitutionScheme](resolveTypeExpression(sbmp_state_validator_var :&: sbmp_state_validator_var))
     .addJob[SubstitutionScheme](resolveTypeExpression(sbmp_motion_validator_var))

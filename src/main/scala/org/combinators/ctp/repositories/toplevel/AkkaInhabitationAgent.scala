@@ -129,8 +129,7 @@ object MpEndpoint extends LazyLogging with SbmpSemanticTypes {
     val repository = sbmpAlg.buildRepository
     logger.debug("Repository built. Starting inhabitation")
 
-    val ihResult = repository.InhabitationBatchJob[PlannerScheme[((SceneSRT, MpTaskStartGoal)), List[List[Float]]]](any_sbmp_planner_type)
-      .addJob[PlannerScheme[(SceneSRT, MpTaskStartGoal), List[List[Float]]]](any_sbmp_planner_type)
+    val ihResult = repository.InhabitationBatchJob[PlannerScheme[List[List[Float]]]](any_sbmp_planner_type)
       .addJob[Any](any_sbmp_sampler_type)
       .addJob[Any](any_sbmp_state_validator_type)
       .addJob[Any](any_sbmp_motion_validator_type)

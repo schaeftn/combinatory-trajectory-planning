@@ -38,27 +38,28 @@ object SubstitutionScheme {
   }
 }
 
-case class PlannerScheme[A, B](st: SubstitutionScheme, pf: (A, String) => B, startFile: String)
+case class ModifierPlannerScheme[A, B](st: SubstitutionScheme, pf: (A, String) => B, startFile: String)
+case class PlannerScheme[B](st: SubstitutionScheme, pf: (String) => B, startFile: String)
 
 abstract class PythonWrapper[B](t: SubstitutionScheme, startFile: String) extends LazyLogging {
   def generateFiles(): Unit = {
     t.executeTemplating()
   }
 
-  def executePythonFile(): String = {
-    val foo = s"python3 $startFile"
+  def executePythonFile(args: String): String = {
+    val foo = s"python3 $startFile $args"
     foo.lazyLines_!.takeWhile(_ => true).toList.mkString("\r\n")
   }
 }
 
-abstract case class SimplePythonWrapper[B](t: SubstitutionScheme, startFile: String)
+abstract case class SimplePythonWrapper[B](t: SubstitutionScheme, startFile: String, args: String ="")
   extends PythonWrapper[B](t, startFile) {
   def parseResult: String => B
 
   def computeResult: B = {
     generateFiles()
     logger.info(s"Python files generated. Running Python.")
-    val resultString: String = executePythonFile()
+    val resultString: String = executePythonFile(args)
     logger.debug(s"ResultString (computeResult): ")
     logger.debug(s"$resultString")
     parseResult(resultString)
@@ -70,7 +71,7 @@ abstract case class PythonWrapperModifier[A, B](t: SubstitutionScheme, startFile
   def computeResult: A => B = { input: A =>
     logger.debug(s"Generating files... ")
     generateFiles()
-    val resultString: String = executePythonFile()
+    val resultString: String = executePythonFile("")
     logger.debug(s"ResultString (computeResult): ")
     logger.debug(s"$resultString")
     parseResultAndModifyInput(input, resultString)
@@ -91,6 +92,14 @@ object PythonWrapper {
                   startFile: String,
                   parseFct: String => B): SimplePythonWrapper[B] =
     new SimplePythonWrapper[B](t, startFile) {
+      override def parseResult: String => B = parseFct
+    }
+
+  def apply[A, B](t: SubstitutionScheme,
+                  startFile: String,
+                  p_args: String,
+                  parseFct: String => B): SimplePythonWrapper[B] =
+    new SimplePythonWrapper[B](t, startFile, args = p_args) {
       override def parseResult: String => B = parseFct
     }
 }

@@ -55,8 +55,8 @@ trait SbmpTopLevelRepository extends SceneUtils with PythonTemplateUtils with Sb
       sbmp_obstacle_valid_state_sampler,
       sbmp_gaussian_valid_state_sampler,
       sbmp_max_clearance_valid_state_sampler,
-      sbmp_valid_path_optimizer_sampler,
-      sbmp_path_optimizer_sampler,
+//      sbmp_valid_path_optimizer_sampler,
+//      sbmp_path_optimizer_sampler,
       sbmp_uniform_space_sampler,
       sbmp_gaussian_space_sampler
     ),
@@ -99,7 +99,7 @@ trait SbmpTopLevelRepository extends SceneUtils with PythonTemplateUtils with Sb
     any_sbmp_simplification_type =>: sbmp_input_data :&: any_dimensionality_type =>: sbmp_planning_algorithm
 
   trait OmplPlannerTrait[A, B] {
-    def apply(pScheme: PlannerScheme[A, B],
+    def apply(pScheme: PlannerScheme[B],
               samplerSubstScheme: SubstitutionScheme,
               stateValidatorSubstScheme: SubstitutionScheme,
               motionValidatorSubstScheme: SubstitutionScheme,
@@ -107,13 +107,24 @@ trait SbmpTopLevelRepository extends SceneUtils with PythonTemplateUtils with Sb
               simplificationSubstScheme: SubstitutionScheme,
               dataSubstScheme: (A) => SubstitutionScheme): (A) => B = { (input: A) =>
       logger.debug("OmplPlannerTrait: Starting")
+      logger.debug(s"input: $input")
       val schemeList = List(pScheme.st, samplerSubstScheme, stateValidatorSubstScheme,
         motionValidatorSubstScheme, optimizationCostSubstScheme, simplificationSubstScheme, dataSubstScheme(input))
+      logger.debug("After scheme List")
+
       val newScheme = schemeList.reduce(_.merge(_))
 
-      val pWrapper = PythonWrapper.apply(newScheme, pScheme.startFile, pScheme.pf)
+      logger.debug("Attempting to build pWrapper")
+      logger.debug(s"input: $input")
+
+      val pWrapper = input match {
+        case tuple: ((ProblemDefinitionFiles, String)) =>
+          PythonWrapper.apply(newScheme, pScheme.startFile, tuple._2, pScheme.pf)
+        case _ =>
+          PythonWrapper.apply(newScheme, pScheme.startFile, pScheme.pf)
+      }
       logger.debug("OmplPlannerTrait: Starting PyWrapper")
-      pWrapper.computeResult(input)
+      pWrapper.computeResult
     }
 
     val semanticType =
@@ -142,11 +153,26 @@ trait SbmpTopLevelRepository extends SceneUtils with PythonTemplateUtils with Sb
     override val semanticType = taxType
   }
 
+  @combinator object OmplPlannerWithStates extends
+    OmplPlannerTrait[ProblemDefinitionFiles, (List[List[Float]], List[List[Float]])] {
+    override val semanticType = taxType
+  }
+
+  @combinator object OmplPlannerProblemFileConfigWithStates extends
+    OmplPlannerTrait[(ProblemDefinitionFiles, String), (List[List[Float]], List[List[Float]])] {
+    override val semanticType = taxType
+  }
+
   @combinator object OmplPlannerStandard extends
     OmplPlannerTrait[(SceneSRT, MpTaskStartGoal), List[List[Float]]] {}
 
   @combinator object OmplPlannerProblemFile extends
     OmplPlannerTrait[ProblemDefinitionFiles, List[List[Float]]] {}
+
+  @combinator object OmplPlannerProblemFileConfig extends
+    OmplPlannerTrait[(ProblemDefinitionFiles, String), List[List[Float]]] {
+    override val semanticType = taxType
+  }
 
   @combinator object OmplPlannerStandardTaxonomy extends
     OmplPlannerTrait[(SceneSRT, MpTaskStartGoal), List[List[Float]]] {

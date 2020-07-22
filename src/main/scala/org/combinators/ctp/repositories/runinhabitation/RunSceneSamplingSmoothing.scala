@@ -25,7 +25,8 @@ object RunSceneSamplingSmoothing extends App with LazyLogging {
   lazy val cmpRepository = new CombinatorialMotionPlanning {}
 
   val sbmpKindingMap = Map(sbmp_planner_var -> Seq(sbmp_planner_KPIECE1),
-    sbmp_sampler_var -> Seq(sbmp_valid_path_optimizer_sampler),
+    //sbmp_sampler_var -> Seq(sbmp_valid_path_optimizer_sampler),
+    sbmp_sampler_var -> Seq(sbmp_uniform_valid_state_sampler),
     sbmp_state_validator_var -> Seq(sbmp_fcl_validator),
     sbmp_motion_validator_var -> Seq(sbmp_discrete_motion_validator),
     sbmp_cost_var -> Seq(sbmp_default_cost_state),
@@ -76,7 +77,7 @@ object RunSceneSamplingSmoothing extends App with LazyLogging {
         sbmp_planner_var :&: sbmp_sampler_var :&:
         sbmp_state_validator_var :&: sbmp_motion_validator_var :&: sbmp_optimization_objective_var :&:
         sbmp_cost_var))
-    .addJob[PlannerScheme[(ProblemDefinitionFiles, List[List[Float]]), List[List[Float]]]](
+    .addJob[PlannerScheme[List[List[Float]]]](
       resolveTypeExpression(sbmp_planner_var))
     .addJob[SubstitutionScheme](resolveTypeExpression(sbmp_sampler_var))
     .addJob[SubstitutionScheme](resolveTypeExpression(sbmp_state_validator_var :&: sbmp_state_validator_var))
