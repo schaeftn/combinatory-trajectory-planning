@@ -2,13 +2,13 @@ package org.combinators.ctp.repositories.benchmarks
 
 import com.typesafe.scalalogging.LazyLogging
 import org.combinators.cls.interpreter.InhabitationResult
-import org.combinators.ctp.repositories.dynrepository.SbmpAlg
+import org.combinators.ctp.repositories.dynrepository.{DynAlgDef, SbmpAlg}
 
 object MpInstance extends LazyLogging {
-  def apply[T, S](sbmpAlg: SbmpAlg): Option[T => S] = {
-    val repository = sbmpAlg.buildRepository
+  def apply[R <: DynAlgDef, T, S](mpAlgDef: DynAlgDef): Option[T => S] = {
+    val repository = mpAlgDef.buildRepository
     logger.info("Repository built. Starting inhabitation")
-    val ihResult = sbmpAlg.getIhResult(repository)
+    val ihResult = mpAlgDef.getIhResult(repository)
 
     def getResultList[R](b: repository.InhabitationBatchJob) = {
       @scala.annotation.tailrec
@@ -22,7 +22,8 @@ object MpInstance extends LazyLogging {
     }
 
     val l = getResultList(ihResult.asInstanceOf[repository.InhabitationBatchJob])
-    l.foreach(i => logger.debug((if (i.isEmpty) "inhabitant not found" else "inhabitant found") + "," + i.target.toString()))
+    l.foreach(i => logger.debug((if (i.isEmpty) "inhabitant not found" else "inhabitant found") +
+      "," + i.target.toString()))
 
     if (l.isEmpty || l.last.isEmpty) {
       logger.info("Inhabitation empty")

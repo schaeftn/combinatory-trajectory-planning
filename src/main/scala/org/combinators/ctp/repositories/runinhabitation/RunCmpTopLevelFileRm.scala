@@ -5,10 +5,11 @@ import org.combinators.cls.interpreter.{InhabitationResult, ReflectedRepository}
 import org.combinators.cls.types.syntax._
 import org.combinators.cls.types.{Constructor, Intersection, Type, Variable}
 import org.combinators.ctp.repositories._
+import org.combinators.ctp.repositories.cmp.CmpTopLevelRepository
 import org.combinators.ctp.repositories.geometry.{GeometricRepository, GeometryUtils}
 import org.combinators.ctp.repositories.graphsearch.{GraphSearchPyRepository, GraphSearchRepository}
 import org.combinators.ctp.repositories.scene.SceneRepository
-import org.combinators.ctp.repositories.taxkinding.CombinatorialMotionPlanning
+import org.combinators.ctp.repositories.taxkinding.CtpSemanticTypes
 import org.combinators.ctp.repositories.toplevel._
 import org.locationtech.jts.util.Stopwatch
 import scalax.collection.Graph
@@ -16,9 +17,9 @@ import scalax.collection.edge.WUnDiEdge
 
 object RunCmpTopLevelFileRm extends App with LazyLogging with AkkaImplicits {
   lazy val repository = new SceneRepository with GeometricRepository with AkkaMqttComponents
-    with CmpTopLevel with AkkaMqttTopLevelCmp with GeometryUtils
+    with CmpTopLevelRepository with AkkaMqttTopLevelCmp with GeometryUtils
     with GraphSearchRepository with GraphSearchPyRepository{}
-  lazy val cmpRepository = new CombinatorialMotionPlanning{}
+  lazy val cmpRepository = new CtpSemanticTypes{}
 
   val kindingMap = repository.cmpDefaultKindingMap ++
     Map(
@@ -60,7 +61,7 @@ object RunCmpTopLevelFileRm extends App with LazyLogging with AkkaImplicits {
   watch.start()
 
   val ihBatch = Gamma.InhabitationBatchJob[ProblemDefinitionFiles => Graph[List[Float], WUnDiEdge]](
-    resolveTypeExpression(cmp_sceneSegFct_type :&: cmp_cell_graph_fct :&: sd_poly_scene_cell_segmentation_var :&:
+    resolveTypeExpression(cmp_sceneSegFct_type :&: cmp_cell_graph_fct_type :&: sd_poly_scene_cell_segmentation_var :&:
       dimensionality_var :&: rmc_cellNodeAddFct_var :&: rmc_startGoalFct_var :&: rmc_usingCentroids_var :&:
       rmc_centroidFct_var :&: sd_cell_type_var :&: rmc_cellGraph_var :&: rmc_connectorNodes_var))
     .addJob[(Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Seq[List[Float]]](resolveTypeExpression(cmp_graph_algorithm_var))

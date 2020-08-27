@@ -6,9 +6,10 @@ import org.combinators.ctp.repositories.buildKinding
 import org.combinators.ctp.repositories.toplevel._
 import scalax.collection.edge.WUnDiEdge
 import org.combinators.cls.types.syntax._
+import org.combinators.ctp.repositories.cmp.CmpTopLevelRepository
 
 object RunCmpRoadmapConstruction extends App {
-  lazy val repository = new CmpTopLevel{}
+  lazy val repository = new CmpTopLevelRepository{}
 
   val cmpKinding = buildKinding(repository.cmpDefaultKindingMap ++
     Map(
@@ -24,7 +25,7 @@ object RunCmpRoadmapConstruction extends App {
   println("Reflected Repository built, starting inhabitation")
 
   val ihBatch = Gamma.
-    InhabitationBatchJob[(PolySceneCellSegmentation, MpTaskStartGoal) => PolySceneSegmentationRoadmap](cmp_cell_graph_fct).
+    InhabitationBatchJob[(PolySceneCellSegmentation, MpTaskStartGoal) => PolySceneSegmentationRoadmap](cmp_cell_graph_fct_type).
     addJob[(PolySceneCellSegmentation, neighbourCellsNativeType) => List[List[List[Float]]]](
       cmd_centroidFct_type :&: rm_withCentroids_type :&: dimensionality_three_d_t).
     addJob[(PolySceneCellSegmentation, neighbourCellsNativeType) => List[List[List[Float]]]](rmc_cellNodeAddFct_type :&: rmc_cna_withCellNodes_type).

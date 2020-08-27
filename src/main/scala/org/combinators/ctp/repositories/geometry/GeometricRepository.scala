@@ -1,7 +1,7 @@
 package org.combinators.ctp.repositories.geometry
 
 import org.combinators.cls.interpreter._
-import org.combinators.cls.types.Kinding
+import org.combinators.cls.types.{Kinding, Type}
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.toplevel._
@@ -61,28 +61,49 @@ trait GeometricRepository extends GeometryUtils {
 
   /*  Turns Cubes to Polygons,
    works for 2d, 3d */
-  @combinator object CubeToPoly {
+  trait CubeToPolyTrait {
     def apply(vertices: List[List[Float]], transform: (List[List[Float]], MqttTransform) => List[List[Float]]):
     List[MqttCubeData] => List[PpVertexList] = { a =>
       (for {i <- a}
         yield transform(vertices, MqttTransform(i.tMatrix))).map(a => PpVertexList(a))
     }
 
+    val semanticType: Type
+  }
+
+  @combinator object CubeToPoly extends CubeToPolyTrait {
     val semanticType = gm_rectangular :&: dimensionality_var =>:
       gm_AffTransformVertexListFunction :&: dimensionality_var =>:
       gm_CubeToPoly :&: dimensionality_var
   }
 
-    @combinator object CubeToSurfaceMesh {
+  @combinator object CubeToPolyTax extends CubeToPolyTrait {
+    val semanticType = gm_rectangular =>:
+      gm_AffTransformVertexListFunction =>:
+      gm_CubeToPoly
+  }
+
+  trait CubeToSurfaceMeshTrait {
     def apply(vertices: List[List[Float]], transform: (List[List[Float]], MqttTransform) => List[List[Float]]):
     List[MqttCubeData] => List[PpVertexList] = { a =>
       (for {i <- a}
         yield transform(vertices, MqttTransform(i.tMatrix))).map(a => PpVertexList(a))
     }
 
+    val semanticType: Type
+  }
+
+
+    @combinator object CubeToSurfaceMesh extends CubeToSurfaceMeshTrait {
     val semanticType = gm_rectangular :&: dimensionality_var =>:
       gm_AffTransformVertexListFunction :&: dimensionality_var =>:
       gm_CubeToPoly :&: dimensionality_var
+  }
+
+  @combinator object CubeToSurfaceMeshTax extends CubeToSurfaceMeshTrait {
+    val semanticType = gm_rectangular =>:
+      gm_AffTransformVertexListFunction =>:
+      gm_CubeToPoly
   }
 
 

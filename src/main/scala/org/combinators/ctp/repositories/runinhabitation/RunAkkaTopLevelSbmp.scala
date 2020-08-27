@@ -11,8 +11,9 @@ import org.combinators.cls.types.{Constructor, Intersection, Type, Variable}
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories.geometry.{GeometricRepository, GeometryUtils}
 import org.combinators.ctp.repositories.graphsearch.{GraphSearchPyRepository, GraphSearchRepository}
-import org.combinators.ctp.repositories.taxkinding.CombinatorialMotionPlanning
+import org.combinators.ctp.repositories.taxkinding.CtpSemanticTypes
 import org.combinators.ctp.repositories._
+import org.combinators.ctp.repositories.cmp.CmpTopLevelRepository
 import org.combinators.ctp.repositories.runinhabitation.RunCmpTopLevelFileRm.getTypeFromMap
 import org.combinators.ctp.repositories.samplebased.SbmpTopLevelRepository
 import org.combinators.ctp.repositories.toplevel._
@@ -23,10 +24,10 @@ import scala.concurrent.Future
 
 object RunAkkaTopLevelSbmp extends App with LazyLogging with AkkaImplicits {
   lazy val repository = new SceneRepository with GeometricRepository with AkkaMqttComponents
-    with CmpTopLevel with AkkaMqttTopLevelCmp with AkkaMqttTopLevelCmpSbmp with GeometryUtils
+    with CmpTopLevelRepository with AkkaMqttTopLevelCmp with AkkaMqttTopLevelCmpSbmp with GeometryUtils
     with GraphSearchRepository with GraphSearchPyRepository with SbmpTopLevelRepository {}
 
-  lazy val cmpRepository = new CombinatorialMotionPlanning {}
+  lazy val cmpRepository = new CtpSemanticTypes {}
 
   val kindingMap = repository.cmpDefaultKindingMap ++ repository.sbmpDefaultKindingMap ++
     Map(

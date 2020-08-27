@@ -59,9 +59,9 @@ object RunBmClient extends App with LazyLogging with AkkaImplicits with Property
     val fooo = bmInitSource.map(i =>
       i.configurableAlg match {
         case true =>
-          MpInstance[(ProblemDefinitionFiles, Map[String, String]), List[List[Float]]](i) match {
+          MpInstance[SbmpAlg, (ProblemDefinitionFiles, Map[String, String]), List[List[Float]]](i) match {
             case Some(a) =>
-              val f = BenchmarkClient[(ProblemDefinitionFiles, Map[String, String]), List[List[Float]]](i, a)
+              val f = BenchmarkClientSbmp[(ProblemDefinitionFiles, Map[String, String]), List[List[Float]]](i, a)
               logger.debug("BenchmarkClient instantiated, running inputListener.")
               f.runGraph()
               logger.info(s"after map and run Benchmarks")
@@ -70,9 +70,9 @@ object RunBmClient extends App with LazyLogging with AkkaImplicits with Property
               MqttMessage(bmInitResponseTopic + "." + i.id.toString, ByteString("Failure: No valid inhabitant found, ignoring bm/Init request"))
           }
         case false =>
-          MpInstance[ProblemDefinitionFiles, List[List[Float]]](i) match {
+          MpInstance[SbmpAlg, ProblemDefinitionFiles, List[List[Float]]](i) match {
             case Some(a) =>
-              val f = BenchmarkClient[ProblemDefinitionFiles, List[List[Float]]](i, a)
+              val f = BenchmarkClientSbmp[ProblemDefinitionFiles, List[List[Float]]](i, a)
               logger.info("Benchmark client instantiated, starting input listeners.")
               f.runGraph()
               logger.info(s"Benchmark graph run() called.")

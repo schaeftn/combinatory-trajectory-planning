@@ -51,9 +51,11 @@ trait GraphSearchRepository extends GeometryUtils with PythonTemplateUtils with 
         val result1 = startNode shortestPathTo endNode
         println("Done shortest path")
         result1 match {
-          case Some(p) => println(s"Dijkstra found Path: $p")
+          case Some(p) =>
+            println(s"Dijkstra found Path: $p")
             p.nodes.map(_.toOuter).toSeq
-          case _ => println(s"Dijkstra could not find a path")
+          case None =>
+            println(s"Dijkstra could not find a path")
             Seq.empty
         }
     }

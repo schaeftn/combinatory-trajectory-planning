@@ -5,14 +5,14 @@ import java.util.UUID
 import com.typesafe.scalalogging.LazyLogging
 import org.combinators.cls.interpreter.ReflectedRepository
 import org.combinators.cls.types.Constructor
-import org.combinators.ctp.repositories.samplebased.{SbmpPlannerTemplateRepository, SbmpPlannerTemplateRepositoryWithStates, SbmpTopLevelRepository}
+import org.combinators.ctp.repositories.samplebased._
 import org.combinators.ctp.repositories.taxkinding.SbmpSemanticTypes
 import io.circe.parser.decode
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.combinators.cls.inhabitation.Repository
 import org.combinators.ctp.repositories.python_interop.{PlannerScheme, SubstitutionScheme}
-import org.combinators.ctp.repositories.toplevel.{AkkaImplicits, AkkaMqttTopLevelSbmp, EncodeImplicits, MpTaskStartGoal, ProblemDefinitionFiles, SceneSRT}
+import org.combinators.ctp.repositories.toplevel._
 import org.locationtech.jts.util.Stopwatch
 import org.combinators.ctp.repositories._
 
@@ -23,12 +23,12 @@ case class SbmpAlg(planner: SbmpPlanners.EnumType,
                    costs: SbmpCosts.EnumType,
                    optObjective: SbmpOptObjective.EnumType,
                    simplification: SbmpSimplification.EnumType,
-                   sceneInput: SbmpSceneInput.EnumType,
-                   dimensionality: SbmpDimensionality.EnumType,
+                   sceneInput: SceneInput.EnumType,
+                   dimensionality: Dimensionality.EnumType,
                    id: UUID,
                    configurableAlg: Boolean,
                    withStates: Boolean
-                  ) extends LazyLogging with SbmpSemanticTypes {
+                  ) extends LazyLogging with SbmpSemanticTypes with DynAlgDef {
   self =>
   val sbmpRepository = new SbmpTopLevelRepository {}
   val akkaTopLevelSbmp = new AkkaMqttTopLevelSbmp {}
@@ -173,23 +173,23 @@ case class SbmpAlg(planner: SbmpPlanners.EnumType,
   def addDataInputCombinator[R]: ReflectedRepository[R] => ReflectedRepository[R] = {
     r =>
       (dimensionality, sceneInput) match {
-        case (SbmpDimensionality.dimensionality_two_d_t, SbmpSceneInput.sbmp_from_data_file) =>
+        case (Dimensionality.dimensionality_two_d_t, SceneInput.`scene_input_data_file`) =>
           if (stateValidator == SbmpStateValidators.sbmp_fcl_validator) {
             println("Warning: 2D Problem with Fcl Validator. Adding 3D Loader instead.")
           }
           r.addCombinator(sbmpRepository.SceneFileImportSceneData)
-        case (SbmpDimensionality.dimensionality_two_d_t, SbmpSceneInput.sbmp_from_unity) =>
+        case (Dimensionality.dimensionality_two_d_t, SceneInput.`scene_input_mqtt`) =>
           if (stateValidator == SbmpStateValidators.sbmp_fcl_validator) {
             println("Warning: 2D Problem with Fcl Validator. Adding 3D Loader instead.")
           }
           r.addCombinator(sbmpRepository.SceneFileImportSceneData)
 
-        case (SbmpDimensionality.dimensionality_three_d_t, SbmpSceneInput.sbmp_from_data_file) =>
+        case (Dimensionality.dimensionality_three_d_t, SceneInput.`scene_input_data_file`) =>
           if (configurableAlg)
             r.addCombinator(sbmpRepository.FileBasedWithConfigInputData)
           else
             r.addCombinator(sbmpRepository.SceneFileImportSceneData)
-        case (SbmpDimensionality.dimensionality_three_d_t, SbmpSceneInput.sbmp_from_unity) =>
+        case (Dimensionality.dimensionality_three_d_t, SceneInput.`scene_input_mqtt`) =>
           logger.info(s"Adding SceneSrtToFclSceneData")
           r.addCombinator(sbmpRepository.SceneSrtToFclSceneData)
         case _ =>
@@ -224,7 +224,7 @@ case class SbmpAlg(planner: SbmpPlanners.EnumType,
   def addTopLevelCombinator[R]: ReflectedRepository[R] => ReflectedRepository[R] = {
     r => {
       sceneInput match {
-        case SbmpSceneInput.sbmp_from_data_file =>
+        case SceneInput.`scene_input_data_file` =>
           if (configurableAlg) {
             if (withStates)
               r.addCombinator(sbmpRepository.OmplPlannerProblemFileConfigWithStates)
@@ -236,7 +236,7 @@ case class SbmpAlg(planner: SbmpPlanners.EnumType,
             else
               r.addCombinator(sbmpRepository.OmplPlannerProblemFileTaxonomy)
           }
-        case SbmpSceneInput.sbmp_from_unity =>
+        case SceneInput.`scene_input_mqtt` =>
           r.addCombinator(sbmpRepository.OmplPlannerStandardTaxonomy)
         case _ =>
           r.addCombinator(sbmpRepository.OmplPlannerStandardTaxonomy)
@@ -247,11 +247,11 @@ case class SbmpAlg(planner: SbmpPlanners.EnumType,
   def addAkkaCombinators[R]: ReflectedRepository[R] => ReflectedRepository[R] = {
     r => {
       sceneInput match {
-        case SbmpSceneInput.sbmp_from_data_file =>
+        case SceneInput.`scene_input_data_file` =>
           r.addCombinator(akkaTopLevelSbmp.FileBasedTopLevelSbmpAkka).
             addCombinator(akkaTopLevelSbmp.MqttAkkaProblemFileLoader).
             addCombinator(akkaTopLevelSbmp.UnityMqttAkkaSinkPath3DNew)
-        case SbmpSceneInput.sbmp_from_unity =>
+        case SceneInput.`scene_input_mqtt` =>
           r.addCombinator(akkaTopLevelSbmp.SampleBasedMpAkkaFlexTopic).
             addCombinator(akkaTopLevelSbmp.UnityMqttAkkaSourceSceneSRT3DTopicUuid).
             addCombinator(akkaTopLevelSbmp.UnityMqttAkkaSourceTask3DUuid).
@@ -267,7 +267,7 @@ case class SbmpAlg(planner: SbmpPlanners.EnumType,
 
   def getIhResult[T](r: ReflectedRepository[T]): r.InhabitationBatchJob =
     sceneInput match {
-      case SbmpSceneInput.sbmp_from_data_file if (configurableAlg && !withStates) =>
+      case SceneInput.`scene_input_data_file` if (configurableAlg && !withStates) =>
         r.InhabitationBatchJob[PlannerScheme[List[List[Float]]]](any_sbmp_planner_type)
           .addJob[Any](any_sbmp_sampler_type)
           .addJob[Any](any_sbmp_state_validator_type)
@@ -278,7 +278,7 @@ case class SbmpAlg(planner: SbmpPlanners.EnumType,
           .addJob[Any](any_sbmp_simplification_type)
           .addJob[Any](any_dimensionality_type)
           .addJob[((ProblemDefinitionFiles, String)) => List[List[Float]]](sbmp_planning_algorithm)
-      case SbmpSceneInput.sbmp_from_data_file if (!configurableAlg && !withStates) =>
+      case SceneInput.`scene_input_data_file` if (!configurableAlg && !withStates) =>
         r.InhabitationBatchJob[
           PlannerScheme[List[List[Float]]]](any_sbmp_planner_type)
           .addJob[Any](any_sbmp_sampler_type)
@@ -290,7 +290,7 @@ case class SbmpAlg(planner: SbmpPlanners.EnumType,
           .addJob[Any](any_sbmp_simplification_type)
           .addJob[Any](any_dimensionality_type)
           .addJob[ProblemDefinitionFiles => List[List[Float]]](sbmp_planning_algorithm)
-      case SbmpSceneInput.sbmp_from_unity if (configurableAlg && !withStates) =>
+      case SceneInput.`scene_input_mqtt` if (configurableAlg && !withStates) =>
         r.InhabitationBatchJob[
           PlannerScheme[List[List[Float]]]](any_sbmp_planner_type)
           .addJob[Any](any_sbmp_sampler_type)
@@ -302,7 +302,7 @@ case class SbmpAlg(planner: SbmpPlanners.EnumType,
           .addJob[Any](any_sbmp_simplification_type)
           .addJob[Any](any_dimensionality_type)
           .addJob[((SceneSRT, MpTaskStartGoal, Map[String, String])) => List[List[Float]]](sbmp_planning_algorithm)
-      case SbmpSceneInput.sbmp_from_data_file if (configurableAlg && withStates) =>
+      case SceneInput.`scene_input_data_file` if (configurableAlg && withStates) =>
         r.InhabitationBatchJob[PlannerScheme[(List[List[Float]], List[List[Float]])]](any_sbmp_planner_type)
           .addJob[Any](any_sbmp_sampler_type)
           .addJob[Any](any_sbmp_state_validator_type)
@@ -313,7 +313,7 @@ case class SbmpAlg(planner: SbmpPlanners.EnumType,
           .addJob[Any](any_sbmp_simplification_type)
           .addJob[Any](any_dimensionality_type)
           .addJob[((ProblemDefinitionFiles, String)) => (List[List[Float]], List[List[Float]])](sbmp_planning_algorithm)
-      case SbmpSceneInput.sbmp_from_data_file if (!configurableAlg && withStates) =>
+      case SceneInput.`scene_input_data_file` if (!configurableAlg && withStates) =>
         r.InhabitationBatchJob[
           PlannerScheme[(List[List[Float]], List[List[Float]])]](any_sbmp_planner_type)
           .addJob[Any](any_sbmp_sampler_type)
@@ -325,7 +325,7 @@ case class SbmpAlg(planner: SbmpPlanners.EnumType,
           .addJob[Any](any_sbmp_simplification_type)
           .addJob[Any](any_dimensionality_type)
           .addJob[ProblemDefinitionFiles => (List[List[Float]], List[List[Float]])](sbmp_planning_algorithm)
-      case SbmpSceneInput.sbmp_from_unity if (configurableAlg && withStates) =>
+      case SceneInput.`scene_input_mqtt` if (configurableAlg && withStates) =>
         r.InhabitationBatchJob[
           PlannerScheme[(List[List[Float]], List[List[Float]])]](any_sbmp_planner_type)
           .addJob[Any](any_sbmp_sampler_type)
@@ -397,11 +397,11 @@ case class SbmpAlg(planner: SbmpPlanners.EnumType,
     self.sampler, self.stateValidator, self.motionValidator, self.costs, self.optObjective, newSimplification,
     self.sceneInput, self.dimensionality, self.id, self.configurableAlg, self.withStates)
 
-  def withSceneInput(newSceneInput: SbmpSceneInput.EnumType): SbmpAlg = new SbmpAlg(self.planner,
+  def withSceneInput(newSceneInput: SceneInput.EnumType): SbmpAlg = new SbmpAlg(self.planner,
     self.sampler, self.stateValidator, self.motionValidator, self.costs, self.optObjective, self.simplification,
     newSceneInput, self.dimensionality, self.id, self.configurableAlg, self.withStates)
 
-  def withDimensionality(newDimensionality: SbmpDimensionality.EnumType): SbmpAlg = new SbmpAlg(self.planner,
+  def withDimensionality(newDimensionality: Dimensionality.EnumType): SbmpAlg = new SbmpAlg(self.planner,
     self.sampler, self.stateValidator, self.motionValidator, self.costs, self.optObjective, self.simplification,
     self.sceneInput, newDimensionality, self.id, self.configurableAlg, self.withStates)
 
@@ -422,11 +422,9 @@ object SbmpAlg {
   def apply(): SbmpAlg = new SbmpAlg(SbmpPlanners.not_specified, SbmpSamplers.not_specified,
     SbmpStateValidators.not_specified, SbmpMotionValidators.not_specified, SbmpCosts.not_specified,
     SbmpOptObjective.not_specified, SbmpSimplification.not_specified,
-    SbmpSceneInput.sbmp_from_data_file, SbmpDimensionality.dimensionality_three_d_t,
+    SceneInput.scene_input_data_file, Dimensionality.dimensionality_three_d_t,
     UUID.randomUUID(), false, withStates = false)
 }
-
-class EmptyClass {}
 
 object run extends App with EncodeImplicits with LazyLogging with AkkaImplicits {
   //  val fpp2 = SbmpAlg().withPlanner(SbmpPlanners.sbmp_planner_BITstar).
@@ -451,6 +449,8 @@ object run extends App with EncodeImplicits with LazyLogging with AkkaImplicits 
       |"configurableAlg" : true
       |}""".stripMargin
 
+
+  logger.info("decoded planner string")
   val fpp2 = decode[SbmpAlg](str).toOption.get
   logger.debug(fpp2.asJson.toString())
   logger.info("AlgDef Json string decoded")

@@ -5,20 +5,21 @@ import org.combinators.cls.interpreter.{InhabitationResult, ReflectedRepository}
 import org.combinators.cls.types.{Type, Variable}
 import org.combinators.ctp.repositories.geometry.{GeometricRepository, GeometryUtils}
 import org.combinators.ctp.repositories.graphsearch.{GraphSearchPyRepository, GraphSearchRepository}
-import org.combinators.ctp.repositories.taxkinding.CombinatorialMotionPlanning
+import org.combinators.ctp.repositories.taxkinding.CtpSemanticTypes
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.toplevel._
 import org.locationtech.jts.util.Stopwatch
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
 import org.combinators.cls.types.syntax._
+import org.combinators.ctp.repositories.cmp.CmpTopLevelRepository
 import org.combinators.ctp.repositories.scene.SceneRepository
 
 object RunCmpTopLevel extends App with LazyLogging with AkkaImplicits {
   lazy val repository = new SceneRepository with GeometricRepository with AkkaMqttComponents
-    with CmpTopLevel with AkkaMqttTopLevelCmp with GeometryUtils
+    with CmpTopLevelRepository with AkkaMqttTopLevelCmp with GeometryUtils
     with GraphSearchRepository with GraphSearchPyRepository{}
-  lazy val cmpRepository = new CombinatorialMotionPlanning{}
+  lazy val cmpRepository = new CtpSemanticTypes{}
 
   val kindingMap = repository.cmpDefaultKindingMap ++
     Map(
@@ -52,7 +53,7 @@ object RunCmpTopLevel extends App with LazyLogging with AkkaImplicits {
     .addJob[PolygonScene => PolySceneCellSegmentation](cmp_sceneSegFct_type :&:
       getTypeFromMap(sd_poly_scene_cell_segmentation_var) :&:
       getTypeFromMap(dimensionality_var))
-    .addJob[(PolySceneCellSegmentation, MpTaskStartGoal) => PolySceneSegmentationRoadmap](cmp_cell_graph_fct :&:
+    .addJob[(PolySceneCellSegmentation, MpTaskStartGoal) => PolySceneSegmentationRoadmap](cmp_cell_graph_fct_type :&:
       getTypeFromMap(rmc_cellNodeAddFct_var) :&:
       getTypeFromMap(rmc_startGoalFct_var) :&:
       getTypeFromMap(rmc_usingCentroids_var) :&:

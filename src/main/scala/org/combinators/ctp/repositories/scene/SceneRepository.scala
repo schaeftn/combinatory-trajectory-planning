@@ -11,7 +11,6 @@ import org.combinators.ctp.repositories.geometry._
 import org.combinators.ctp.repositories.scene._
 import org.combinators.ctp.repositories.{cmp_sceneSegFct_type, _}
 import org.combinators.ctp._
-import org.combinators.ctp.repositories.taxkinding.{CtpTaxonomy, SceneDescription}
 import scalaz.Tree
 import org.apache.commons.math3.linear.MatrixUtils
 import org.apache.commons.math3.linear.RealMatrix
@@ -29,12 +28,13 @@ import org.locationtech.jts.geom.{Coordinate, CoordinateSequence, GeometryFactor
 //@JsonCodec
 //case class PolygonScene(vertices: List[List[Float]], obstacles: List[List[Int]], boundaries: List[Float]) {}
 
-trait SceneRepository extends SceneDescription with CtpTaxonomy with GeometricRepository with LazyLogging {
+trait SceneRepository extends GeometricRepository with LazyLogging {
 
-  @combinator object SceneToScenePoly {
+  trait SceneToScenePolyTrait {
     def apply(cubeToVList: List[MqttCubeData] => List[PpVertexList],
               cut: (List[PpVertexList], Scene) => List[PpVertexList]): Scene => PolygonScene = { s: Scene =>
       logger.debug("scene to poly before: " + s.obstacles.foreach(print))
+//      val obstacleVertexTuple = cubeToVList(s.obstacles )
       val obstacleVertexTuple = cut(cubeToVList(s.obstacles), s)
       logger.debug("scene to poly after: " + obstacleVertexTuple)
 
@@ -51,10 +51,19 @@ trait SceneRepository extends SceneDescription with CtpTaxonomy with GeometricRe
       }
       PolygonScene(globalVertices, objects, s.boundaries)
     }
+    val semanticType :Type
+  }
 
-    val semanticType = gm_CubeToPoly :&: dimensionality_var =>:
-      dimensionality_var :&: Constructor("osboundingCut")=>:
+  @combinator object SceneToScenePoly extends SceneToScenePolyTrait {
+     val semanticType = gm_CubeToPoly :&: dimensionality_var =>:
+      dimensionality_var :&: cmd_obstacleSceneBoundingCutFct_type =>:
       (sd_unity_scene_type =>: sd_polygon_scene_type) :&: dimensionality_var
+  }
+
+  @combinator object SceneToScenePolyTax extends SceneToScenePolyTrait {
+    val semanticType = gm_CubeToPoly =>:
+      cmd_obstacleSceneBoundingCutFct_type =>:
+      (sd_unity_scene_type =>: sd_polygon_scene_type)
   }
 
   /*
@@ -87,7 +96,18 @@ trait SceneRepository extends SceneDescription with CtpTaxonomy with GeometricRe
         }
     }
 
-    val semanticType = dimensionality_two_d_t :&: Constructor("osboundingCut")
+    val semanticType = dimensionality_two_d_t :&: cmd_obstacleSceneBoundingCutFct_type
+  }
+
+  /*
+  * Not cut for obstacles
+   */
+  @combinator object ObstacleSceneNoBoundingCut2D {
+    def apply(): (List[PpVertexList], Scene) => List[PpVertexList] = {
+      (ppVertexLists, _) => ppVertexLists
+    }
+
+    val semanticType = dimensionality_two_d_t :&: cmd_obstacleSceneBoundingCutFct_type
   }
 
   //Placeholder, not yet implemented
@@ -96,7 +116,7 @@ trait SceneRepository extends SceneDescription with CtpTaxonomy with GeometricRe
       (list, _) => list
     }
 
-    val semanticType = dimensionality_three_d_t :&: Constructor("osboundingCut")
+    val semanticType = dimensionality_three_d_t :&: cmd_obstacleSceneBoundingCutFct_type
   }
 
   /*

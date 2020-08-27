@@ -15,7 +15,7 @@ import akka.stream.ClosedShape
 import akka.stream.scaladsl.{GraphDSL, RunnableGraph, Sink, Source, Zip}
 import com.typesafe.scalalogging.LazyLogging
 import org.combinators.cls.interpreter.combinator
-import org.combinators.cls.types.Constructor
+import org.combinators.cls.types.{Constructor, Type}
 
 import scala.concurrent.Future
 import org.combinators.ctp.repositories._
@@ -51,15 +51,14 @@ trait AkkaMqttTopLevelCmp extends LazyLogging with AkkaImplicits with AkkaMqttCo
         dimensionality_two_d_t :&: p_unityResult_type :&: cmp_scene_graph
   }*/
 
-
-  @combinator object AkkaGraphSceneSeg2D {
-    def apply(p:Properties,
+  trait AkkaGraphSceneSegTrait extends PropertyFiles {
+    def apply(
               sceneSource: Source[Option[Scene], Future[Done]],
               taskSource: Source[Option[MpTaskStartGoal], Future[Done]],
               composedFunction: (Scene, MpTaskStartGoal) => PolySceneSegmentationRoadmapPath,
               sceneSink: Sink[MqttMessage, Future[Done]]): Unit = {
       def toMqttMsg(s: PolySceneSegmentationRoadmapPath) = {
-        val topic = p.getProperty("org.combinators.ctp.ctpSceneGraphPathFromScala")
+        val topic = mqttProperties.getProperty("org.combinators.ctp.ctpSceneGraphPathFromScala")
         MqttMessage(topic, ByteString(s.asJson.toString()))
       }
 
@@ -93,19 +92,33 @@ trait AkkaMqttTopLevelCmp extends LazyLogging with AkkaImplicits with AkkaMqttCo
       logger.info(s"Disconnecting from MqttClient")
     }
 
-    val semanticType = p_unityConnectionProperties_type =>:
+    val semanticType: Type
+  }
+
+
+  @combinator object AkkaGraphSceneSeg extends AkkaGraphSceneSegTrait {
+    val semanticType =
       p_mqttAkkaSource_type :&: sd_unity_scene_type :&: dimensionality_var =>:
       p_mqttAkkaSource_type :&: mpt_start_goal_position_type :&: dimensionality_var =>:
       cmp_algorithm_type :&: cmp_graph_algorithm_var :&: rmc_connectorNodes_var :&: rmc_centroidFct_var :&:
         rmc_cellGraph_var :&: sd_cell_type_var :&: sd_poly_scene_cell_segmentation_var :&: dimensionality_var :&:
         rmc_cellNodeAddFct_var :&: rmc_startGoalFct_var :&: rmc_usingCentroids_var =>:
       p_mqttAkkaSink_type :&: cmp_scene_graph_path :&: dimensionality_var =>:
-      p_mqttAkkaComposition_type :&: cmp_scene_graph_path :&: cmp_graph_algorithm_var :&: rmc_connectorNodes_var :&:
-        rmc_centroidFct_var :&: rmc_cellGraph_var :&: sd_cell_type_var :&: sd_poly_scene_cell_segmentation_var :&:
-        dimensionality_var :&: rmc_cellNodeAddFct_var :&: rmc_startGoalFct_var :&: rmc_usingCentroids_var
+        p_mqttAkkaComposition_type :&: cmp_scene_graph_path :&: cmp_graph_algorithm_var :&: rmc_connectorNodes_var :&:
+          rmc_centroidFct_var :&: rmc_cellGraph_var :&: sd_cell_type_var :&: sd_poly_scene_cell_segmentation_var :&:
+          dimensionality_var :&: rmc_cellNodeAddFct_var :&: rmc_startGoalFct_var :&: rmc_usingCentroids_var
   }
 
-  @combinator object AkkaCmpProbFiles {
+  @combinator object AkkaGraphSceneSegTax extends AkkaGraphSceneSegTrait {
+    val semanticType =
+      p_mqttAkkaSource_type :&: sd_unity_scene_type =>:
+        p_mqttAkkaSource_type :&: mpt_start_goal_position_type =>:
+        cmp_algorithm_type =>:
+        p_mqttAkkaSink_type :&: cmp_scene_graph_path =>:
+        p_mqttAkkaComposition_type :&: cmp_scene_graph_path
+  }
+
+  trait  AkkaCmpProbFilesTrait{
     def apply(
                problemToRm: ProblemDefinitionFiles => Graph[List[Float], WUnDiEdge],
                findPath: (Graph[List[Float], WUnDiEdge], MpTaskStartGoal) => Seq[List[Float]],
@@ -177,9 +190,11 @@ trait AkkaMqttTopLevelCmp extends LazyLogging with AkkaImplicits with AkkaMqttCo
 
       runInput
     }
-
+    val semanticType: Type
+  }
+  @combinator object AkkaCmpProbFiles extends AkkaCmpProbFilesTrait {
   val semanticType =
-    cmp_sceneSegFct_type :&: cmp_cell_graph_fct :&: sd_poly_scene_cell_segmentation_var :&: dimensionality_var :&:
+    cmp_sceneSegFct_type :&: cmp_cell_graph_fct_type :&: sd_poly_scene_cell_segmentation_var :&: dimensionality_var :&:
       rmc_cellNodeAddFct_var :&: rmc_startGoalFct_var :&: rmc_usingCentroids_var :&:
       rmc_centroidFct_var :&: sd_cell_type_var :&: rmc_cellGraph_var :&: rmc_connectorNodes_var =>:
       cmp_graph_algorithm_var =>:
@@ -187,5 +202,12 @@ trait AkkaMqttTopLevelCmp extends LazyLogging with AkkaImplicits with AkkaMqttCo
       p_fileToAkka_type :&: cmp_scene_graph_path :&: cmp_graph_algorithm_var :&: rmc_connectorNodes_var :&:
         rmc_centroidFct_var :&: rmc_cellGraph_var :&: sd_cell_type_var :&: sd_poly_scene_cell_segmentation_var :&:
         dimensionality_var :&: rmc_cellNodeAddFct_var :&: rmc_startGoalFct_var :&: rmc_usingCentroids_var
+  }
+
+  @combinator object AkkaCmpProbFilesTax extends AkkaCmpProbFilesTrait {
+    val semanticType = cmp_sceneSegFct_type :&: cmp_cell_graph_fct_type =>:
+      cmp_any_graph_algorithm_type =>:
+      p_mqttAkkaSink_type :&: cmp_scene_graph_path =>:
+      p_fileToAkka_type :&: cmp_scene_graph_path
   }
 }

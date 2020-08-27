@@ -9,11 +9,12 @@ object SbmpSamplers extends Enumeration {
   sbmp_obstacle_valid_state_sampler,
   sbmp_gaussian_valid_state_sampler,
   sbmp_max_clearance_valid_state_sampler,
-//  sbmp_valid_path_optimizer_sampler,
-//  sbmp_path_optimizer_sampler,
   sbmp_uniform_space_sampler,
   sbmp_gaussian_space_sampler,
   not_specified
+//  sbmp_valid_path_optimizer_sampler,
+//  sbmp_path_optimizer_sampler,
+
   = Value
 
   def isSpaceSampler(v: Value): Boolean =

@@ -5,7 +5,7 @@ import org.combinators.ctp.repositories.sbmp_opt_integral
 
 object SbmpOptObjective extends Enumeration {
   type EnumType = Value
-  val sbmp_opt_path_length,sbmp_opt_integral ,not_specified = Value
+  val sbmp_opt_path_length, sbmp_opt_integral, not_specified = Value
 }
 
 object SbmpCosts extends Enumeration {

@@ -1,12 +1,15 @@
 package org.combinators.ctp.repositories.taxkinding
 
-import org.combinators.cls.types.{Constructor, Kinding, Variable}
+import org.combinators.cls.types.{Constructor, Kinding, Taxonomy, Variable}
 import org.combinators.ctp.repositories._
+import org.combinators.ctp.repositories.toplevel.{MqttCubeData, PolygonScene, Scene}
 import scalax.collection.edge.WUnDiEdge
 
-trait CombinatorialMotionPlanning {
+trait CtpSemanticTypes {
+  val cmp_any_algorithm_type = Constructor("cmp_any_algorithm_type")
   val cmp_algorithm_type = Constructor("cmp_algorithm_type")
 
+  val cmp_any_graph_algorithm_type = Constructor("cmp_any_graph_algorithm_type")
   val cmp_graph_algorithm_var = Variable("cmp_graph_algorithm_var")
   val cmp_graph_dijkstra_type = Constructor("cmp_graph_dijkstra_type")
   val cmp_graph_a_star_type = Constructor("cmp_graph_a_star_type")
@@ -25,8 +28,8 @@ trait CombinatorialMotionPlanning {
   val cmp_sampling_type = Constructor("cmp_sampling_type")
   val cmp_config_space_type = Constructor("cmp_config_space_type")
 
-  val cmp_cell_graph = Constructor("cmp_cell_graph") // Decomposition result as cell graph
-  val cmp_scene_graph = Constructor("cmp_scene_graph") // Decomposition result as scene graph (contains scene and graph)
+//  val cmp_cell_graph = Constructor("cmp_cell_graph") // Decomposition result as cell graph
+//  val cmp_scene_graph = Constructor("cmp_scene_graph") // Decomposition result as scene graph (contains scene and graph)
   val cmp_scene_graph_path = Constructor("cmp_scene_graph_path") // Decomposition result as scene graph (contains scene, graph and path)
   val cmp_path_only = Constructor("cmp_path_only") // List of vertices, describes path
   val cmp_scene_graph_pathf = Constructor("cmp_scene_graph_pathf") // Decomposition result as scene graph (contains scene, graph and path)
@@ -37,14 +40,17 @@ trait CombinatorialMotionPlanning {
 
   val rmc_neighbourFct_type = Constructor("rmc_neighbourFct_type")
 
-  val cmd_centroidFct_type = Constructor("triangle_centroidsFct_type")
+  val cmd_centroidFct_type = Constructor("cmd_centroidFct_type")
+  val rmc_any_centroidFct_type = Constructor("rmc_any_centroidFct_type")
   val rmc_centroidFct_var = Variable("cell_centroidFct_var")
   val cFct_centroids_naive_type = Constructor("cFct_centroids_naive_type")
   val cFct_jts_default_type = Constructor("cFct_jts_default_type")
   val cFct_jts_incentre_type = Constructor("cFct_jts_incentre_type")
   val cFct_avg_type = Constructor("cFct_avg_type")
-  val triangle_centroidsFctNd_type = Constructor("triangle_centroidsFctNd_type")
+  val cFct_triangle_centroidsNd_type = Constructor("triangle_centroidsFctNd_type")
 
+
+  val rmc_any_usingCentroids_type = Constructor("rmc_any_usingCentroids_type")
   val rmc_usingCentroids_var = Variable("cmd_centroidFeature_var")
   val rm_withCentroids_type = Constructor("rm_withCentroids_type")
   val rm_withoutCentroids_type = Constructor("rm_withoutCentroids_type")
@@ -93,6 +99,57 @@ trait CombinatorialMotionPlanning {
   val rmc_startGoal_cellbased_type = Constructor("rmc_startGoal_cellbased_type")
   val rmc_startGoal_nn_type = Constructor("rmc_startGoal_nn_type")
 
+
+  val cmp_scene_source_var = Variable("cmp_scene_source_var")
+  val sd_source_unity_type = Constructor("sd_source_unity_type")
+  val sd_source_string_type = Constructor("sd_source_string_type")
+  val sd_source_native_scala_type = Constructor("sd_source_native_scala_type")
+
+  val sd_scene_boundaries_type = Constructor("sd_scene_boundaries_type")
+  val sd_scene_cost_model_type = Constructor("sd_scene_cost_model_type")
+
+  val sd_scene_descripton_obstacles = Constructor("sd_obstacles")
+
+  val sd_polygon_scene_type = Constructor("sd_polygon_scene_type")
+  val sd_unity_scene_type = Constructor("sd_unity_scene_type")
+  val sd_unity_scene_srt_type = Constructor("sd_unity_scene_srt_type")
+  val sd_scene_segmentation = Constructor("sd_scene_segmentation")
+
+
+  val cmp_any_sceneSegFct_type = Constructor("cmp_any_sceneSegFct_type")
+  val cmp_sceneSegFct_type = Constructor("cmp_sceneSegFct_type")
+  val sd_poly_scene_cell_segmentation_var = Variable("sd_poly_scene_cell_segmentation_var")
+  val sd_vertical_cell_decomposition_type = Constructor("sd_vertical_cell_decomposition_type")
+  val sd_seg_triangles_simple_type = Constructor("sd_seg_triangles_simple_type")
+  val sd_seg_triangles_para_type = Constructor("sd_seg_triangles_para_type")
+  val sd_seg_grid_type = Constructor("sd_seg_grid_type")
+
+  val util_file_list_type = Constructor("util_file_list_type")
+  val util_file_reader_type = Constructor("util_file_reader_type")
+  /*  val cmp_vertical_cell_decomposition_type = Constructor("cmp_vertical_cell_decomposition")
+    val cmp_tetrahedralization_cd_type = Constructor("cmp_tetrahedralization_cd_type")
+    val cmp_wavefront_cell_decomposition_type = Constructor("cmp_wavefront_cell_decomposition")
+    val cmp_robot_decomposition_type = Constructor("cmp_robot_decomposition_type")
+    val cmp_voroni_diagram_type = Constructor("cmp_voroni_diagram_type")
+    val cmp_visibility_graph_type = Constructor("cmp_visibility_graph_type")
+    */
+
+  val cmd_obstacleSceneBoundingCutFct_type = Constructor("cmd_obstacleSceneBoundingCutFct_type")
+
+  val cmp_any_cell_graph_fct_type = Constructor("cmp_any_cell_graph_fct_type")
+  val cmp_cell_graph_fct_type = Constructor("cmp_cell_graph_fct_type")
+  //  val sd_seg_lines = Constructor("sd_seg_lines")
+  //  val sd_seg_cells = Constructor("sd_seg_cells")
+  //  val sd_seg_centroid_cells = Constructor("sd_seg_centroid_cells")
+
+  type scene_2d_boundaries_n = ((Int, Int), (Int, Int))
+  type scene_3d_boundaries_n = List[Int]
+  type scene_type_2d_n = Scene
+  type scene_type_3d_n = Scene
+  type scene_type_2d_poly_n = PolygonScene
+  type scene_cube_2d_n = MqttCubeData
+  type scene_cube_3d_n = MqttCubeData
+
   type roadmapRedefineNativeType = (List[List[Float]], Map[Int, (List[List[Float]], List[WUnDiEdge[List[Float]]])])
   type neighbourCellsNativeType = IndexedSeq[(List[Int], Int, Int)] // Common vertices, id1, id2
   trait RmAuxDataNodes {
@@ -102,4 +159,13 @@ trait CombinatorialMotionPlanning {
     val vertices: List[List[Float]]
     val connxPoints: List[List[Float]]
   }
+
+
+  val taxMapListCmp = Map(
+    "cmp_any_graph_algorithm_type" -> List("cmp_graph_dijkstra_type", "cmp_graph_a_star_type", "cmp_graph_tsp_type",
+      "cmp_graph_mst_type"))
+
+  val cmp_taxonomy = taxMapListCmp.map { case ((k, l)) => l.foldLeft(Taxonomy(k))((t, s) => t.addSubtype(s)) }.
+    reduce(_ merge _)
+
 }

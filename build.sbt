@@ -28,7 +28,7 @@ lazy val commonSettings = Seq(
 lazy val root = (Project(id = "combinatory-trajectory-planning", base = file(".")))
   .settings(commonSettings: _*)
   .settings(
-    moduleName := "cls-graph-search",
+    moduleName := "cls-ctp",
     libraryDependencies ++= Seq(
       //"org.combinators" %% "cls-scala" % "2.1.0+7-9e42ea3e",
       "org.combinators" %% "cls-scala" % "2.2.0-TEMP",

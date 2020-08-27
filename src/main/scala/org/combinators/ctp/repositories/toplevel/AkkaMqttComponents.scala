@@ -10,6 +10,7 @@ import com.typesafe.scalalogging.LazyLogging
 import io.circe.generic.auto._
 import io.circe.parser.decode
 import org.combinators.cls.interpreter.combinator
+import org.combinators.cls.types.Type
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
@@ -209,7 +210,7 @@ trait AkkaMqttComponents extends LazyLogging with EncodeImplicits with PropertyF
     val semanticType = p_mqttAkkaSource_type :&: util_file_reader_type
   }
 
-  @combinator object UnityMqttAkkaSinkSceneSegGraphPath {
+  trait UnityMqttAkkaSinkSceneSegGraphPathTrait {
     def apply: Sink[MqttMessage, Future[Done]] = {
       val broker = mqttProperties.getProperty("org.combinators.ctp.broker")
       val connectionSettings = MqttConnectionSettings(broker, "cls/GraphSink",
@@ -218,7 +219,15 @@ trait AkkaMqttComponents extends LazyLogging with EncodeImplicits with PropertyF
       MqttSink(connectionSettings, MqttQoS.AtLeastOnce)
     }
 
+    val semanticType: Type
+  }
+
+  @combinator object UnityMqttAkkaSinkSceneSegGraphPath extends UnityMqttAkkaSinkSceneSegGraphPathTrait {
     val semanticType = p_mqttAkkaSink_type :&: cmp_scene_graph_path :&: dimensionality_var
+  }
+
+  @combinator object UnityMqttAkkaSinkSceneSegGraphPathTax  extends UnityMqttAkkaSinkSceneSegGraphPathTrait {
+    val semanticType = p_mqttAkkaSink_type :&: cmp_scene_graph_path
   }
 
   //Test for Akka file sbmp, replace with UnityMqttAkkaSinkPath3D?

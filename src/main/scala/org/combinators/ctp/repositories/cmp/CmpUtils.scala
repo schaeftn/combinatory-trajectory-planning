@@ -55,7 +55,7 @@ trait CmpUtils extends GeometryUtils with EncodeImplicits{
     for (j <- vl1;
          k <- vl2
          if j != k)
-      yield WUnDiEdge(j, k)(distance(j, k)) //TODO Prio2 Performance check vs indexedList and index-based guard i>k
+      yield WUnDiEdge(j, k)(distance(j, k))
   }
 
   def decodeCellSegmentationFct: (PolygonScene, String) => PolySceneCellSegmentation = {

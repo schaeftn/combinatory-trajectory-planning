@@ -165,7 +165,7 @@ trait CmpCdRepository extends PythonTemplateUtils with CmpUtils with SceneUtils 
     }
 
     val semanticType = rmc_startGoalFct_type :&: rmc_startGoal_nn_type :&: rmc_cg_centroidsOnly :&: dimensionality_three_d_t =>:
-      cmp_sceneSegFct_type :&: cmp_cell_graph_fct :&: sd_seg_triangles_simple_type :&:
+      cmp_sceneSegFct_type :&: cmp_cell_graph_fct_type :&: sd_seg_triangles_simple_type :&:
         sd_seg_triangles_para_type :&: dimensionality_three_d_t :&: rmc_cna_withoutCellNodes_type :&: rmc_startGoal_nn_type :&: rm_withCentroids_type :&:
         cFct_avg_type :&: sd_cell_triangle_type :&: rmc_cg_centroidsOnly :&: rmc_cn_withoutConnectorNodes :&: dimensionality_three_d_t
   }

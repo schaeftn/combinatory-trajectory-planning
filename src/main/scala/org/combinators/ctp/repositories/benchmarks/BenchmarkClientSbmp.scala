@@ -14,9 +14,9 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import io.circe.generic.auto._
 import io.circe.parser.decode
 import io.circe.syntax._
-import org.combinators.ctp.repositories.dynrepository.{SbmpAlg, SbmpSceneInput}
+import org.combinators.ctp.repositories.dynrepository.{CmpAlg, SbmpAlg, SceneInput}
 import GraphDSL.Implicits._
-import org.combinators.cls.interpreter.{InhabitationResult}
+import org.combinators.cls.interpreter.InhabitationResult
 import org.combinators.ctp.repositories.geometry.GeometryUtils
 
 import scala.concurrent.duration._
@@ -26,55 +26,21 @@ import scala.language.postfixOps
 
 case class BenchmarkRequest(iterations: Int, async: Boolean = false, maxTime: Int = 10, maxMem: Int = 1024) {}
 
-case class BenchmarkClient[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) extends LazyLogging with AkkaImplicits with AkkaMqttComponents
-  with PropertyFiles with GeometryUtils {
-  val uuid = sbmpAlg.id
-  implicit val ec: ExecutionContext = ExecutionContext.global
-  val bmSceneSrtInputTopic = mqttProperties.getProperty("org.combinators.ctp.bmSceneSrtInput") + "." + uuid.toString
-  val bmGenericInputTopic = mqttProperties.getProperty("org.combinators.ctp.bmGenericInput") + "." + uuid.toString
-  val bmGenericInputResponseTopic =
-    mqttProperties.getProperty("org.combinators.ctp.bmGenericInputResponse") + "." + uuid.toString
-  val bmSceneMpTaskInputTopic =
-    mqttProperties.getProperty("org.combinators.ctp.bmSceneMpTaskInput") + "." + uuid.toString
-  val bmProblemFileInputTopic =
-    mqttProperties.getProperty("org.combinators.ctp.bmProblemFileInput") + "." + uuid.toString
-  val bmStartRequestTopic = mqttProperties.getProperty("org.combinators.ctp.bmStartRequest") + "." + uuid.toString
-  val bmStartResponseTopic = mqttProperties.getProperty("org.combinators.ctp.bmStartResponse") + "." + uuid.toString
-  val bmResultTopic = mqttProperties.getProperty("org.combinators.ctp.bmResult") + "." + uuid.toString
-  val bmStatusTopic = mqttProperties.getProperty("org.combinators.ctp.bmStatus") + "." + uuid.toString
-  val bmCloseTopic = mqttProperties.getProperty("org.combinators.ctp.bmClose") + "." + uuid.toString
+case class StatesPathBmResults(states: List[List[List[Float]]], paths: List[List[List[Float]]],
+                               pathLengths: List[Float], computationTimes: List[Float], failures: Int)
 
-  val algEndpoint = mqttProperties.getProperty("org.combinators.ctp.fileBasedSbmpRequest") + "." + uuid.toString
+case class PathBmResults(paths: List[List[List[Float]]], pathLengths: List[Float],
+                         computationTimes: List[Float], failures: Int)
 
-  val connectionSettings = MqttConnectionSettings(broker, "cls/BenchmarkClient",
-    new MemoryPersistence).withAutomaticReconnect(true).withCleanSession(true)
-
-
-  def buildListenerSource[F](clientId: String, subscribeTopic: String, logString: String,
-                             decodeFct: String => Option[F]): Source[F, Future[Done]] =
-    MqttSource.atLeastOnce(
-      connectionSettings.withClientId(clientId),
-      MqttSubscriptions(subscribeTopic, MqttQoS.ExactlyOnce),
-      bufferSize = 8).map { i =>
-      logger.info(s"Received $logString: $i")
-      decodeFct(i.message.payload.utf8String)
-    }.filter {
-      case Some(_) => true
-      case None => false
-    }.map(_.get)
-
-
-  val sourceBmStartRequest: Source[BenchmarkRequest, Future[Done]] =
-    buildListenerSource("cls/bmStartRequestListener" + "." + uuid.toString, bmStartRequestTopic, "BenchmarkStartRequest",
-      { s => decode[BenchmarkRequest](s).toOption })
-
+case class BenchmarkClientSbmp[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) extends MpAkkaUtils {
+  val uuidString = sbmpAlg.id.toString
   val sourceGenericInput: Source[Any, Future[Done]] =
     sbmpAlg.sceneInput match {
-      case SbmpSceneInput.sbmp_from_data_file if !sbmpAlg.configurableAlg =>
-        buildListenerSource("cls/bmGenericInputListener" + "." + uuid.toString, bmGenericInputTopic, "GenericInput",
+      case SceneInput.scene_input_data_file if !sbmpAlg.configurableAlg =>
+        buildListenerSource("cls/bmGenericInputListener" + "." + uuidString, bmGenericInputTopic, "GenericInput",
           { s => ProblemDefinitionFiles(s) })
-      case SbmpSceneInput.sbmp_from_data_file if sbmpAlg.configurableAlg =>
-        buildListenerSource("cls/bmGenericInputListener" + "." + uuid.toString, bmGenericInputTopic, "GenericInput",
+      case SceneInput.scene_input_data_file if sbmpAlg.configurableAlg =>
+        buildListenerSource("cls/bmGenericInputListener" + "." + uuidString, bmGenericInputTopic, "GenericInput",
           {
             str =>
               logger.info(s"decoding: $str")
@@ -97,17 +63,9 @@ case class BenchmarkClient[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) exten
           })
     }
 
-  val bmResultSink: Sink[MqttMessage, Future[Done]] = MqttSink(
-    connectionSettings.withClientId("cls/BenchmarkResponse" + "." + uuid.toString), MqttQoS.ExactlyOnce)
-  val bmGenericInputResponseSink: Sink[MqttMessage, Future[Done]] = MqttSink(
-    connectionSettings.withClientId("cls/bmGenericInputResponse" + "." + uuid.toString), MqttQoS.ExactlyOnce)
-  val bmStartResponse: Sink[MqttMessage, Future[Done]] = MqttSink(
-    connectionSettings.withClientId("cls/bmStartResponse" + "." + uuid.toString), MqttQoS.ExactlyOnce)
-
   def bmRunGraph: RunnableGraph[NotUsed] = RunnableGraph.fromGraph(GraphDSL.create() { implicit b =>
     sbmpAlg.sceneInput match {
-      case SbmpSceneInput.sbmp_from_data_file =>
-
+      case SceneInput.scene_input_data_file =>
         val bcast1 = b.add(Broadcast[S](2))
         val bcast2 = b.add(Broadcast[BenchmarkRequest](2))
 
@@ -132,42 +90,27 @@ case class BenchmarkClient[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) exten
         bcast2.take(1) ~> zip.in1
 
         def toMqttMsg2(paths: List[List[List[Float]]], pathlengths: List[Float], computationTimes: List[Float], failures: Int): MqttMessage = {
-          val rQuatruple = (paths, pathlengths, computationTimes, failures.toFloat)
-          logger.info(s"Trying to encode result triple $rQuatruple")
+          val result = PathBmResults(paths, pathlengths, computationTimes, failures)
+          logger.info(s"Trying to encode result $result")
 
-          val foo = MqttMessage(bmResultTopic, ByteString(rQuatruple.asJson.toString()))
-          logger.info(s"Publishing to topic: $bmResultTopic, message: $foo")
-          foo
+          val mqttMsg = MqttMessage(bmResultTopic, ByteString(result.asJson.toString()))
+          logger.info(s"Publishing to topic: $bmResultTopic, message: $mqttMsg")
+          mqttMsg
         }
-
-        //        def toMqttMsg2(paths: List[List[List[Float]]], pathlengths: List[Float], computationTimes: List[Float], failures: Int): MqttMessage = {
-        //          val rTriple = (
-        //            paths,
-        //            if (pathlengths.isNaN) 500000 else pathlengths
-        //            , if (computationTimes.isNaN) 500000 else computationTimes, failures.toFloat)
-        //          logger.info(s"Trying to encode result triple $rTriple")
-        //
-        //          val foo = MqttMessage(bmResultTopic, ByteString(rTriple.asJson.toString()))
-        //          logger.info(s"Publishing to topic: $bmResultTopic, message: $foo")
-        //          foo
-        //        }
 
         def toMqttMsgStates(statesPaths: List[(List[List[Float]], List[List[Float]])], pathLengths: List[Float],
                             computationTimes: List[Float], failures: Int): MqttMessage = {
-          val rTriple = (
-            statesPaths,
-            pathLengths, computationTimes, failures.toFloat)
-          logger.info(s"Trying to encode result triple $rTriple")
+          val result = StatesPathBmResults(statesPaths.map(_._1), statesPaths.map(_._2),
+            pathLengths, computationTimes, failures)
+          logger.info(s"Trying to encode result triple $result")
 
-          val foo = MqttMessage(bmResultTopic, ByteString(rTriple.asJson.toString()))
-          logger.info(s"Publishing to topic: $bmResultTopic, message: $foo")
-          foo
+          val mqttMsg = MqttMessage(bmResultTopic, ByteString(result.asJson.toString()))
+          logger.info(s"Publishing to topic: $bmResultTopic, message: $mqttMsg")
+          mqttMsg
         }
 
         val zipMapped = zip.out.map {
           case (a, b) =>
-
-
             def singleRun(arg: S): (T, Float) = {
               val startTime = System.currentTimeMillis
               logger.debug(s"singleRun. Start time: $startTime")
@@ -192,7 +135,8 @@ case class BenchmarkClient[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) exten
                 }
               }
             }
-            def computeResults(): Seq [(Equals with Serializable, Float, Float)] = {
+
+            def computeResults(): Seq[(Equals with Serializable, Float, Float)] = {
               if (b.async) {
                 logger.debug(s"b.Iterations: ${b.iterations}")
                 lazy val runList =
@@ -208,7 +152,7 @@ case class BenchmarkClient[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) exten
                   runList.toList.map { f =>
                     f.map {
                       case (path, time) =>
-                       buildSingleResult(path, time)
+                        buildSingleResult(path, time)
                     }
                   }
                 logger.debug(s"Results length: ${resultsFutures.size}")
@@ -241,7 +185,7 @@ case class BenchmarkClient[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) exten
                 logger.debug(s"Results length: ${resultsFutures.size}")
                 logger.debug(s"Duration: ${b.maxTime * 3 seconds}")
 
-                val filteredResults = resultsFutures.filter { case (_, a:Float, _) => a != 0.0 }
+                val filteredResults = resultsFutures.filter { case (_, a: Float, _) => a != 0.0 }
                 filteredResults
               }
             }
@@ -287,22 +231,15 @@ case class BenchmarkClient[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) exten
         ClosedShape
 
       case _ => logger.info("unhandled case: sceneInput != ProblemDefinitionFile")
-        //        sourceSceneSrt ~> Sink.ignore
-        //        sourceMpTaskStartGoal ~> Sink.ignore
         ClosedShape
     }
   })
-
-  def runGraph(): Unit = {
-    bmRunGraph.run()
-    logger.info(s"Benchmark runGraph called. Listening for args and benchmark request.")
-  }
 }
 
-object BenchmarkClient extends LazyLogging {
-  def apply[S, T](alg: SbmpAlg, algInterpreted: S => T): BenchmarkClient[S, T] = {
+object BenchmarkClientSbmp extends LazyLogging {
+  def apply[S, T](alg: SbmpAlg, algInterpreted: S => T): BenchmarkClientSbmp[S, T] = {
     logger.debug(s"Building BenchmarkClient instance")
-    new BenchmarkClient(alg, algInterpreted)
+    new BenchmarkClientSbmp(alg, algInterpreted)
   }
 }
 

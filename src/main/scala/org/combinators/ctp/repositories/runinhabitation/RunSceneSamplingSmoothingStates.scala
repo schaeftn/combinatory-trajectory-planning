@@ -8,20 +8,20 @@ import org.combinators.cls.interpreter.{InhabitationResult, ReflectedRepository}
 import org.combinators.cls.types.syntax._
 import org.combinators.cls.types.{Constructor, Intersection, Type, Variable}
 import org.combinators.ctp.repositories._
-import org.combinators.ctp.repositories.cmp.CmpCdRepository
+import org.combinators.ctp.repositories.cmp.{CmpCdRepository, CmpTopLevelRepository}
 import org.combinators.ctp.repositories.graphsearch.GraphSearchRepository
 import org.combinators.ctp.repositories.python_interop.{PlannerScheme, SubstitutionScheme}
 import org.combinators.ctp.repositories.samplebased.SbmpTopLevelRepository
 import org.combinators.ctp.repositories.scene.SceneRepository
-import org.combinators.ctp.repositories.taxkinding.CombinatorialMotionPlanning
-import org.combinators.ctp.repositories.toplevel.{AkkaMqttTopLevelCmpSbmp, CmpTopLevel, ProblemDefinitionFiles}
+import org.combinators.ctp.repositories.taxkinding.CtpSemanticTypes
+import org.combinators.ctp.repositories.toplevel.{AkkaMqttTopLevelCmpSbmp, ProblemDefinitionFiles}
 
 import scala.concurrent.Future
 
 object RunSceneSamplingSmoothingStates extends App with LazyLogging {
-  lazy val repository = new SceneRepository with CmpTopLevel with CmpCdRepository
+  lazy val repository = new SceneRepository with CmpTopLevelRepository with CmpCdRepository
     with GraphSearchRepository with SbmpTopLevelRepository with AkkaMqttTopLevelCmpSbmp {}
-  lazy val cmpRepository = new CombinatorialMotionPlanning {}
+  lazy val cmpRepository = new CtpSemanticTypes {}
 
   val sbmpKindingMap = Map(sbmp_planner_var -> Seq(sbmp_planner_KPIECE1),
     //sbmp_sampler_var -> Seq(sbmp_valid_path_optimizer_sampler),

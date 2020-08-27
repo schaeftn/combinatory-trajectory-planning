@@ -41,11 +41,16 @@ trait EncodeImplicits {
   implicit val costEncoder: Encoder[SbmpCosts.Value] = Encoder.encodeEnumeration(SbmpCosts)
   implicit val optObjEncoder: Encoder[SbmpOptObjective.Value] = Encoder.encodeEnumeration(SbmpOptObjective)
   implicit val simplificationEncoder: Encoder[SbmpSimplification.Value] = Encoder.encodeEnumeration(SbmpSimplification)
-  implicit val sceneInputEncoder: Encoder[SbmpSceneInput.Value] = Encoder.encodeEnumeration(SbmpSceneInput)
-  implicit val dimensionalityEncoder: Encoder[SbmpDimensionality.Value] = Encoder.encodeEnumeration(SbmpDimensionality)
+  implicit val sceneInputEncoder: Encoder[SceneInput.Value] = Encoder.encodeEnumeration(SceneInput)
+  implicit val dimensionalityEncoder: Encoder[Dimensionality.Value] = Encoder.encodeEnumeration(Dimensionality)
 
-
-
+  implicit val cmpCellGraphEncoder: Encoder[CmpCellGraph.Value] = Encoder.encodeEnumeration(CmpCellGraph)
+  implicit val cmpCellSegmentationEncoder: Encoder[CmpCellSegmentation.Value] = Encoder.encodeEnumeration(CmpCellSegmentation)
+  implicit val cmpCellTypeEncoder: Encoder[CmpCellType.Value] = Encoder.encodeEnumeration(CmpCellType)
+  implicit val cmpCentroidFctEncoder: Encoder[CmpCentroidFct.Value] = Encoder.encodeEnumeration(CmpCentroidFct)
+  implicit val cmpGraphAlgEncoder: Encoder[CmpGraphAlg.Value] = Encoder.encodeEnumeration(CmpGraphAlg)
+  implicit val cmpSceneInputEncoder: Encoder[CmpSceneInput.Value] = Encoder.encodeEnumeration(CmpSceneInput)
+  implicit val cmpStartGoalFctEncoder: Encoder[CmpStartGoalFct.Value] = Encoder.encodeEnumeration(CmpStartGoalFct)
 }
 
 

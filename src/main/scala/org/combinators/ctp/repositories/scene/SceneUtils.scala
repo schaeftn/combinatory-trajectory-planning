@@ -1,18 +1,13 @@
 package org.combinators.ctp.repositories.scene
 
-import java.io.FileInputStream
 import java.util.Properties
 
-import io.circe.generic.JsonCodec
 import org.apache.commons.geometry.euclidean.threed.rotation.QuaternionRotation
 import org.apache.commons.geometry.euclidean.threed.Vector3D
 import org.combinators.ctp.repositories.python_interop.PythonTemplateUtils
-import org.combinators.ctp.repositories.taxkinding.{CtpTaxonomy, SceneDescription}
 import org.combinators.ctp.repositories.toplevel.{MpTaskStartGoal, MqttObstacleSRT, PolySceneSegmentationRoadmapPath, ProblemDefinitionFiles, SceneSRT}
 
-import scala.io.Source
-
-trait SceneUtils extends SceneDescription with PythonTemplateUtils {
+trait SceneUtils extends PythonTemplateUtils {
   val indentStr: String = """"""
   MqttObstacleSRT
   val getPrimitive: Map[Int, String] = Map(

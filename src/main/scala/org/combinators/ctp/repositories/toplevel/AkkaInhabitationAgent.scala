@@ -27,7 +27,7 @@ import org.combinators.ctp.repositories.runinhabitation.RunAkkaTopLevelCmp.{Gamm
 import org.combinators.ctp.repositories.taxkinding.SbmpSemanticTypes
 import org.combinators.ctp.repositories.{any_dimensionality_type, any_sbmp_optimization_objective_type, sbmp_planning_algorithm, util_file_reader_type}
 import org.combinators.cls.types.syntax._
-import org.combinators.ctp.repositories.benchmarks.BenchmarkClient
+import org.combinators.ctp.repositories.benchmarks.BenchmarkClientSbmp
 
 import scala.concurrent.Future
 import scala.concurrent.Future
