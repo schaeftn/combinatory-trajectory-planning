@@ -1,3 +1,5 @@
+import java.nio.file.Paths
+
 import sbt.Keys._
 import sbt.Resolver
 
@@ -6,7 +8,7 @@ val circeVersion = "0.12.3"
 lazy val commonSettings = Seq(
   organization := "org.combinators",
 
-  scalaVersion := "2.13.1",
+  scalaVersion := "2.13.2",
   crossScalaVersions := Seq("2.11.12", scalaVersion.value),
 
   resolvers ++= Seq(
@@ -59,9 +61,13 @@ lazy val root = (Project(id = "combinatory-trajectory-planning", base = file("."
         "io.circe" %% "circe-core",
         "io.circe" %% "circe-generic",
         "io.circe" %% "circe-parser"
-      ).map(_ % circeVersion)
+      ).map(_ % circeVersion),
+    unmanagedSources / excludeFilter := {
+      val pf = (baseDirectory.value / "src" ) ** ("temp") ** ("*.scala" || "*.package")
+      (s => pf.get().contains(s))
+    },
+    mainClass in (Compile, packageBin) := Some("org.combinators.ctp.repositories.benchmarks.RunBmClient")
   )
-
 lazy val noPublishSettings = Seq(
   publish := Seq.empty,
   publishLocal := Seq.empty,
