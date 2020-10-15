@@ -94,22 +94,19 @@ trait SbmpTopLevelRepository extends SceneUtils with PythonTemplateUtils with Sb
       dimensionality_n_d_t)
   )
 
-  val taxType = any_sbmp_planner_type =>: any_sbmp_sampler_type =>: any_sbmp_state_validator_type =>:
-    any_sbmp_motion_validator_type =>: any_sbmp_cost_type :&: any_sbmp_optimization_objective_type =>:
+  val taxType = any_sbmp_planner_type =>: any_sbmp_state_validator_type =>: any_sbmp_motion_validator_type =>:
     any_sbmp_simplification_type =>: sbmp_input_data :&: any_dimensionality_type =>: sbmp_planning_algorithm
 
   trait OmplPlannerTrait[A, B] {
     def apply(pScheme: PlannerScheme[B],
-              samplerSubstScheme: SubstitutionScheme,
               stateValidatorSubstScheme: SubstitutionScheme,
               motionValidatorSubstScheme: SubstitutionScheme,
-              optimizationCostSubstScheme: SubstitutionScheme,
               simplificationSubstScheme: SubstitutionScheme,
               dataSubstScheme: (A) => SubstitutionScheme): (A) => B = { (input: A) =>
       logger.debug("OmplPlannerTrait: Starting")
       logger.debug(s"input: $input")
-      val schemeList = List(pScheme.st, samplerSubstScheme, stateValidatorSubstScheme,
-        motionValidatorSubstScheme, optimizationCostSubstScheme, simplificationSubstScheme, dataSubstScheme(input))
+      val schemeList = List(pScheme.st, stateValidatorSubstScheme,
+        motionValidatorSubstScheme, simplificationSubstScheme, dataSubstScheme(input))
       logger.debug("After scheme List")
 
       val newScheme = schemeList.reduce(_.merge(_))
@@ -128,11 +125,9 @@ trait SbmpTopLevelRepository extends SceneUtils with PythonTemplateUtils with Sb
     }
 
     val semanticType =
-      sbmp_planner_var =>:
-        sbmp_sampler_var =>:
+      sbmp_planner_var :&: sbmp_sampler_var :&: sbmp_optimization_objective_var =>: //TODO Prio2 Test
         sbmp_state_validator_var =>:
         sbmp_motion_validator_var =>:
-        sbmp_cost_var :&: sbmp_optimization_objective_var =>:
         sbmp_simplification_var =>:
         sbmp_input_data :&: dimensionality_var =>: //ggf plus sampler, plus motion validator?
         sbmp_planning_algorithm :&: sbmp_planner_var :&: sbmp_sampler_var :&:

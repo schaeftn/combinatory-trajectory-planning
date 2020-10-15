@@ -30,6 +30,7 @@ import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories.benchmarks.{BenchmarkClientSbmp, MpAkkaUtils}
 import org.combinators.ctp.repositories.toplevel.AkkaInhabitationAgent.logger
 
+import scala.annotation.nowarn
 import scala.concurrent.Future
 import scala.concurrent.Future
 
@@ -166,10 +167,11 @@ object MpEndpointCmp extends LazyLogging with CtpSemanticTypes {
 
     def getResultList(b: repository.InhabitationBatchJob) = {
       @scala.annotation.tailrec
+      @scala.annotation.nowarn
       def getElements(l: List[InhabitationResult[Any]], bnew: b.ResultType): List[InhabitationResult[Any]] =
-        bnew match {
-          case (newJob: b.ResultType, result: InhabitationResult[Any]) => getElements(result +: l, newJob)
-          case a: InhabitationResult[Any] => a +: l
+        bnew  match {
+          case (newJob: b.ResultType, result:  InhabitationResult[Any] ) => getElements(result +: l, newJob)
+          case a: InhabitationResult[Any]  => a +: l
         }
 
       getElements(List.empty, b.run())

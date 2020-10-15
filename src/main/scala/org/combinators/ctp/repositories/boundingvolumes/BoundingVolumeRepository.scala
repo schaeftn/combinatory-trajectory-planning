@@ -8,14 +8,14 @@ import org.combinators.ctp.repositories.toplevel.UnityMeshData
 
 trait BoundingVolumeRepository {
   @combinator object UnityDataBoundingBox {
-    def apply: UnityMeshData => vertexPairType = { a: UnityMeshData =>
+    def apply: UnityMeshData => (List[Float],List[Float] ) = { a: UnityMeshData =>
       val va = a.vertexArray
 
-      def getXyz(v: vertexArrayType): vertexArrayType = v.zipWithIndex.filter {
+      def getXyz(v: List[Float]): List[Float] = v.zipWithIndex.filter {
         case (_, b) if (b % 3) == 0 => true
         case _ => false} map (_._1)
 
-      def minmax: vertexArrayType => (Float, Float) = { a: vertexArrayType => (a.max, a.min) }
+      def minmax: List[Float] => (Float, Float) = { a: List[Float] => (a.max, a.min) }
 
       val (maxX, minX) = minmax(getXyz(va))
       val (maxY, minY) = minmax(getXyz(va.tail))
@@ -28,7 +28,7 @@ trait BoundingVolumeRepository {
   }
 
   @combinator object MiniBall {
-    def apply: UnityMeshData => (vertexType, Float) = {
+    def apply: UnityMeshData => (List[Float], Float) = {
       vertexData =>
         //Magic number 5: sphere computation seems to be sensitive to # of digits
         val vSeq = vertexData.vertexArray.map { a => BigDecimal(a).setScale(5, BigDecimal.RoundingMode.HALF_UP).toFloat }

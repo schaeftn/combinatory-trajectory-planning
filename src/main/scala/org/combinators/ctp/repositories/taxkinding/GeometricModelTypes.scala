@@ -8,14 +8,8 @@ import org.combinators.cls.types.syntax._
 trait GeometricModelTypes {
   val gm_dim = Variable("var_gm_dim")
 
-//  def gm_union(t: Type*) = Constructor("gm_union", t:_*)
-//  def gm_substraction(t1: Type, t2: Type) = Constructor("gm_substraction", t1, t2)
-//  def t_intersection(t: Type*) = Constructor("gm_intersection", t:_*)
-
-  //  semantic type for list with procedural geometries
   val gm_procedural_type = Constructor("gm_procedural_type")
 
-  //  semantic type for a single procedural geometry
   val var_gm_procedural = Variable("var_gm_procedural")
   val gm_AABB = Constructor("gm_AABB")
   val gm_rectangular = Constructor("gm_rectangular")
@@ -68,12 +62,5 @@ trait GeometricModelTypes {
   type vertexPairType = (vertexType, vertexType)
 
   type tMatrixType = List[List[Float]]
-
-  trait CellProperties{
-    val cp_convexCells: Type = 'convexCells
-    val cp_cellsWithHoles: Type = 'cellsWHoles
-    val cp_cellsWithoutHoles: Type = 'cellsWithoutHoles
-    val simplicialComplex: Type = 'simplicialComplex
-  }
 }
 

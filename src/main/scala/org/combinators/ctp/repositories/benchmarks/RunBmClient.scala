@@ -12,9 +12,11 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import io.circe.generic.auto._
 import io.circe.parser.decode
 import io.circe.syntax._
-import org.combinators.ctp.repositories.dynrepository.{SbmpAlg}
+import org.combinators.ctp.repositories.dynrepository.SbmpAlg
 import GraphDSL.Implicits._
-import scala.concurrent.{ExecutionContext, Future}
+
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.language.postfixOps
 
 object RunBmClient extends App with LazyLogging with AkkaImplicits with PropertyFiles with AkkaMqttComponents {
@@ -55,8 +57,8 @@ object RunBmClient extends App with LazyLogging with AkkaImplicits with Property
       false
   }.map(_.get)
 
-  val g = RunnableGraph.fromGraph(GraphDSL.create() { implicit b =>
-    val fooo = bmInitSource.map(i =>
+  val g = RunnableGraph.fromGraph(GraphDSL.create(bmInitSink) { implicit b => bmInitSink =>
+    val initGraph = bmInitSource.map(i =>
       i.configurableAlg match {
         case true =>
           MpInstance[SbmpAlg, (ProblemDefinitionFiles, Map[String, String]), List[List[Float]]](i) match {
@@ -66,7 +68,7 @@ object RunBmClient extends App with LazyLogging with AkkaImplicits with Property
               f.runGraph()
               logger.info(s"after map and run Benchmarks")
               MqttMessage(bmInitResponseTopic + "." + f.sbmpAlg.id.toString, ByteString("Success"))
-            case None => logger.info("No valid inhabitant found, ignoring bm/Init request")
+            case None => logger.info("No valid inhabitant found, sending error message")
               MqttMessage(bmInitResponseTopic + "." + i.id.toString, ByteString("Failure: No valid inhabitant found, ignoring bm/Init request"))
           }
         case false =>
@@ -78,18 +80,21 @@ object RunBmClient extends App with LazyLogging with AkkaImplicits with Property
               logger.info(s"Benchmark graph run() called.")
               logger.info(s"Sending success msg: ${MqttMessage(bmInitResponseTopic + "." + f.sbmpAlg.id.toString, ByteString("Success"))}")
               MqttMessage(bmInitResponseTopic + "." + f.sbmpAlg.id.toString, ByteString("Success"))
-            case None => logger.info("No valid inhabitant found, ignoring bm/Init request")
+            case None => logger.info("No valid inhabitant found, sending error message")
               MqttMessage(bmInitResponseTopic + "." + i.id.toString, ByteString("Failure: No valid inhabitant found, ignoring bm/Init request"))
           }
       }
     )
-    fooo ~> bmInitSink
+    initGraph ~> bmInitSink
     ClosedShape
   })
-  g.run()
+  val foo = g.run()
   logger.info(s"Mqtt bm init client starting.")
+  Await.result(foo, Duration.Inf)
 
-  scala.io.StdIn.readLine()
-  logger.info(s"Done. Mqtt inhabitation agent disconnecting.")
+  logger.info(s"Future await done. $foo")
+
+  val foo2 = scala.io.StdIn.readLine()
+  logger.info(s"ReadLine done. Mqtt inhabitation agent disconnecting. $foo2")
 }
 

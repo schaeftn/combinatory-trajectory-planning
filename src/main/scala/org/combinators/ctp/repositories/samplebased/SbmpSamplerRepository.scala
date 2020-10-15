@@ -17,7 +17,7 @@ trait SbmpSamplerRepository extends PythonTemplateUtils {
       SubstitutionScheme(fileMapping, substMap)
     }
 
-    val semanticType = sbmp_uniform_valid_state_sampler
+    val semanticType = sbmp_uniform_valid_state_sampler :&: sbmp_validStateSampler_type
   }
 
   @combinator object SamplerObstacleBased {
@@ -30,7 +30,7 @@ trait SbmpSamplerRepository extends PythonTemplateUtils {
       SubstitutionScheme(fileMapping, substMap)
     }
 
-    val semanticType = sbmp_obstacle_valid_state_sampler
+    val semanticType = sbmp_obstacle_valid_state_sampler :&: sbmp_validStateSampler_type
   }
 
   @combinator object SamplerGaussian {
@@ -43,7 +43,7 @@ trait SbmpSamplerRepository extends PythonTemplateUtils {
       SubstitutionScheme(fileMapping, substMap)
     }
 
-    val semanticType = sbmp_gaussian_valid_state_sampler
+    val semanticType = sbmp_gaussian_valid_state_sampler :&: sbmp_validStateSampler_type
   }
 
   @combinator object SamplerMaxClearance {
@@ -56,7 +56,7 @@ trait SbmpSamplerRepository extends PythonTemplateUtils {
       SubstitutionScheme(fileMapping, substMap)
     }
 
-    val semanticType = sbmp_max_clearance_valid_state_sampler
+    val semanticType = sbmp_max_clearance_valid_state_sampler :&: sbmp_validStateSampler_type
   }
 //
 //  @combinator object SamplerValidPathOptimizer {
@@ -94,7 +94,7 @@ trait SbmpSamplerRepository extends PythonTemplateUtils {
       SubstitutionScheme(fileMapping, substMap)
     }
 
-    val semanticType = sbmp_gaussian_space_sampler
+    val semanticType = sbmp_gaussian_space_sampler :&: sbmp_spaceSampler_type
   }
 
   @combinator object SamplerUniformSpace {
@@ -107,7 +107,7 @@ trait SbmpSamplerRepository extends PythonTemplateUtils {
       SubstitutionScheme(fileMapping, substMap)
     }
 
-    val semanticType = sbmp_uniform_space_sampler
+    val semanticType = sbmp_uniform_space_sampler :&: sbmp_spaceSampler_type
   }
 
 }

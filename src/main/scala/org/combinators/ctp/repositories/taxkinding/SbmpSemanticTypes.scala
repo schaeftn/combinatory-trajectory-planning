@@ -1,6 +1,6 @@
 package org.combinators.ctp.repositories.taxkinding
 
-import org.combinators.cls.types.{Constructor, Kinding, Taxonomy, Variable}
+import org.combinators.cls.types.{Constructor, Kinding, Taxonomy, Type, Variable}
 import org.combinators.ctp.repositories._
 
 trait SbmpSemanticTypes {
@@ -70,7 +70,7 @@ trait SbmpSemanticTypes {
 
   val any_sbmp_optimization_objective_type = Constructor("any_sbmp_optimization_objective_type")
   val sbmp_optimization_objective_var = Variable("sbmp_optimization_objective_var")
-  val sbmp_opt_path_length = Constructor("sbmp_path_length")
+  val sbmp_opt_path_length = Constructor("sbmp_opt_path_length")
   val sbmp_opt_integral = Constructor("sbmp_opt_integral")
   // val sbmp_opt_path_clearance = Constructor("sbmp_path_clearance") // TODO
   // val sbmp_opt_path_smoothness = Constructor("sbmp_path_smoothness") // TODO
@@ -91,6 +91,10 @@ trait SbmpSemanticTypes {
   val sbmp_simplification_var = Variable("sbmp_simplification_var")
   val sbmp_use_simplification = Constructor("sbmp_use_simplification")
   val sbmp_no_simplification = Constructor("sbmp_no_simplification")
+
+  val sbmp_spaceSampler_type: Type = Constructor("sbmp_spaceSampler_type")
+  val sbmp_validStateSampler_type: Type = Constructor("sbmp_validStateSampler_type")
+  val sbmp_informedSampler_type: Type = Constructor("sbmp_informedSampler_type")
 
   val taxMapList = Map(
     "any_sbmp_planner_type" -> List("sbmp_planner_PRM", "sbmp_planner_PRMStar", "sbmp_planner_LazyPRM",
