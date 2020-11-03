@@ -3,7 +3,7 @@ package org.combinators.ctp.repositories.dynrepository
 import java.util.UUID
 
 import com.typesafe.scalalogging.LazyLogging
-import org.combinators.cls.interpreter.ReflectedRepository
+import org.combinators.cls.interpreter.{InhabitationResult, ReflectedRepository}
 import org.combinators.cls.types.Constructor
 import org.combinators.ctp.repositories.samplebased._
 import org.combinators.ctp.repositories.taxkinding.SbmpSemanticTypes
@@ -15,6 +15,7 @@ import org.combinators.ctp.repositories.python_interop.{PlannerScheme, Substitut
 import org.combinators.ctp.repositories.toplevel._
 import org.locationtech.jts.util.Stopwatch
 import org.combinators.ctp.repositories._
+import org.combinators.ctp.repositories.benchmarks.MpInstance.logger
 
 case class SbmpAlg(planner: SbmpPlanners.EnumType,
                    sampler: SbmpSamplers.EnumType,
@@ -427,22 +428,36 @@ object run extends App with EncodeImplicits with LazyLogging with AkkaImplicits 
   //    withSimplification(SbmpSimplification.sbmp_use_simplification).
   //    withSceneInput(SbmpSceneInput.sbmp_from_data_file)
 
-  val str =
-    """ {
-      |"planner" : "sbmp_planner_PRMStar",
-      |"sampler" : "sbmp_uniform_valid_state_sampler",
-      |"stateValidator" : "sbmp_fcl_validator",
-      |"motionValidator" : "sbmp_fcl_motion_validator",
-      |"costs" : "not_specified",
-      |"optObjective" : "not_specified",
-      |"simplification" : "sbmp_use_simplification",
-      |"sceneInput" : "sbmp_from_data_file",
-      |"dimensionality" : "dimensionality_three_d_t",
-      |"id" : "7c7c12c5-b125-4385-b2ca-56dd9afd03e4",
-      |"configurableAlg" : true,
-      |"withStates": false
-      |}""".stripMargin
+//  val str =
+//    """ {
+//      |"planner" : "sbmp_planner_PRMStar",
+//      |"sampler" : "sbmp_uniform_valid_state_sampler",
+//      |"stateValidator" : "sbmp_fcl_validator",
+//      |"motionValidator" : "sbmp_fcl_motion_validator",
+//      |"costs" : "not_specified",
+//      |"optObjective" : "not_specified",
+//      |"simplification" : "sbmp_use_simplification",
+//      |"sceneInput" : "sbmp_from_data_file",
+//      |"dimensionality" : "dimensionality_three_d_t",
+//      |"id" : "7c7c12c5-b125-4385-b2ca-56dd9afd03e4",
+//      |"configurableAlg" : true,
+//      |"withStates": false
+//      |}""".stripMargin
 
+  val str = """{
+    "planner": "sbmp_planner_KPIECE1",
+    "sampler": "sbmp_gaussian_space_sampler",
+    "stateValidator": "sbmp_fcl_validator",
+    "motionValidator": "sbmp_discrete_motion_validator",
+    "costs": "sbmp_default_cost_state",
+    "optObjective": "sbmp_opt_path_length",
+    "simplification": "sbmp_use_simplification",
+    "sceneInput": "scene_input_data_file",
+    "dimensionality": "dimensionality_three_d_t",
+    "id": "8b3d80f2-f675-490a-a94b-8b9183ae2aa7",
+    "configurableAlg": false,
+    "withStates": false
+  }"""
 
   logger.info("decoded planner string")
   val fpp2 = decode[SbmpAlg](str).toOption.get
@@ -455,17 +470,22 @@ object run extends App with EncodeImplicits with LazyLogging with AkkaImplicits 
 
   val repository = fpp2.buildRepository
   watch.stop()
-  logger.debug(s"elapsed time ${watch.getTimeString}")
+  logger.info(s"elapsed time ${watch.getTimeString}")
 
   val watch2: Stopwatch = new Stopwatch
   watch2.start()
+  val r = fpp2.getIhResult(repository)
   val result = repository.inhabit[PlannerScheme[List[List[Float]]]](Constructor("any_sbmp_planner_type"))
   watch2.stop()
-  logger.debug(s"elapsed time ${watch2.getTimeString}")
-  logger.debug(s"${repository.combinators}")
-  if (result.isEmpty)
-    logger.debug("mt")
-  else
+  logger.info(s"elapsed time ${watch2.getTimeString}")
+  logger.info(s"${repository.combinators}")
+  if (result.isEmpty) {
+    logger.info("mt")
+  }
+  else {
+    logger.info("not empty")
     result.interpretedTerms.index(0)
+  }
+
 }
 

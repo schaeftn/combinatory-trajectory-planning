@@ -151,8 +151,8 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     override val st: SubstitutionScheme = defaultPlannerSubstScheme("KPIECE1")
     override val startFile: String = sbmpMainStartFile
 
-    val semanticType = (sbmp_opt_path_length=>:sbmp_spaceSampler_type=>:sbmp_planner_KPIECE1):&:
-      (sbmp_opt_path_length=>:sbmp_informedSampler_type=>:sbmp_planner_KPIECE1)
+    val semanticType = (sbmp_opt_path_length =>: sbmp_spaceSampler_type =>: sbmp_planner_KPIECE1) :&:
+      (sbmp_opt_path_length =>: sbmp_informedSampler_type =>: sbmp_planner_KPIECE1)
   }
 
 

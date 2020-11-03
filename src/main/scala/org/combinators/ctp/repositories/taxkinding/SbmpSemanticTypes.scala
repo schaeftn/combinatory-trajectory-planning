@@ -107,7 +107,7 @@ trait SbmpSemanticTypes {
       "sbmp_gaussian_valid_state_sampler", "sbmp_max_clearance_valid_state_sampler", "sbmp_uniform_space_sampler", "sbmp_gaussian_space_sampler"),
     "any_sbmp_state_validator_type" -> List("sbmp_fcl_validator"),
     "any_sbmp_motion_validator_type" -> List("sbmp_fcl_motion_validator", "sbmp_discrete_motion_validator"),
-    "any_sbmp_optimization_objective_type" -> List("sbmp_path_length", "sbmp_opt_integral"),
+    "any_sbmp_optimization_objective_type" -> List("sbmp_opt_path_length", "sbmp_opt_integral"),
     "any_sbmp_cost_type" -> List("sbmp_default_cost_state", "sbmp_cost_state_change_weighted"),
     "any_sbmp_simplification_type" -> List("sbmp_use_simplification", "sbmp_no_simplification"),
     "any_dimensionality_type" -> List("dimensionality_two_d_t", "dimensionality_three_d_t", "dimensionality_n_d_t")
