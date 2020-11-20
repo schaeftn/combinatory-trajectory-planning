@@ -6,6 +6,8 @@ import java.util.Properties
 import com.typesafe.scalalogging.LazyLogging
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.geometry.{PpPolyhedronMesh, PpSurfaceMesh}
+import org.combinators.ctp.repositories.pathcoverage.JtsUtils
+import org.locationtech.jts.geom.Geometry
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
 
@@ -16,6 +18,62 @@ case class Scene(boundaries: List[Float], obstacles: List[MqttCubeData]) {
   def empty = Scene(List.empty, List.empty)
 }
 
+case class PathCoverageStep(pcFct: Cnc2DModel => (List[List[List[Float]]], Cnc2DModel),
+                            pcrList: List[PathCoverageStep]) {
+  def getResultPathAndModel(cncModel: Cnc2DModel): (List[List[List[Float]]], Cnc2DModel) =
+    pcFct(cncModel)
+
+  def getSubResults(cncModel: Cnc2DModel):
+  List[(List[List[List[Float]]], Cnc2DModel)] =
+    pcrList.map(i => i.pcFct(cncModel))
+
+  def getCompleteResultPathAndModel(cncModel: Cnc2DModel): (List[List[List[Float]]], Cnc2DModel) =
+    if (pcrList.isEmpty) getResultPathAndModel(cncModel) else {
+      val currentCalc = getResultPathAndModel(cncModel)
+      getSubResults(currentCalc._2).foldLeft(currentCalc)((t, m) => (t._1 ++ m._1, m._2))
+    }
+}
+
+/**
+ *
+ * @param boundaries x,y boundaries, workpiece area
+ * @param targetGeometry area that must be machined. Difference from boundaries = leftover Material
+ * @param rest geometry list that is left to be processed
+ * @param machined geometry list that was already machined (can be used as entry points for further tool paths)
+ */
+case class Cnc2DModel(boundaries: List[Float],
+                      targetGeometry: Geometry,
+                      rest: List[Geometry],
+                      machined: List[Geometry]) extends LazyLogging with JtsUtils {
+  self =>
+  def empty = Scene(List.empty, List.empty)
+
+  /**
+   * Boundary rectangle - targetGeometry, area that must not be machined
+   */
+  lazy val targetWorkpiece: Geometry = getBoundaryRectangle(boundaries).difference(targetGeometry)
+
+  lazy val getMachinedMultiGeo: Geometry = {
+    logger.info(s"attempting to unionize.")
+    logger.info(s"attempting to unionize: Machined Geos: ${machined.length}")
+    machined.foreach(g => logger.info(s"Machined geo element: \r\n$g"))
+    machined.reduceOption(_.union(_)).getOrElse(emptyGeometry)
+  }
+
+  lazy val getRestMultiGeo: Geometry = rest.reduce(_.union(_))
+
+  def withMachinedGeo(g: Geometry): Cnc2DModel = {
+    logger.info("with machinedGeo start")
+    val restGeos1 = self.rest.map(i => i.difference(g)).map(g => multiGeoToGeoList(g)).reduceOption(_ ++ _).
+      filter(_.nonEmpty)
+    logger.info("with machinedGeo: Got restgeos, attempting to sort")
+
+    val restGeos = restGeos1.getOrElse(List.empty[Geometry]).sortBy(_.getArea)(Ordering[Double].reverse)
+    logger.info("with machinedGeo after restGeos")
+    Cnc2DModel(self.boundaries, self.targetGeometry, restGeos, self.machined :+ g)
+  }
+}
+
 case class SceneSRT(boundaries: List[Float], obstacles: List[MqttObstacleSRT]) {
   def empty = Scene(List.empty, List.empty)
 }
@@ -24,13 +82,12 @@ case class MeshScene(boundaries: List[List[Float]], obstacles: List[PpSurfaceMes
   self =>
 }
 
-case class ProblemDefinitionFiles(
-                                   cfgFileName: String,
-                                   envModelLocation: String,
-                                   robotModelLocation: String,
-                                   problemProperties: Properties)
+case class ProblemDefinitionFiles(cfgFileName: String,
+                                  envModelLocation: String,
+                                  robotModelLocation: String,
+                                  problemProperties: Properties)
 
-object ProblemDefinitionFiles extends LazyLogging{
+object ProblemDefinitionFiles extends LazyLogging {
   def apply(cfgFile: String): Option[ProblemDefinitionFiles] = {
     val probFolder = PropertyFiles.problemsProperties.getProperty("org.combinators.ctp.problemFolder")
 
@@ -43,9 +100,10 @@ object ProblemDefinitionFiles extends LazyLogging{
       val robotFile = probFolder + cfgProperties.getProperty("robot").split("dae").head + "obj"
       Some(ProblemDefinitionFiles(cfgFile, eFile, robotFile, cfgProperties))
     }
-    catch { case e: Exception =>
-      e.printStackTrace()
-      None
+    catch {
+      case e: Exception =>
+        e.printStackTrace()
+        None
     }
   }
 }
@@ -124,7 +182,6 @@ case class SegmentationLines2d(lines: List[List[List[Float]]])
 
 case class SceneCfreePolygons2d(vertices: List[List[Float]], cfreePolygons: List[PpPolyhedronMesh])
 
-
 case class SceneMesh(vertices: vertexArrayType2, faces: facesArrayType, voxels: voxelArrayType) {}
 
 case class MqttCubeData(tMatrix: List[List[Float]], cubeSize: List[Float])
@@ -140,17 +197,6 @@ case class PathPreds(nodes: List[Int], preds: List[Int])
 case class RmInput(centroids: List[List[Float]], adjacency: List[List[Int]])
 
 case class ExploredStates(exploredStates: List[List[Float]])
-
-
-/**
- * Not used yet
- */
-case class VolumeMesh(vertices: vertexArrayType2, faces: facesArrayType,
-                      voxels: voxelArrayType, override val tMatrix: tMatrixType) extends Transformable {}
-
-// * Not used yet
-case class SurfaceMesh(vertices: vertexArrayType2, faces: facesArrayType,
-                       override val tMatrix: tMatrixType) extends Transformable {}
 
 trait Transformable {
   val tMatrix: List[List[Float]]

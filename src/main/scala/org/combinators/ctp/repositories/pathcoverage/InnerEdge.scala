@@ -1,7 +1,7 @@
 package org.combinators.ctp.repositories.pathcoverage
 
 import com.typesafe.scalalogging.LazyLogging
-import org.combinators.ctp.repositories.pathcoverage.RunTrochoidalPath.asd
+import org.combinators.ctp.repositories.pathcoverage.RunTrochoidalPath.trochPrimitive
 import org.combinators.ctp.repositories.scene.SceneUtils
 
 

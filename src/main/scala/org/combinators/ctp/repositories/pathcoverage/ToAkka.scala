@@ -23,7 +23,7 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 
 import scala.concurrent.{ExecutionContext, Future}
 import com.typesafe.scalalogging.LazyLogging
-import org.combinators.ctp.repositories.pathcoverage.RunTrochoidalPath.asd
+import org.combinators.ctp.repositories.pathcoverage.RunTrochoidalPath.trochPrimitive
 import org.combinators.ctp.repositories.scene.SceneUtils
 
 
@@ -34,7 +34,7 @@ object ToAkka extends PropertyFiles with AkkaImplicits {
     val broker = mqttProperties.getProperty("org.combinators.ctp.broker")
 
     val connectionSettings = MqttConnectionSettings(broker, "cls/SimplePath",
-      new MemoryPersistence).withAutomaticReconnect(true)
+      new MemoryPersistence).withAutomaticReconnect(false)
 
     val pathSink: Sink[MqttMessage, Future[Done]] = MqttSink(connectionSettings, MqttQoS.AtLeastOnce)
 
