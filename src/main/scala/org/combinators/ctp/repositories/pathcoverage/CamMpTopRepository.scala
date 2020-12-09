@@ -120,7 +120,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
       PathCoverageStep(Some(combinatorPcFct), Some(t), List(restMp), "moat composition")
     }
 
-    val semanticType = alpha =>: alpha =>: pathCoverageFctRoot :&: alpha
+    val semanticType = steel =>: steel  =>: pathCoverageFctRoot :&: steel
   }
 
 
@@ -133,9 +133,9 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
       PathCoverageStep(pcFct, None, l, "generic composition")
     }
 
-    val semanticType = alpha =>:
-      alpha =>:
-      alpha
+    val semanticType = pFct :&: alpha =>:
+      pFct :&: alpha =>:
+      pFct :&: alpha
   }
 
 //
@@ -184,7 +184,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
     }
 
 
-    val semanticType = alpha =>: coveragePrimitive :&: alpha
+    val semanticType = alpha =>: pFct :&: alpha
   }
 
 
@@ -200,7 +200,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
       def apply(t: CncTool): PathCoverageStep =
         createMultiContourStep(t)
 
-    val semanticType = alpha =>: coveragePrimitive :&: alpha
+    val semanticType = alpha =>: pFct :&: alpha
     }
 
   @combinator object MultiCountourMultiTool extends Contour {
@@ -223,7 +223,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
       PathCoverageStep(pc1.pcFct, pc1.tool, pcStepList, description_param = pc1.description_param)
     }
 
-    val semanticType = alpha :&: roughing =>: alpha :&: finishing =>: coveragePrimitive :&: alpha
+    val semanticType = alpha :&: roughing =>: alpha :&: finishing =>: pFct :&: alpha
   }
 
 

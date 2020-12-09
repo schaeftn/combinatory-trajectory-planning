@@ -23,10 +23,8 @@ trait Contour extends LazyLogging with JtsUtils {
 
       val machinableArea = initialScene.getMachinedMultiGeo.buffer(t.ae)
       pGeo("machinableArea", machinableArea)
-      // val validPos = invalidToolPositions.asInstanceOf[Polygon].getInteriorRingN(0)
 
       val validPosPoly = initialScene.targetGeometry.buffer(-t.d/2.0d).intersection(machinableArea.buffer(-t.d/2.0d))
-//      getFirstInteriorFromPolygon(invalidToolPositions)
       pGeo("validPosPoly", validPosPoly)
 
       val restBuffered = initialScene.getRestMultiGeo.buffer(t.d / 2)
@@ -48,7 +46,6 @@ trait Contour extends LazyLogging with JtsUtils {
 
 
       val f1 = validPosPoly.difference(filteredFull) // mit difference noch holes benötigt?
-      //.difference(invalidToolPositions)
       pGeo("f1", f1)
 
       val toolPath = if (f1.isEmpty)
@@ -102,7 +99,7 @@ trait Contour extends LazyLogging with JtsUtils {
         def performAndEvaluateStep(aggregatedPath: List[List[Float]], s: Cnc2DModel): (List[List[Float]], Cnc2DModel) = {
           val (path, newModel) = scStep(s, pcConfig)
           val diff = s.getRestMultiGeo.getArea - newModel.getRestMultiGeo.getArea
-          if (diff < 0.001)
+          if (diff < 2.0)
             (aggregatedPath, s)
           else {
             if(aggregatedPath.nonEmpty && path.nonEmpty && path.head.nonEmpty)
