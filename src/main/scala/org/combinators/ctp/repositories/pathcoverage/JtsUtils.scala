@@ -5,15 +5,33 @@ import java.util
 import com.typesafe.scalalogging.LazyLogging
 import org.locationtech.jts.geom.impl.CoordinateArraySequence
 import org.locationtech.jts.geom.util.AffineTransformation
-import org.locationtech.jts.geom.{Coordinate, Geometry, GeometryFactory, LineString, MultiLineString, Point}
+import org.locationtech.jts.geom.{Coordinate, Geometry, GeometryFactory, LineString, LinearRing, MultiLineString, MultiPolygon, Point, Polygon}
 import org.locationtech.jts.util.GeometricShapeFactory
 
-trait JtsUtils extends LazyLogging {
+trait JtsUtils extends LazyLogging with CircleUtils {
   val gf = new GeometryFactory()
-
+  val emptyLs = gf.createLineString()
   val emptyGeometry = new Point(null, gf)
+  val zIdleValue = 20.0f
+
+  def withIdleZ(c: List[Float]): List[Float] =
+    if (c.length == 2) c :+ zIdleValue else if (c.length == 3) c.dropRight(1) :+ zIdleValue else List.empty[Float]
+
+  def repositionPathSteps(c1: List[Float], c2: List[Float]): List[List[Float]] = {
+    val c1Connect: List[Float] = withIdleZ(c1)
+    val c2Connect: List[Float] = withIdleZ(c2)
+    List(c1Connect, c2Connect)
+  }
+
+
+  def paraBuffer(minPointClearance: Double)(g: Geometry, d: Double): Geometry = {
+    val lengthNinetyArc = twoPi / 4 * d
+    val numberOfPointsOnArc = math.ceil(lengthNinetyArc / minPointClearance).toInt
+    g.buffer(d, numberOfPointsOnArc)
+  }
 
   def pGeo(s: String, g: Geometry): Unit = logger.info(s"$s\r\n$g")
+
   def asFloatList(a: Array[Coordinate]): List[List[Float]] = a.map(c => List(c.x.toFloat, c.y.toFloat)).toList
 
   def getBoundaryRectangle(l: List[Float]): Geometry = {
@@ -21,21 +39,21 @@ trait JtsUtils extends LazyLogging {
       logger.warn(s"getBoundaryRectangle. Argument list length should be 4 $l")
       return emptyGeometry
     }
-    List(-75.0f, 75.0f, -60.0f, 60.0f)
     val gsf: GeometricShapeFactory = new GeometricShapeFactory();
-    gsf.setBase(new Coordinate(l(0), l(2) ))
+    gsf.setBase(new Coordinate(l(0), l(2)))
     gsf.setWidth(l(1) - l(0));
     gsf.setHeight(l(3) - l(2));
     gsf.createRectangle();
   }
-  def getNewLineString(a: Array[Coordinate]): LineString = new LineString(new CoordinateArraySequence(a), gf)
 
-  def getNewLineString(a: Coordinate, b: Coordinate): LineString = new LineString(new CoordinateArraySequence(Array(a, b)), gf)
+  def getNewLineString(a: Array[Coordinate]): LineString = gf.createLineString(a)
+
+  def getNewLineString(a: Coordinate, b: Coordinate): LineString = getNewLineString(Array(a, b))
 
   def getNewLineString(a: Array[LineString]): LineString = {
     val coords: Option[Array[Coordinate]] = a.map(_.getCoordinates).reduceOption(_ ++ _)
-    val coordArray: Option[Array[Coordinate]] =
-      coords.map(c => c.zip(c.tail).filterNot { case (a, b) => a.equals2D(b) }.map(_._1))
+    val coordArray: Option[Array[Coordinate]] = coords.map(i => i.distinct)
+    //      coords.map(c => c.zip(c.tail).filterNot { case (a, b) => a.equals2D(b) }.map(_._1))
     getNewLineString(coordArray.getOrElse(Array.empty[Coordinate]))
   }
 
@@ -52,6 +70,19 @@ trait JtsUtils extends LazyLogging {
     at
   }
 
+  def filterLsAndReturnMultiPoly(g: Geometry): Geometry = {
+    if (g.getNumGeometries != 1) {
+      val l = getGeoListFromGeo(g).filter(_.getGeometryType == "Polygon")
+      if (l.size == 1)
+        l.head
+      else if (l.size > 1)
+        gf.createMultiPolygon(l.map(_.asInstanceOf[Polygon]).toArray)
+      else
+        emptyGeometry
+    } else {
+      g
+    }
+  }
   def toAffMatrix(p1: Coordinate, a: Double): AffineTransformation = {
     val rotMat = new AffineTransformation().rotate(a - Math.PI * 0.5)
     val transMat = new AffineTransformation().translate(p1.getX, p1.getY)
@@ -64,8 +95,90 @@ trait JtsUtils extends LazyLogging {
 
   def asMultiLine(l: List[LineString]): MultiLineString = gf.createMultiLineString(l.toArray)
 
+  def asCoordinate(a: List[Float]): Coordinate =
+    if (a.size > 1)
+      new Coordinate(a.head, a.tail.head) // a can also contain velocity...
+    else emptyGeometry.getCoordinate
+
+  def asCoordinateD(a: List[Double]): Coordinate =
+    if (a.size > 1)
+      new Coordinate(a.head, a.tail.head) // a can also contain velocity...
+    else emptyGeometry.getCoordinate
+
   def toLineStringList(s: List[Coordinate]): List[LineString] = if (s.length > 1)
-    s.zip(s.tail).map { case (a, b) => getNewLineString(Array(b, a)) }
+    s.zip(s.tail).map { case (a, b) => getNewLineString(Array(a, b)) }
   else
     List.empty[LineString]
+
+  def reverseLs(ls: LineString): LineString = ls.reverse().asInstanceOf[LineString]
+
+  def asLineString(g: Geometry): LineString =
+    g.getGeometryType match {
+      case "LineString" => g.asInstanceOf[LineString]
+      case "MultiLineString" => val ls = gf.createLineString(g.getCoordinates)
+        if (ls.getLength == g.getLength)
+          ls
+        else
+          emptyLs
+      case _ => emptyLs
+    }
+
+  def getPolygonByLineStrings(ls1: List[Coordinate], ls2: List[Coordinate]): Polygon =
+    new Polygon(gf.createLinearRing(ls1.toArray ++ ls2.toArray), Array.empty[LinearRing], gf)
+
+  def getPolygonByCoordList(l: List[Coordinate]): Polygon =
+    new Polygon(gf.createLinearRing(l.toArray :+ l.head), Array.empty[LinearRing], gf)
+
+  def getFirstExteriorFromPolygon(ls: Geometry): Geometry = {
+    ls.getGeometryType match {
+      case "Polygon" =>
+        ls.asInstanceOf[Polygon].getExteriorRing
+      case "MultiPolygon" =>
+        logger.warn(s"getFirstInteriorFromPolygon called for Multipolygon $ls. Using first geometry.")
+        ls.asInstanceOf[MultiPolygon].getGeometryN(0).asInstanceOf[Polygon].getExteriorRing
+      case _ => emptyGeometry
+    }
+  }
+
+  def getFirstGeometry(g: Geometry): Geometry = if (g.getNumGeometries > 0) g.getGeometryN(0) else emptyGeometry
+
+  def getGeoListFromGeo(g: Geometry): List[Geometry] =
+    if (g.getNumGeometries > 0)
+      (0 until g.getNumGeometries).map(gIndex => g.getGeometryN(gIndex)).toList
+    else
+      List(g)
+
+  def isPolygon(g: Geometry): Boolean = g.getGeometryType == "Polygon"
+
+  def getLongestExteriorFromPolygon(g: Geometry): Option[LineString] = {
+    g.getGeometryType match {
+      case "Polygon" =>
+        Some(g.asInstanceOf[Polygon].getExteriorRing)
+      case "MultiPolygon" =>
+        logger.warn(s"getFirstInteriorFromPolygon called for Multipolygon $g. Using first geometry.")
+        val geoList = getGeoListFromGeo(g)
+        val longestExGeoTuple = geoList.map(i => (i, getLongestExteriorFromPolygon(i))).maxBy(
+          _._2.map(ls => ls.getLength))
+        longestExGeoTuple._2
+      case _ => None
+    }
+  }
+  def getFirstInteriorFromPolygon(ls: Geometry): Geometry = {
+    ls.getGeometryType match {
+      case "Polygon" => if (ls.asInstanceOf[Polygon].getNumInteriorRing > 0)
+        gf.createPolygon(ls.asInstanceOf[Polygon].getInteriorRingN(0).getCoordinates)
+      else
+        emptyGeometry
+      case "MultiPolygon" =>
+        logger.warn(s"getFirstInteriorFromPolygon called for Multipolygon $ls. Using first geometry.")
+        val poly = ls.asInstanceOf[MultiPolygon].getGeometryN(0).asInstanceOf[Polygon]
+
+        if (poly.getNumInteriorRing > 0)
+          gf.createPolygon(poly.getInteriorRingN(0).getCoordinates)
+        else
+          emptyGeometry
+
+      case _ => emptyGeometry
+    }
+  }
 }

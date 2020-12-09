@@ -2,6 +2,7 @@ package org.combinators.ctp.repositories.taxkinding
 
 import org.combinators.cls.types.{Constructor, Kinding, Taxonomy, Type, Variable}
 import org.combinators.ctp.repositories._
+import org.combinators.ctp.repositories.toplevel.{Cnc2DModel, PathCoverageStepConfig}
 
 trait SbmpSemanticTypes {
   val any_sbmp_planner_type = Constructor("any_sbmp_planner_type")
@@ -115,6 +116,8 @@ trait SbmpSemanticTypes {
 
   val sbmp_taxonomy = taxMapList.map { case ((k, l)) => l.foldLeft(Taxonomy(k))((t, s) => t.addSubtype(s)) }.
     reduce(_ merge _)
+
+  type cncPathFct = (Cnc2DModel, PathCoverageStepConfig) => (List[List[List[Float]]], Cnc2DModel)
 
   //  val map = Map(
 //    cmp_cell_decomposition_var -> Seq(

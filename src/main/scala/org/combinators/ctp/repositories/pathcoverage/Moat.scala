@@ -1,6 +1,8 @@
 package org.combinators.ctp.repositories.pathcoverage
 
 import com.typesafe.scalalogging.LazyLogging
+import org.combinators.ctp.repositories.toplevel.PathCoverageStepConfig
+import org.locationtech.jts.algorithm.Angle
 import org.locationtech.jts.geom.impl.CoordinateArraySequence
 import org.locationtech.jts.geom.{Coordinate, Geometry, LineString, LinearRing, MultiPolygon, Point, Polygon}
 import org.locationtech.jts.dissolve.LineDissolver
@@ -13,8 +15,12 @@ trait Moat extends GeoUtils with LazyLogging with JtsUtils {
   lazy val ae: Double = tool.ae
   lazy val circMotionRadius: Double = tool.d / 2.0d
 
+  val config: PathCoverageStepConfig
+
   val p1: Polygon
   lazy val p2 = p1.buffer(-tool.d)
+  lazy val p1diffToolRadius = p1.buffer(tool.d / 2.0)
+
 
   lazy val getLines: List[LineString] =
     if (p2.isEmpty)
@@ -43,9 +49,8 @@ trait Moat extends GeoUtils with LazyLogging with JtsUtils {
 //      }
       toLineStringList(nnn1.getCoordinates.toList)
     }
-  lazy val maxX: Double = p2.getEnvelopeInternal.getMinY
+  lazy val minY: Double = p2.getEnvelopeInternal.getMinY
   lazy val maxY: Double = p2.getEnvelopeInternal.getMaxY
-
 
   lazy val selectLines: Array[LineString] = {
     val allLines = getLines
@@ -65,6 +70,14 @@ trait Moat extends GeoUtils with LazyLogging with JtsUtils {
     if (startLines.length != 2) logger.warn(s"Found ${startLines.length} startLines. Expected 2." +
       s"""startLines: $startLines. allLines: $allLines""")
 
+    /**
+     *
+     * @param cumulated comulated list of coordinates
+     * @param leftOverArray set of linestrings that were not consumed during traversal
+     * @param extensionValue up/down y-value, determined by polygon envelope,
+     *                       used to draw vertival lines in non-convex polygons
+     * @return
+     */
     @tailrec
     def traverseAlongLines(cumulated: List[Coordinate], leftOverArray: Set[LineString], extensionValue: Double
                           ): (List[Coordinate], List[LineString]) = {
@@ -122,26 +135,52 @@ trait Moat extends GeoUtils with LazyLogging with JtsUtils {
 
     val emptyTravRes = (List.empty[Coordinate], List.empty[LineString])
     logger.info(s"allLines.toSet: ${allLines.toSet}")
+    logger.info(s"allLines: ${asMultiLine(allLines)}")
 
-    val (upperString, l1) = if (startLines.nonEmpty)
-      traverseAlongLines(startLines(0).getCoordinates.toList, allLines.toSet, maxY)
+    def getStartLs(index: Int): List[Coordinate] = {
+      if (startLines.length > index) {
+        val l = startLines(index).getCoordinates.toList
+        if (l.head.equals2D(startCoord))
+          l
+        else
+          l.reverse
+      }
+      else {
+        List.empty[Coordinate]
+      }
+    }
+
+    lazy val getStartUpperLower: (List[Coordinate], List[Coordinate]) = {
+      val l = List(getStartLs(0), getStartLs(1))
+      val sortedList = l.sortBy(i => if (i.nonEmpty) Angle.angle(i.head, i.last) else 0.0f) //empty selectLines
+      (sortedList(1), sortedList(0))
+    }
+
+    val (startLsUpper, startLsLower) = getStartUpperLower
+    logger.info(s"startLsUpper, $startLsUpper")
+    pGeo("startLsUpper",asMultiLine(toLineStringList(startLsUpper)))
+    logger.info(s"startLsLower, $startLsLower")
+    pGeo("startLsLower",asMultiLine(toLineStringList(startLsLower)))
+
+    val (upperString, leftOverLineStringsTop) = if (startLines.nonEmpty)
+      traverseAlongLines(startLsUpper, allLines.toSet, maxY)
     else
       emptyTravRes
 
-    val (lowerString, l2) = if (startLines.nonEmpty)
-      traverseAlongLines(startLines(1).getCoordinates.toList, allLines.toSet, maxX)
+    val (lowerString, leftOverLineStringsBot) = if (startLines.nonEmpty)
+      traverseAlongLines(startLsLower, allLines.toSet, minY)
     else
       emptyTravRes
 
     /**
-     * looks for LineString with following properties
-     * - intersection completely in p2,
+     * looks for LineString ls with following properties
+     * - ls intersection with p2 results in single geometry, (?)
      * - is in upperString and lowerString
      * - is non-convex in x direction,
      * - is in Polygon which is l1 union l2
      */
-    val cuttingLs: List[Option[LineString]] = (l1 intersect l2).flatMap(i => i.getCoordinates.map(i => {
-      val lls = getNewLineString(Array(new Coordinate(i.x, maxY), new Coordinate(i.x, maxX)))
+    val cuttingLs: List[Option[LineString]] = (leftOverLineStringsTop intersect leftOverLineStringsBot).flatMap(i => i.getCoordinates.map(i => {
+      val lls = getNewLineString(Array(new Coordinate(i.x, maxY), new Coordinate(i.x, minY)))
       val i1 = lls.intersection(getNewLineString(upperString.toArray))
       val i2 = lls.intersection(getNewLineString(lowerString.toArray))
       if (!i1.isEmpty && !i2.isEmpty) {
@@ -155,20 +194,31 @@ trait Moat extends GeoUtils with LazyLogging with JtsUtils {
     }
     ))
 
+    //        val xLimiter: Option[LineString] = {
+    //      val cList = cuttingLs.filter(i => i match {
+    //        case Some(a) => true
+    //        case None => false
+    //      }).map(_.get)
+    //      if (cList.nonEmpty) {
+    //        Some(cList.maxBy(_.getEnvelopeInternal.getMaxX))
+    //      } else {
+    //        None
+    //      }
+    //    }
+    //
+    //
+    val lsPoly = getPolygonByLineStrings(upperString, lowerString.reverse)
     val xLimiter: Option[LineString] = {
-      val cList = cuttingLs.filter(i => i match {
-        case Some(a) => true
-        case None => false
-      }).map(_.get)
-      if (cList.nonEmpty) {
-        Some(cList.maxBy(_.getEnvelopeInternal.getMaxX))
-      } else {
-        None
-      }
+      p1diffToolRadius.getCoordinates.filter(i => lsPoly.contains(gf.createPoint(i))).minByOption(_.x).
+        map(delimiterCoord => getNewLineString(Array(new Coordinate(delimiterCoord.x, maxY),
+          new Coordinate(delimiterCoord.x, minY))))
     }
 
-    logger.info(s"upperString: $upperString")
-    logger.info(s"botStromg: $lowerString")
+
+    pGeo("p1diffToolRadius", p1diffToolRadius)
+
+    logger.info(s"upperString: ${asMultiLine(toLineStringList(upperString))}")
+    logger.info(s"lowerString: ${asMultiLine(toLineStringList(lowerString))}")
 
     val upperRework = xLimiter match {
       case Some(lineString) =>
@@ -182,13 +232,13 @@ trait Moat extends GeoUtils with LazyLogging with JtsUtils {
       case None => lowerString
     }
 
-    logger.info(s"upperRework: $upperRework")
-    logger.info(s"botRework: $botRework")
+    logger.info(s"upperRework: ${asMultiLine(toLineStringList(upperRework))}")
+    logger.info(s"botRework: ${asMultiLine(toLineStringList(botRework))}")
 
     val upperLsArray = toLineStringList(upperRework)
     val botLsArray = toLineStringList(botRework)
 
-    (upperLsArray.reverse ++ botLsArray).toArray
+    (upperLsArray.map(i => reverseLs(i)).reverse ++ botLsArray).toArray
   }
 
   def getPolygon2: Geometry = {
@@ -200,7 +250,7 @@ trait Moat extends GeoUtils with LazyLogging with JtsUtils {
         override val maxStepSize: Float = ae.toFloat
         override val localOffsetFct: LocalMotionPrimitive = new CircularMotion {
           override val radius: Float = circMotionRadius.toFloat
-          override val localPolygonPoints: Int = 90
+          override val pointClearance: Double = config.minPointClearanceOnPath
         }
       }
 
@@ -227,7 +277,8 @@ trait Moat extends GeoUtils with LazyLogging with JtsUtils {
         override val aeMax: Double = tool.ae
         override val localMotionPrimitive: LocalMotionPrimitive = new CircularMotion {
           override val radius: Float = circMotionRadius.toFloat
-          override val localPolygonPoints: Int = 90
+          override lazy val localPolygonPoints: Int = 90
+          override val pointClearance: Double = config.minPointClearanceOnPath
         }
       }
       lsTraversal.getPolygon.buffer(tool.d / 2.0f)
@@ -256,7 +307,8 @@ trait Moat extends GeoUtils with LazyLogging with JtsUtils {
         override val aeMax: Double = tool.ae
         override val localMotionPrimitive: LocalMotionPrimitive = new CircularMotion {
           override val radius: Float = circMotionRadius.toFloat
-          override val localPolygonPoints: Int = 90
+          override lazy val localPolygonPoints: Int = 90
+          override val pointClearance: Double = config.minPointClearanceOnPath
         }
       }
       logger.info(s"lsTraversal.getSimplePath: ${getNewLineString(lsTraversal.getSimplePath.map(_.asInstanceOf[LineString]))}")
@@ -294,14 +346,22 @@ trait Moat extends GeoUtils with LazyLogging with JtsUtils {
 
 object MoatExample extends App with LazyLogging with JtsUtils{
   val moatPrimitive = new Moat {
-    val tool = CncTool(d = 0.4f, ae = 0.05f, ap = 0.2f, vf = 1.0f, 1000)
-
+    val tool = CncTool(
+      d = 12.0f,
+      ae = 12.0f,
+      ap = 6.0f,
+      vf = 1.2750f,
+      n = 7960,
+      description = "Alu Roughing, 12mm, Stirnfräsen, TODO Werte aktualisieren",
+      idString = "123")
     val pArray = Array(new Coordinate(0.0d, 0.0d, 0.0d),
       new Coordinate(0.0d, 1.0d, 0.0d),
       new Coordinate(5.0d, 5.0d, 0.0d),
       new Coordinate(5.0d, -5.0d, 0.0d),
       new Coordinate(0.0d, 0.0d, 0.0d))
     val p1: Polygon = new Polygon(new LinearRing(new CoordinateArraySequence(pArray), gf), Array.empty[LinearRing], gf)
+    override val config: PathCoverageStepConfig = PathCoverageStepConfig()
+
   }
   println(moatPrimitive.returnPath)
   ToAkka(moatPrimitive.returnPath)

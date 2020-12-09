@@ -2,6 +2,7 @@ package org.combinators.ctp.repositories.pathcoverage
 
 import org.combinators.ctp.repositories.scene.SceneUtils
 import com.typesafe.scalalogging.LazyLogging
+import org.combinators.ctp.repositories.toplevel.PathCoverageStepConfig
 import org.locationtech.jts.algorithm.Angle
 import org.locationtech.jts.geom.{Coordinate, Geometry, LineString, LinearRing, Point, Polygon}
 import org.locationtech.jts.geom.impl.CoordinateArraySequence
@@ -20,19 +21,21 @@ trait GeoUtils {
 
 trait LocalMotionPrimitive extends SceneUtils with CircleUtils with JtsUtils {
   val radius: Float
-  val localPolygonPoints: Int
-
+  val pointClearance: Double
   def getLocalOffset: Float => List[Float]
-
+  val localPolygonPoints: Int
   val localPolygon: Polygon
 
   def drawPolygon(c: Coordinate, angle: Double): Geometry = toAffMatrix(c, angle).transform(localPolygon)
 }
 
 trait CircularMotion extends LocalMotionPrimitive {
+
   val getLocalOffset: Float => List[Float] =
     t => List(radius * Math.cos(t * 2 * Math.PI).toFloat,
       radius * Math.sin(t * 2 * Math.PI).toFloat, 0.0f) //local
+
+  lazy val localPolygonPoints = Math.ceil(2 * Math.PI * radius / pointClearance).toInt
 
   lazy val localPolygon: Polygon = {
     val coords: IndexedSeq[Coordinate] = (0 to localPolygonPoints).map(i => { // to incl numPoints
@@ -90,8 +93,8 @@ trait LineStringTraversal extends JtsUtils {
    */
   lazy val discretePointList: List[(Coordinate, Double)] =
     (0 to stepCount).map { i =>
-      val asd = getContinuousPointAndAngle(i * aeActual)
-      asd
+//      val asd = getContinuousPointAndAngle(i * aeActual)
+//      asd
       getContinuousPointAndAngle(i * aeActual).getOrElse((null, 0.0d))
     }.toList.filter { case (a, _) => a != null }
 
@@ -109,6 +112,11 @@ trait LineStringTraversal extends JtsUtils {
 
   def getDiscretePointForIndex(i: Int): List[Double] = List(discretePointList(i)._1.x, discretePointList(i)._1.y)
 
+  /**
+   * selects a step number for a float parameter in between 0, 1
+   * @param tpara
+   * @return
+   */
   def getStepForT(tpara: Float): Option[Int] = tpara match {
     case t if t < 0.0f || t > 1.0 => None
     case t =>
@@ -120,7 +128,7 @@ trait LineStringTraversal extends JtsUtils {
 
 trait CircularMotion2 extends LocalMotionPrimitive {
   val d: Float = 5f
-
+  override lazy val localPolygonPoints: Int = 0 // Not used
   val tLocalQuarterCircle: Float = Math.PI.toFloat * radius / (4 * (Math.PI.toFloat * radius + d))
 
   lazy val tLocalD: Float = d / (2 * Math.PI.toFloat * radius + 2 * d)
@@ -157,6 +165,7 @@ trait CircularMotion2 extends LocalMotionPrimitive {
       List.empty[Float]
   }
 }
+
 
 trait LinearStepSize {
   val maxY: Float
@@ -230,7 +239,7 @@ trait Trochoidal extends SceneUtils with LinearStepSize with LazyLogging with Jt
         val adapt = new Polygon(new LinearRing(new CoordinateArraySequence(xArray), gf), Array.empty[LinearRing], gf)
         val testStr = s"$poly"
         if (testStr.contains("�")) {
-          logger.warn("omgpls")
+          logger.warn(s"Corrupted string in trochoidal polygon: $testStr")
         }
         //      logger.info(s"poly: $poly")
         //      logger.info(s"adapt: $adapt")
@@ -246,7 +255,7 @@ object RunTrochoidalPath extends App {
     override val maxStepSize: Float = 10f
     override val localOffsetFct: LocalMotionPrimitive = new CircularMotion {
       override val radius: Float = 5f
-      override val localPolygonPoints: Int = 90
+      override val pointClearance: Double = 0.2d
     }
   }
   println(trochPrimitive.getSimpleTrochoidalPath)

@@ -1,10 +1,10 @@
 package org.combinators.ctp.repositories.pathcoverage
 
 import com.typesafe.scalalogging.LazyLogging
+import org.combinators.ctp.repositories.toplevel.PathCoverageStepConfig
 import org.locationtech.jts.geom.impl.CoordinateArraySequence
 import org.locationtech.jts.geom.util.AffineTransformation
 import org.locationtech.jts.geom.{Coordinate, Geometry, GeometryFactory, LineString, LinearRing, Point, Polygon}
-
 import org.locationtech.jts.algorithm.Centroid
 
 trait SpiralDecomposition extends GeoUtils {
@@ -16,8 +16,8 @@ trait SpiralDecomposition extends GeoUtils {
     new Point(new CoordinateArraySequence(Array(midPoint)), gf))
 
   val ae: Double
-  val selectionPredicate: LineString => Boolean
   val p1: Polygon
+
   lazy val p2 = p1.buffer(-ae)
 
   val p00 = new Coordinate(0.0, 0.0)
@@ -52,7 +52,8 @@ trait SpiralDecomposition extends GeoUtils {
         override val maxStepSize: Float = 0.5f
         override val localOffsetFct: LocalMotionPrimitive = new CircularMotion {
           override val radius: Float = 0.5f
-          override val localPolygonPoints: Int = 90
+          override lazy val localPolygonPoints: Int = 90
+          override val pointClearance: Double = PathCoverageStepConfig().minPointClearanceOnPath
         }
       }
 
@@ -68,7 +69,14 @@ trait SpiralDecomposition extends GeoUtils {
 object SpiralDecomposition extends App with LazyLogging {
   val gf = new GeometryFactory()
   val asd = new Moat {
-    val tool = CncTool(d = 0.4f, ae = 0.05f, ap = 0.2f, vf = 1.0f, 1000)
+    val tool = CncTool(
+      d = 12.0f,
+      ae = 12.0f,
+      ap = 6.0f,
+      vf = 1.2750f,
+      n = 7960,
+      description = "Alu Roughing, 12mm, Stirnfräsen, TODO Werte aktualisieren",
+      idString = "123")
     val selectionPredicate: LineString => Boolean = i => true
     val pArray = Array(new Coordinate(0.0d, 0.0d, 0.0d),
       new Coordinate(0.0d, 1.0d, 0.0d),
@@ -76,6 +84,7 @@ object SpiralDecomposition extends App with LazyLogging {
       new Coordinate(5.0d, -5.0d, 0.0d),
       new Coordinate(0.0d, 0.0d, 0.0d))
     val p1: Polygon = new Polygon(new LinearRing(new CoordinateArraySequence(pArray), gf), Array.empty[LinearRing], gf)
+    override val config: PathCoverageStepConfig = PathCoverageStepConfig()
   }
   println(asd.returnPath)
   ToAkka(asd.returnPath)
