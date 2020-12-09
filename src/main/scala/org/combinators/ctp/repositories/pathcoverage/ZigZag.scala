@@ -213,13 +213,13 @@ object runZigZag extends App with LazyLogging with JtsUtils {
   val pArray = Array(new Coordinate(0.0d, 0.0d, 0.0d),
     new Coordinate(0.0d, 10.0d, 0.0d),
     new Coordinate(50.0d, 50.0d, 0.0d),
-    new Coordinate(50.0d, -50.0d, 0.0d),
+    new Coordinate(50.0d, 0.0d, 0.0d),
     new Coordinate(0.0d, 0.0d, 0.0d))
   val poly1: Polygon = new Polygon(
     new LinearRing(new CoordinateArraySequence(pArray), gf), Array.empty[LinearRing], gf)
   val zz = new ZigZag {
     override val toolDia: Float = 5f
-    override val a_e: Float = 1f
+    override val a_e: Float = 3f
     override val restGeo: Polygon = poly1
     override val machinedGeo: MultiPolygon = new MultiPolygon(Array(poly1.buffer(6f).asInstanceOf[Polygon]), gf)
     override val stepDirection: Vector2D = new Vector2D(1.0f, 0.0f)
