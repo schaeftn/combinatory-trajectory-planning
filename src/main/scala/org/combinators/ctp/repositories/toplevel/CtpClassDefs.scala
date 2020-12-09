@@ -48,7 +48,7 @@ trait PathCoverageStepConfig extends JtsUtils with MachineAccelerationModel{
 
 object PathCoverageStepConfig {
   def apply(): PathCoverageStepConfig = new PathCoverageStepConfig{
-    override val minPointClearanceOnPath: Double = 0.01
+    override val minPointClearanceOnPath: Double = 0.1
     override val min_ae: Double = 0.01
 
     override def machineModelAccX(velocity: Double): Double = {
@@ -325,7 +325,8 @@ case class PathCoverageStep(pcFct: Option[cncPathFct],
 case class Cnc2DModel(boundaries: List[Float],
                       targetGeometry: Geometry,
                       rest: List[Geometry],
-                      machined: List[Geometry]) extends LazyLogging with JtsUtils {
+                      machined: List[Geometry],
+                      machinedMultiPolygon: Geometry) extends LazyLogging with JtsUtils {
   self =>
   def empty = Scene(List.empty, List.empty)
 
@@ -341,6 +342,10 @@ case class Cnc2DModel(boundaries: List[Float],
     diff
   }
   lazy val getMachinedMultiGeo: Geometry = {
+    machinedMultiPolygon
+  }
+
+  lazy val machinedPolygonHistory = {
     //logger.info(s"attempting to unionize.")
     //logger.info(s"attempting to unionize: Machined Geos: ${machined.length}")
     // machined.foreach(g => logger.info(s"Machined geo element: \r\n$g"))
@@ -358,7 +363,6 @@ case class Cnc2DModel(boundaries: List[Float],
 //      SnapIfNeededOverlayOp.union(a,b)}.getOrElse(emptyGeometry)
 
     val machinedTyped = machined.filter(isPolygon).map(_.asInstanceOf[Polygon]).toArray
-
     machined.map(_.getGeometryType).filterNot(_.equals("Polygon")).foreach (i => logger.info(s"notPolygon: $i"))
     gf.createMultiPolygon(machinedTyped)
     //unary.union()
@@ -373,7 +377,7 @@ case class Cnc2DModel(boundaries: List[Float],
   //rest.reduce(_.union(_))
 
   def withMachinedGeo(g0: Geometry): Cnc2DModel = {
-    logger.info(s"with machinedGeo start: \r\n${getMachinedMultiGeo}")
+    pGeo("with machinedGeo start:",getMachinedMultiGeo)
 
     pGeo("g0", g0)
     logger.info(s"g0.getFactory ${g0.getFactory}")
@@ -384,12 +388,13 @@ case class Cnc2DModel(boundaries: List[Float],
 //      g0
 //    pGeo("g1", g1)
 
-    val g = DouglasPeuckerSimplifier.simplify(g0, 0.0001)
+    val g = DouglasPeuckerSimplifier.simplify(g0, 0.001)
     pGeo("g", g)
 
     val restGeos1 = self.rest.map(i => {
      // pGeo("i", i)
-      i.buffer(-0.0001).difference(g.buffer(0.0001)).buffer(0.0001)
+ //     i.buffer(-0.0001).difference(g.buffer(0.0001)).buffer(0.0001)
+      i.difference(g)
     })
     //Simplification
 
@@ -398,7 +403,9 @@ case class Cnc2DModel(boundaries: List[Float],
 
     val restGeos = restGeos2.getOrElse(List.empty[Geometry]).sortBy(_.getArea)(Ordering[Double].reverse)
     logger.info("with machinedGeo after restGeos")
-    Cnc2DModel(self.boundaries, self.targetGeometry, restGeos, self.machined :+ g)
+    val newMachGeo = machinedMultiPolygon.union(g)
+    gf.createMultiPolygon().union(newMachGeo)
+    Cnc2DModel(self.boundaries, self.targetGeometry, restGeos, self.machined :+ g , newMachGeo)
   }
 }
 

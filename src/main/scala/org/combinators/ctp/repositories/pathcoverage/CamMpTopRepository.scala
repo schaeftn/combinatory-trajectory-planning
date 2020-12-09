@@ -245,21 +245,21 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
 
   @combinator object AluFinish {
     def apply: CncTool = CncTool(8.0f, 8.0f, 4.0f, 1.4300f, 11935,
-      "Alu finishing, 8mm, Stirnfraesen, axiale Zustellung 4mm, vf 1430mm/min, n 11935", "2")
+      "Alu finishing, 8mm, Stirnfraesen, radiale Zustellung 4mm, vf 1430mm/min, n 11935", "2")
 
     val semanticType = alu :&: finishing
   }
 
   @combinator object SteelRoughing {
     def apply: CncTool = CncTool(d = 10.0f, ae = 6.0f, ap = 10.0f,
-      vf = 1.9480f, n = 4775, "Steel Roughing, d: 10mm, axiale Zustellung 6mm, vf 1948mm/min, n 4775", "3")
+      vf = 1.9480f, n = 4775, "Steel Roughing, d: 10mm, radiale Zustellung 6mm, vf 1948mm/min, n 4775", "3")
 
     val semanticType = steel :&: roughing
   }
 
   @combinator object SteelFinishing {
     def apply: CncTool = CncTool(d = 5.0f, ae = 0.5f, ap = 7.5f, vf = 0.3800f, n = 6365,
-      "Steel Finishing, d: 5mm, axiale Zustellung 0.5mm, vf 380mm/min, n 6365", "4")
+      "Steel Finishing, d: 5mm, radiale Zustellung 0.5mm, vf 380mm/min, n 6365", "4")
 
     val semanticType = steel :&: finishing
   }

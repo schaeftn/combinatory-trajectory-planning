@@ -13,30 +13,35 @@ trait Contour extends LazyLogging with JtsUtils {
 
   lazy val singleContourStep: CncTool => cncPathFct = { t => {
     (initialScene: Cnc2DModel, pcConfig: PathCoverageStepConfig) =>
-      logger.info(s"tool dia, ae: ${t.d}, ${t.ae}")
-      initialScene.rest.foreach(a => logger.info(s"initialScene Rest: $a"))
-      logger.info(s"targetWorkpiece: ${initialScene.targetWorkpiece}")
+      initialScene.rest.foreach(a => pGeo("initialScene Rest", a))
+      pGeo("targetWorkpiece", {
+        initialScene.targetWorkpiece
+      })
 
       pGeo("initialScene.getMachinedMultiGeo", initialScene.getMachinedMultiGeo)
-      val invalidToolPositions = initialScene.targetWorkpiece.buffer(t.d / 2.0d) // ???
+      val invalidToolPositions = pcConfig.bufferFct(initialScene.targetWorkpiece,t.d / 2.0d ) // ???
       pGeo("invalidToolPositions", invalidToolPositions)
 
-      val machinableArea = initialScene.getMachinedMultiGeo.buffer(t.ae)
+      val machinableArea = pcConfig.bufferFct(initialScene.getMachinedMultiGeo, t.ae)
       pGeo("machinableArea", machinableArea)
 
-      val validPosPoly = initialScene.targetGeometry.buffer(-t.d/2.0d).intersection(machinableArea.buffer(-t.d/2.0d))
+      val validPosPoly = pcConfig.bufferFct(initialScene.targetGeometry, -t.d/2.0d).intersection(
+        pcConfig.bufferFct(machinableArea,-t.d/2.0d))
       pGeo("validPosPoly", validPosPoly)
 
-      val restBuffered = initialScene.getRestMultiGeo.buffer(t.d / 2)
+      val restBuffered = pcConfig.bufferFct(initialScene.getRestMultiGeo,t.d / 2)
       pGeo("restBuffered", restBuffered)
 
-      val restfilterBuffer = initialScene.getRestMultiGeo.buffer(-t.ae).buffer(t.ae)
+      val restfilterBuffer = pcConfig.bufferFct(pcConfig.bufferFct(initialScene.getRestMultiGeo,-t.ae),t.ae)
       pGeo("restfilterBuffer", restfilterBuffer)
 
-      val restBufferedTest = initialScene.getRestMultiGeo.buffer(-t.ae).buffer(t.ae).buffer(t.d / 2 - t.ae)
+      val restBufferedTest = pcConfig.bufferFct(
+        pcConfig.bufferFct(
+          pcConfig.bufferFct(initialScene.getRestMultiGeo, -t.ae), t.ae), t.d / 2 - t.ae)
       pGeo("restBufferedTest", restBufferedTest)
 
-      val restBufferedInters = restBuffered.intersection(invalidToolPositions).buffer(-0.0001).buffer(0.0002) //Randbereiche
+      val restBufferedInters = pcConfig.bufferFct(
+        pcConfig.bufferFct(restBuffered.intersection(invalidToolPositions), -0.0001), 0.0002) //Randbereiche
       pGeo("restBufferedInters", restBufferedInters)
 
       val fullStuff = restBufferedTest.union(restBufferedInters)
@@ -57,15 +62,15 @@ trait Contour extends LazyLogging with JtsUtils {
       pGeo("toolPath", toolPath)
 
       val path = toolPath.getCoordinates
-      val toolpathBuffered = toolPath.buffer(t.d / 2.0)
+      val toolpathBuffered = pcConfig.bufferFct(toolPath, t.d / 2.0)
       pGeo("toolpathBuffered", toolpathBuffered)
       val newScene = initialScene.withMachinedGeo(toolpathBuffered)
       logger.info(s"Contour after machinedGeo")
 
-      logger.info(s"path aggregated single: \r\n${
+      pGeo("path aggregated single", {
         new LineString(
           new CoordinateArraySequence(
-            asFloatList(path).map(i => new Coordinate(i(0), i(1))).toArray), gf)}")
+            asFloatList(path).map(i => new Coordinate(i(0), i(1))).toArray), gf)})
 
       (List(asFloatList(path)), newScene)
   }
@@ -75,10 +80,12 @@ trait Contour extends LazyLogging with JtsUtils {
     lazy val scStep: cncPathFct = singleContourStep(t)
     lazy val combinatorPcFunction: cncPathFct = {
       (initialScene: Cnc2DModel, pcConfig: PathCoverageStepConfig) =>
-        logger.info(s"tool dia, ae: ${t.d}, ${t.ae}")
-        initialScene.rest.foreach(a => logger.info(s"initialScene Rest: $a"))
-        logger.info(s"targetWorkpiece: ${initialScene.targetWorkpiece}")
+        initialScene.rest.foreach(a => pGeo("initialScene Rest", a))
+        pGeo("targetWorkpiece", {
+          initialScene.targetWorkpiece
+        })
         pGeo("initialScene.getMachinedMultiGeo", initialScene.getMachinedMultiGeo)
+
         val invalidToolPositions = initialScene.targetWorkpiece.buffer(t.d / 2.0d) // ???
         pGeo("invalidToolPositions", invalidToolPositions)
         // val validPos = invalidToolPositions.asInstanceOf[Polygon].getInteriorRingN(0)
@@ -110,11 +117,13 @@ trait Contour extends LazyLogging with JtsUtils {
         }
 
         val (path, endScene) = performAndEvaluateStep(List.empty[List[Float]], initialScene)
-        logger.info(s"path aggregated Multi: \r\n${
-            new LineString(
-              new CoordinateArraySequence(
-                path.map(i => new Coordinate(i(0), i(1))).toArray), gf)
-        }")
+
+        pGeo("path aggregated Multi", {
+          new LineString(
+            new CoordinateArraySequence(
+              path.map(i => new Coordinate(i(0), i(1))).toArray), gf)
+        })
+
         (List(path), endScene)
     }
 

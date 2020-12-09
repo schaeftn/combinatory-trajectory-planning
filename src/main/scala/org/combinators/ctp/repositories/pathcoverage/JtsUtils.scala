@@ -30,7 +30,7 @@ trait JtsUtils extends LazyLogging with CircleUtils {
     g.buffer(d, numberOfPointsOnArc)
   }
 
-  def pGeo(s: String, g: Geometry): Unit = logger.info(s"$s\r\n$g")
+  def pGeo(s: String, g: Geometry): Unit = () // logger.info(s"$s\r\n$g")
 
   def asFloatList(a: Array[Coordinate]): List[List[Float]] = a.map(c => List(c.x.toFloat, c.y.toFloat)).toList
 
