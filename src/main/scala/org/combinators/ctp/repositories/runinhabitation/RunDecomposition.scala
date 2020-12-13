@@ -22,6 +22,7 @@ import io.circe.parser.decode
 trait RunDecomposition extends LazyLogging with AkkaImplicits with JtsUtils{
   lazy val repository = new CamMpTopRepository {}
   val aluUseCase:Boolean = true
+  val printKlartext:Boolean = true
 
   lazy val kinding = if (aluUseCase) repository.aluKinding else repository.steelKinding
   lazy val tgtType = if (aluUseCase) repository.pathCoverageFctRoot :&: repository.alu
@@ -469,10 +470,7 @@ object RunCncPathCoverage extends App with RunDecomposition {
 
             logger.info(s"Result path: \r\n${mlString}")
             pcr.computeModelHistory._1.foreach(i => logger.info(s"\r\n${i.getMachinedMultiGeo}"))
-//            logger.info(s"pathAndVfMax: ${pcr.withMaxVfByAngle}")
-//            logger.info(s"pathAndVfMax: ${pcr.maxVfByToolAndAngle}")
-//            logger.info(s"pcr ${pcr.withMaxVfByAcc}")
-//            pcr.printAll()
+            if(printKlartext) pcr.printAll()
             }
             else{
               logger.info(s"empty path")

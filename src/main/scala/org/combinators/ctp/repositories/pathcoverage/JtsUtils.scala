@@ -3,9 +3,11 @@ package org.combinators.ctp.repositories.pathcoverage
 import java.util
 
 import com.typesafe.scalalogging.LazyLogging
+import org.combinators.ctp.repositories.toplevel.PathCoverageStepConfig
+import org.locationtech.jts.dissolve.LineDissolver
 import org.locationtech.jts.geom.impl.CoordinateArraySequence
 import org.locationtech.jts.geom.util.AffineTransformation
-import org.locationtech.jts.geom.{Coordinate, Geometry, GeometryFactory, LineString, LinearRing, MultiLineString, MultiPolygon, Point, Polygon}
+import org.locationtech.jts.geom.{Coordinate, Envelope, Geometry, GeometryFactory, LineString, LinearRing, MultiLineString, MultiPolygon, Point, Polygon}
 import org.locationtech.jts.util.GeometricShapeFactory
 
 trait JtsUtils extends LazyLogging with CircleUtils {
@@ -23,6 +25,52 @@ trait JtsUtils extends LazyLogging with CircleUtils {
     List(c1Connect, c2Connect)
   }
 
+  def saniPoly(s:Geometry, cfg: PathCoverageStepConfig): Geometry =
+  {
+    val buffer1 = cfg.bufferFct(cfg.bufferFct(s, -0.001), 0.001)
+    buffer1.getGeometryType match {
+      case "Polygon" => buffer1
+      case "MultiPolygon" =>
+        val geoList = getGeoListFromGeo(buffer1).filter(_.getArea > cfg.areaIgnoreVal).map(_.asInstanceOf[Polygon])
+        gf.createMultiPolygon(geoList.toArray)
+      case _ =>
+        logger.error("should not happen")
+        emptyGeometry
+    }
+  }
+
+
+  def circleUpperLineString(g: Geometry): LineString =
+    if (g.getGeometryType != "Polygon") {
+      logger.warn(s"circleUpperLineString called for geometry type: ${g.getGeometryType}")
+      gf.createLineString()
+    } else {
+      val env = g.getEnvelopeInternal
+      val poly = getPolygonByCoordList(List(
+        new Coordinate(env.getMinX, g.getCentroid.getY),
+        new Coordinate(env.getMinX, env.getMaxY),
+        new Coordinate(env.getMaxX, env.getMaxY),
+        new Coordinate(env.getMaxX, g.getCentroid.getY),
+      ))
+      poly.intersection(g).asInstanceOf[Polygon].getExteriorRing
+    }
+
+  def safeCastToPolygon(g: Geometry): Polygon =
+    if (g.getGeometryType == "Polygon") g.asInstanceOf[Polygon] else gf.createPolygon()
+
+  def smartCastToPolygon(g: Geometry): Polygon =
+    if (g.getGeometryType == "Polygon")
+      g.asInstanceOf[Polygon]
+    else if (g.getGeometryType == "MultiPolygon" || g.getGeometryType == "GeometryCollection") {
+      val lGeoList = getGeoListFromGeo(g).filter(_.getGeometryType == "Polygon")
+      if (lGeoList.nonEmpty)
+        lGeoList.maxBy(_.getArea).asInstanceOf[Polygon]
+      else
+        gf.createPolygon()
+    } else {
+      gf.createPolygon()
+    }
+
 
   def paraBuffer(minPointClearance: Double)(g: Geometry, d: Double): Geometry = {
     val lengthNinetyArc = twoPi / 4 * d
@@ -30,7 +78,7 @@ trait JtsUtils extends LazyLogging with CircleUtils {
     g.buffer(d, numberOfPointsOnArc)
   }
 
-  def pGeo(s: String, g: Geometry): Unit = () // logger.info(s"$s\r\n$g")
+  def pGeo(s: String, g: Geometry): Unit = logger.info(s"$s\r\n$g")
 
   def asFloatList(a: Array[Coordinate]): List[List[Float]] = a.map(c => List(c.x.toFloat, c.y.toFloat)).toList
 
@@ -94,7 +142,28 @@ trait JtsUtils extends LazyLogging with CircleUtils {
     ((0 until p.getNumGeometries) map (i => p.getGeometryN(i))).toList
 
   def asMultiLine(l: List[LineString]): MultiLineString = gf.createMultiLineString(l.toArray)
+  def getLongestLineString(mls: Geometry, cfg: PathCoverageStepConfig): Geometry = {
+    if (mls.isEmpty)
+      emptyGeometry
+    else
+      mls.getGeometryType match {
+        case "LineString" => mls
+        case "MultiLineString" =>
+          val dis = LineDissolver.dissolve(mls)
+          getGeoListFromGeo(dis).maxBy(_.getLength)
+        case "GeometryCollection" =>
+          val lsOnly = getGeoListFromGeo(mls).filter(_.getGeometryType == "LineString").
+            map(LineDissolver.dissolve).filter(_.getLength > cfg.pathIgnoreVal)
+          lsOnly.maxBy(_.getLength)
+      }
+  }
+  def asLineString(l: List[List[Float]]): Geometry = gf.createLineString(l.map(c => asCoordinate(c)).toArray)
 
+  def asPoint(p: List[Float]) = gf.createPoint(asCoordinate(p))
+
+  def distanceToPoint(g: Geometry, p: List[Float]): Double = {
+    g.distance(asPoint(p))
+  }
   def asCoordinate(a: List[Float]): Coordinate =
     if (a.size > 1)
       new Coordinate(a.head, a.tail.head) // a can also contain velocity...

@@ -236,30 +236,36 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
   //    val semanticType = millingTool =>: coveragePrimitive :&: pathCoverageFct
   //  }
 //
+//  @combinator object AluRoughing {
+//    def apply: CncTool = CncTool(12.0f, 12.0f, 6.0f, 1.2750f, 7960,
+//      "Alu Roughing, 12mm, Stirnfräsen, Werte aktualisieren", "1 Z S2000")
+//
+//    val semanticType = alu :&: roughing
+//  }
   @combinator object AluRoughing {
-    def apply: CncTool = CncTool(12.0f, 12.0f, 6.0f, 1.2750f, 7960,
-      "Alu Roughing, 12mm, Stirnfräsen, TODO Werte aktualisieren", "1")
+    def apply: CncTool = CncTool(12.0f, 11.0f, 6.0f, 1.2750f, 7960,
+      "Alu Roughing, 12mm, Stirnfräsen, TODO Werte aktualisieren", "1 Z S2000")
 
     val semanticType = alu :&: roughing
   }
 
   @combinator object AluFinish {
-    def apply: CncTool = CncTool(8.0f, 8.0f, 4.0f, 1.4300f, 11935,
-      "Alu finishing, 8mm, Stirnfraesen, radiale Zustellung 4mm, vf 1430mm/min, n 11935", "2")
+    def apply: CncTool = CncTool(8.0f, 7.0f, 4.0f, 1.4300f, 11935,
+      "Alu finishing, 8mm, Stirnfraesen, radiale Zustellung 4mm, vf 1430mm/min, n 11935", "2 Z S2000")
 
     val semanticType = alu :&: finishing
   }
 
   @combinator object SteelRoughing {
     def apply: CncTool = CncTool(d = 10.0f, ae = 6.0f, ap = 10.0f,
-      vf = 1.9480f, n = 4775, "Steel Roughing, d: 10mm, radiale Zustellung 6mm, vf 1948mm/min, n 4775", "3")
-
+      vf = 1.9480f, n = 4775, "Steel Roughing, d: 10mm, radiale Zustellung 6mm, vf 1948mm/min, n 4775", "3 Z S2000")
+// korrekt wäre 1625
     val semanticType = steel :&: roughing
   }
 
   @combinator object SteelFinishing {
     def apply: CncTool = CncTool(d = 5.0f, ae = 0.5f, ap = 7.5f, vf = 0.3800f, n = 6365,
-      "Steel Finishing, d: 5mm, radiale Zustellung 0.5mm, vf 380mm/min, n 6365", "4")
+      "Steel Finishing, d: 5mm, radiale Zustellung 0.5mm, vf 380mm/min, n 6365", "4 Z S2000")
 
     val semanticType = steel :&: finishing
   }
