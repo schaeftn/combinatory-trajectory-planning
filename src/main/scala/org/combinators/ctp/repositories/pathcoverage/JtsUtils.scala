@@ -162,7 +162,9 @@ trait JtsUtils extends LazyLogging with CircleUtils {
   def multiGeoToGeoList(p: Geometry): List[Geometry] =
     ((0 until p.getNumGeometries) map (i => p.getGeometryN(i))).toList
 
-  def asMultiLine(l: List[LineString]): MultiLineString = gf.createMultiLineString(l.toArray)
+  def asMultiLine(l: List[LineString]): MultiLineString =
+    gf.createMultiLineString(l.toArray)
+
   def getLongestLineString(mls: Geometry, cfg: PathCoverageStepConfig): Geometry = {
     if (mls.isEmpty)
       emptyGeometry
@@ -205,6 +207,7 @@ trait JtsUtils extends LazyLogging with CircleUtils {
   def asLineString(g: Geometry): LineString =
     g.getGeometryType match {
       case "LineString" => g.asInstanceOf[LineString]
+        //Fix for ExRing intersection results
       case "MultiLineString" => val ls = gf.createLineString(g.getCoordinates)
         if (ls.getLength == g.getLength)
           ls

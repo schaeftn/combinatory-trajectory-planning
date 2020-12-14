@@ -9,7 +9,7 @@ import org.locationtech.jts.geom.util.AffineTransformation
 import org.locationtech.jts.geom.{Coordinate, Geometry, LineString, LinearRing, MultiLineString, MultiPolygon, Point, Polygon}
 import org.locationtech.jts.io.WKTReader
 import org.locationtech.jts.math.Vector2D
-import org.locationtech.jts.simplify.DouglasPeuckerSimplifier
+import org.locationtech.jts.simplify.{DouglasPeuckerSimplifier, TaggedLineStringSimplifier, TaggedLinesSimplifier, VWLineSimplifier, VWSimplifier}
 
 
 //TODO Must be able to handle open pockets
@@ -25,6 +25,7 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
   val depth: Float = 1.0f
   val toolDia: Float
   val a_e: Float
+  val convexDetection: Boolean = false
   /**
    * Geo to be processed
    */
@@ -73,7 +74,6 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
 
     logger.info(s"polyAndBoundaryAreasIntersectionUnion: $polyAndBoundaryAreasIntersectionUnion")
 
-    //bisher gleich
     val polyAndBoundaryAreasIntersectionUnionSmol = polyAndBoundaryAreasIntersectionUnion.buffer(-0.001)
     logger.info(s"polyAndBoundaryAreasIntersectionSmol: $polyAndBoundaryAreasIntersectionUnionSmol")
 
@@ -97,6 +97,7 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
       }
     }
 
+    // Fix for small values
     val xSelectedNonConvexPointTriple = if (c.length >= 3) {
       (c.zip(c.tail).zip(c.tail.tail)).
         filter {
@@ -121,28 +122,40 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
       s"""selectedPoint:
          |${if (xSelectedNonConvexPointTriple.nonEmpty) xSelectedNonConvexPointTriple.min else "empty"}""".stripMargin)
 
-    val envelope = restGeo.getEnvelopeInternal
+    val env = restGeo.getEnvelopeInternal
+    val (envelopegetMaxX, envelopeMinX) = (env.getMaxX, env.getMinX)
     val envelopeNormalized = normalizedArea.getEnvelopeInternal
+    val (envelopeNMaxX, envelopeNMinX) = (envelopeNormalized.getMaxX, envelopeNormalized.getMinX)
+
     val xIntervalLength =
-      if (xSelectedNonConvexPointTriple.isEmpty)
-        envelope.getMaxX - envelope.getMinX
-      else
-        xSelectedNonConvexPointTriple.min._1._2.x - envelope.getMinX
+      if (xSelectedNonConvexPointTriple.nonEmpty && convexDetection)
+        xSelectedNonConvexPointTriple.min._1._2.x - envelopeMinX
+    else
+        envelopegetMaxX - envelopeMinX
     logger.info(s"sIntervalLength: $xIntervalLength")
     val segmentCount = math.ceil(xIntervalLength / a_e).toInt
     val stepDistance = xIntervalLength / segmentCount
     val lines = (0 to segmentCount + 1).map(i => {
-      val xVal = normalizedArea.getEnvelopeInternal.getMinX + stepDistance * i
+      val xVal = envelopeNMinX + (stepDistance * i).toFloat
       val maxY = envelopeNormalized.getMaxY
       val minY = envelopeNormalized.getMinY
       new LineString(new CoordinateArraySequence(Array(new Coordinate(xVal, minY), new Coordinate(xVal, maxY))), gf)
     })
 
-    val multiLinesList = lines.map(i =>
-      i.intersection(normalizedArea)).map(i => asLineString(i)).takeWhile(ls => !ls.isEmpty).toArray
+    lines.foreach(pGeo("ls: ", _))
 
-    val multiLineGeometry = gf.createMultiLineString(multiLinesList)
-    logger.info(s"multiLineGeometry: ${multiLineGeometry}")
+    val lsIntersect = lines.map(i =>
+      i.intersection(normalizedArea)).map(i => asLineString(i))
+    lsIntersect.foreach(pGeo("lsIntersection: ", _))
+
+    val multiLinesList = lsIntersect.takeWhile(ls => !ls.isEmpty).toArray
+    multiLinesList.foreach(pGeo("Ml: ", _))
+
+    val multiLineGeometryA = gf.createMultiLineString(multiLinesList)
+    logger.info(s"multiLineGeometry: ${multiLineGeometryA}")
+
+    val multiLineGeometry = VWSimplifier.simplify(multiLineGeometryA, 0.01)
+    logger.info(s"multiLineGeometry simplified: ${multiLineGeometryA}")
 
     pGeo("targetWorkpiece", targetWorkpiece)
     pGeo("initialScene.getMachinedMultiGeo", machinedGeo)
@@ -154,11 +167,15 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
     else restGeo.difference(targetWorkpiece.buffer(toolDia/2))
 
     pGeo("validStartingPoints", validStartingPoints)
-    val resultMultiLines1 = validStartingPoints.intersection(multiLineGeometry)
-    pGeo("resultMultiLines1", resultMultiLines1)
+    val resultMultiLines1 = asMultiLine(getGeoListFromGeo(validStartingPoints.intersection(multiLineGeometry)).
+      sortBy(_.getEnvelopeInternal.getMinX).map(_.asInstanceOf[LineString]).map(ls => gf.createLineString(ls.getCoordinates.sortBy(_.y)) )) // more rubust?
 
-    val resultMultiLines: Geometry =
-      new AffineTransformation().setToRotation(stepDirection.angle()).transform(resultMultiLines1)
+    val resultMultiLines = LineDissolver.dissolve(resultMultiLines1)
+    pGeo("resultMultiLines", resultMultiLines)
+
+
+//    val resultMultiLines: Geometry =
+//      new AffineTransformation().setToRotation(stepDirection.angle()).transform(resultMultiLines1)
     logger.info(s"resultMultiLines.buffer(toolDia): ${resultMultiLines.buffer(toolDia / 2.0)}")
 
     val rawLineList = (0 until resultMultiLines.getNumGeometries).map { i =>
@@ -169,7 +186,7 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
 
       DouglasPeuckerSimplifier.simplify(
         asd2, 0.001)
-    }.filter(_.getGeometryType != "Point")
+    }.filter(_.getGeometryType != "Point").sortBy(g => g.getEnvelopeInternal.getMinX)
 
     val filteredLineList =
       if (rawLineList.length <= 1) -1
@@ -243,9 +260,9 @@ object runZigZag extends App with LazyLogging with JtsUtils {
   val poly1: Polygon = new Polygon(
     new LinearRing(new CoordinateArraySequence(pArray), gf), Array.empty[LinearRing], gf)
   val zz = new ZigZag {
-    override val steelSpecific = false
+    override val steelSpecific = true
     override val toolDia: Float = 5f
-    override val a_e: Float = 5f
+    override val a_e: Float = 2.5f
     override val restGeo: Polygon = poly1
     override val machinedGeo: MultiPolygon = new MultiPolygon(Array(poly1.buffer(6f).asInstanceOf[Polygon]), gf)
     override val stepDirection: Vector2D = new Vector2D(1.0f, 0.0f)

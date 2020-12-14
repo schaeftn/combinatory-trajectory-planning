@@ -127,6 +127,11 @@ trait Contour extends LazyLogging with JtsUtils {
     (asFloatList(path), toolpathBuffered)
   }
 
+  def createFinishContourStep(t:CncTool) : PathCoverageStep = {
+    lazy val combinatorPcFunction: cncPathFct = singleContourStep(t)
+
+    PathCoverageStep(Some(combinatorPcFunction), Some(t), List.empty[PathCoverageStep], "Aluminum Finishing")
+  }
 
   def createMultiContourStep(t: CncTool): PathCoverageStep = {
     lazy val combinatorPcFunction: cncPathFct = {
@@ -139,7 +144,6 @@ trait Contour extends LazyLogging with JtsUtils {
 
         val invalidToolPositions = initialScene.targetWorkpiece.buffer(t.d / 2.0d) // ???
         pGeo("invalidToolPositions", invalidToolPositions)
-        // val validPos = invalidToolPositions.asInstanceOf[Polygon].getInteriorRingN(0)
 
         val selectedRestGeo: Option[Geometry] = initialScene.rest.maxByOption(_.getArea)
 
@@ -158,17 +162,19 @@ trait Contour extends LazyLogging with JtsUtils {
                                     polyOption: Option[Geometry],
                                     aggregatedPath: List[List[List[Float]]],
                                     s: Cnc2DModel): (List[List[List[Float]]], Cnc2DModel) = {
+          logger.info(s"saniPoly: \r\n${polyOption.get}")
           val poly = saniPoly(polyOption.get, pcConfig)
 
+          logger.info(s"saniPoly: \r\n$poly")
           if (polyOption.isEmpty || poly.isEmpty || poly.getArea < 0.01) {
             (aggregatedPath, s)
           } else {
-            val (path, bufferedToolPath) = singleContourStep2(poly, t, s, pcConfig)
+            val (path, bufferedToolPath) =   singleContourStep2(poly, t, s, pcConfig)
             logger.info(s"path Ls: ${asLineString(path)}")
             pGeo("poly",poly)
             pGeo("bufferedToolPath",bufferedToolPath)
             val diff = poly.getArea - poly.difference(bufferedToolPath).getArea
-            if (diff < 2.0)
+            if (diff < 0.5)
               (aggregatedPath, s)
             else {
               val newPoly = poly.difference(bufferedToolPath)
@@ -179,7 +185,8 @@ trait Contour extends LazyLogging with JtsUtils {
                       map(_.asInstanceOf[Polygon]).maxBy(_.getArea)
                   else
                     getGeoListFromGeo(newPoly).
-                      map(_.asInstanceOf[Polygon]).minBy(i => distanceToPoint(i, aggregatedPath.last.last))
+                      map(_.asInstanceOf[Polygon]).maxBy(_.getArea)
+                  //minBy(i => distanceToPoint(i, aggregatedPath.last.last))
                   (selPoly,s.withMachinedGeo(bufferedToolPath))
                 }
                 case "Polygon" => (newPoly, s.withMachinedGeo(bufferedToolPath))
@@ -222,6 +229,7 @@ object RunContourExample extends App with LazyLogging with JtsUtils {
 
   val res = PathCoverageResult(model, PathCoverageStepConfig(), List(cont))
 
+  logger.info(s"res.computeModelHistory._1.last.getRestMultiGeo: \r\n ${res.computeModelHistory._1.last.getRestMultiGeo}")
   val toPaths = res.pathList.map{ singleCompPathlist =>
     new LineString(
       new CoordinateArraySequence(

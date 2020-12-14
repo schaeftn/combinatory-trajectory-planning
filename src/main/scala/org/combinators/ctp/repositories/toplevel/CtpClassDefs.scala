@@ -173,8 +173,8 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, l: 
           toolList ++ List.fill(pathResult.size)(currentFoldTool))
       }
     }
-    val refinedPathList = pathList.map(sPath => refineMinClearance(sPath, config.minPointClearanceOnPath)).
-      map(sPath => refine(sPath, config.maxPointClearanceOnPath))
+    val refinedPathList = pathList.map(sPath => refine(sPath, config.minPointClearanceOnPath)).
+      map(sPath => refineMinClearance(sPath, config.maxPointClearanceOnPath))
     (modelList, refinedPathList, compToolList)
   }
 
@@ -190,8 +190,15 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, l: 
 
 
   lazy val withMaxVfByAngle: List[List[List[Float]]] = {
-    (pathList).map {
+    (pathList).filter(_.nonEmpty).map {
       case (singlePath: List[List[Float]]) =>
+        singlePath.reduce[List[Float]] { case (a, b) =>
+          if (asCoordinate(a).distance(asCoordinate(b)) < config.minPointClearanceOnPath)
+            logger.info("Min Point clearance violation")
+          else
+            ()
+          a
+        }
         if (singlePath.length > 2) {
           val singlePathCoords = singlePath.map(asCoordinate)
           val constrPath = singlePathCoords.zip(singlePathCoords.tail).zip(singlePathCoords.tail.tail).map { case ((a, b), c) => (a, b, c) }
@@ -264,7 +271,7 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, l: 
   def getString(l: List[List[Float]], withFMAX: Boolean = false) =
     l.filter(_.nonEmpty).map(singleCoord => {
       val zCoordString = if (!singleCoord(2).isNaN) s" Z${singleCoord(2)}" else ""
-      val fString = s"${if (withFMAX) "MAX" else singleCoord.last * 1000.0}"
+      val fString = s"${if (withFMAX) "MAX" else if (singleCoord.last <= 0.050) "50.0" else singleCoord.last * 1000.0}"
       s"""L X${singleCoord.head} Y${singleCoord(1)}$zCoordString F$fString""".stripMargin
     })
 
@@ -275,18 +282,18 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, l: 
     case ((currentPath, currentTool: CncTool), index) =>
       if (currentPath.nonEmpty) {
         val linearDive = if ((currentPath.head) (2).isNaN || (currentPath.head) (2) == 0.0)
-          s"${getString(List(currentPath.head.dropRight(2) :+ 0.0f :+ 0.050f)).mkString("\r\n")}"
+          s"${getString(List(currentPath.head.dropRight(2) :+ 0.0f :+ 0.500f)).mkString("\r\n")}"
         else ""
         val outStr =
           s"""BEGIN PGM Single MM
              |TOOL CALL ${currentTool.idString} ; ${currentTool.description}
-             |${getString(List(currentPath.head.dropRight(2) :+ 20.0f :+ currentTool.vf), true).mkString("\r\n")}
+             |${getString(List(currentPath.head.dropRight(2) :+ 3.0f :+ currentTool.vf), true).mkString("\r\n")}
              |$linearDive
              |${getString(currentPath.tail).mkString("\r\n")}
-             |${getString(List(currentPath.last.dropRight(2) :+ 20.0f), true).mkString("\r\n")}
+             |${getString(List(currentPath.last.dropRight(2) :+ 3.0f), true).mkString("\r\n")}
              |END PGM Single MM
              |""".stripMargin
-        logger.info(s"Teilpfad: \r\n$outStr")
+        // logger.info(s"Teilpfad: \r\n$outStr")
 
         import java.io._
         val pw = new PrintWriter(new File(s"${index + 1}.p"))

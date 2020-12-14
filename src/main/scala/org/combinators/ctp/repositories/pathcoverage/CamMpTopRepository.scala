@@ -184,7 +184,8 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
     }
 
 
-    val semanticType = alpha =>: pFct :&: alpha
+    val semanticType = alu =>: pFct :&: alu
+//    val semanticType = alpha =>: pFct :&: alpha
   }
 
 
@@ -206,7 +207,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
   @combinator object MultiCountourMultiTool extends Contour {
     def apply(t: CncTool, t2: CncTool): PathCoverageStep = {
       val pc1 = createMultiContourStep(t)
-      val pcStepList = pc1.pcrList :+ createMultiContourStep(t2)
+      val pcStepList = pc1.pcrList :+ createFinishContourStep(t2)
       /**
        * mit Tool 1:
        * Loop bis Abbruchbedingung erreicht
@@ -231,7 +232,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
       val newTool = CncTool(t.d, t.ae / 2.0f,t.ap, t.vf, t.n, t.description + ". Steel ae/2.0", t.idString)
       //case class CncTool(d: Float, ae: Float, ap: Float, vf: Float, n: Int, description: String, idString: String)
       val pc1 = createMultiContourStep(newTool)
-      val pcStepList = pc1.pcrList :+ createMultiContourStep(t2)
+      val pcStepList = pc1.pcrList :+ createFinishContourStep(t2)
       /**
        * mit Tool 1:
        * Loop bis Abbruchbedingung erreicht
@@ -280,23 +281,34 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
   //
   //    val semanticType = millingTool =>: coveragePrimitive :&: pathCoverageFct
   //  }
-//
+
+// Datenblatt
 //  @combinator object AluRoughing {
 //    def apply: CncTool = CncTool(12.0f, 12.0f, 6.0f, 1.2750f, 7960,
 //      "Alu Roughing, 12mm, Stirnfräsen, Werte aktualisieren", "1 Z S2000")
 //
 //    val semanticType = alu :&: roughing
 //  }
+
+
   @combinator object AluRoughing {
-    def apply: CncTool = CncTool(12.0f, 12.0f, 6.0f, 1.2750f, 7960,
-      "Alu Roughing, 12mm, Stirnfräsen, TODO Werte aktualisieren", "1 Z S2000")
+    def apply: CncTool = CncTool(12.0f, 3.0f, 6.0f, 3.990f, 13300,
+      "Alu Roughing, d 12mm, ae 3mm, vf 3990 mm/min, n 13300", "1 Z S13300")
 
     val semanticType = alu :&: roughing
   }
 
+//  Datenblatt
+//  @combinator object AluFinish {
+//    def apply: CncTool = CncTool(8.0f, 8.0f, 4.0f, 1.4300f, 11935,
+//      "Alu finishing, 8mm, Stirnfraesen, radiale Zustellung 4mm, vf 1430mm/min, n 11935", "2 Z S2000")
+//
+//    val semanticType = alu :&: finishing
+//  }
+
   @combinator object AluFinish {
-    def apply: CncTool = CncTool(8.0f, 8.0f, 4.0f, 1.4300f, 11935,
-      "Alu finishing, 8mm, Stirnfraesen, radiale Zustellung 4mm, vf 1430mm/min, n 11935", "2 Z S2000")
+    def apply: CncTool = CncTool(8.0f, 4.0f, 4.0f, 1.280f, 8000,
+      "Alu finishing, d 8mm, ae 4mm, vf 1280 mm/min, n 8000", "2 Z S8000")
 
     val semanticType = alu :&: finishing
   }
