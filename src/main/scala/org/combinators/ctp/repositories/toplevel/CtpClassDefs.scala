@@ -50,8 +50,8 @@ trait PathCoverageStepConfig extends JtsUtils with MachineAccelerationModel {
 
 object PathCoverageStepConfig {
   def apply(): PathCoverageStepConfig = new PathCoverageStepConfig {
-    override val minPointClearanceOnPath: Double = 0.1
-    override val maxPointClearanceOnPath: Double = 2.0
+    override val minPointClearanceOnPath: Double = 0.01
+    override val maxPointClearanceOnPath: Double = 0.1
     override val min_ae: Double = 0.01
     override val areaIgnoreVal: Double = 0.01
     override val pathIgnoreVal: Double = 0.01
@@ -173,7 +173,8 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, l: 
           toolList ++ List.fill(pathResult.size)(currentFoldTool))
       }
     }
-    val refinedPathList = pathList.map(sPath => refine(sPath, config.maxPointClearanceOnPath))
+    val refinedPathList = pathList.map(sPath => refineMinClearance(sPath, config.minPointClearanceOnPath)).
+      map(sPath => refine(sPath, config.maxPointClearanceOnPath))
     (modelList, refinedPathList, compToolList)
   }
 
@@ -267,6 +268,9 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, l: 
       s"""L X${singleCoord.head} Y${singleCoord(1)}$zCoordString F$fString""".stripMargin
     })
 
+  lazy val pathTime = completeTime(withMaxVfByAcc)
+  lazy val pathTimesCalculated = pathTimes(withMaxVfByAcc)
+
   def printAll() = withMaxVfByAcc.zip(toolList).zipWithIndex.map {
     case ((currentPath, currentTool: CncTool), index) =>
       if (currentPath.nonEmpty) {
@@ -290,8 +294,9 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, l: 
         pw.close
       } else {
         logger.info(s"Empty path, no output")
-
       }
+      logger.info(s"pathTimes $pathTimesCalculated")
+      logger.info(s"complete Time: $pathTime")
   }
 }
 

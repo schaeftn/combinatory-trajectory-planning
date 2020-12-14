@@ -196,12 +196,12 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
    * (initial) geometry, follow the contour, select start end point on linestring
    * if multipolygon remains, decide, what to do, either keep following contour along borders or work on rest parts.
    */
-    @combinator object MultiContourStep extends Contour {
-      def apply(t: CncTool): PathCoverageStep =
-        createMultiContourStep(t)
-
-    val semanticType = alpha =>: pFct :&: alpha
-    }
+//    @combinator object MultiContourStep extends Contour {
+//      def apply(t: CncTool): PathCoverageStep =
+//        createMultiContourStep(t)
+//
+//    val semanticType = alpha =>: pFct :&: alpha
+//    }
 
   @combinator object MultiCountourMultiTool extends Contour {
     def apply(t: CncTool, t2: CncTool): PathCoverageStep = {
@@ -223,9 +223,54 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
       PathCoverageStep(pc1.pcFct, pc1.tool, pcStepList, description_param = pc1.description_param)
     }
 
-    val semanticType = alpha :&: roughing =>: alpha :&: finishing =>: pFct :&: alpha
+    val semanticType = alu :&: roughing =>: alu :&: finishing =>: pFct :&: alu
   }
 
+  @combinator object MultiCountourMultiToolSteel extends Contour {
+    def apply(t: CncTool, t2: CncTool): PathCoverageStep = {
+      val newTool = CncTool(t.d, t.ae / 2.0f,t.ap, t.vf, t.n, t.description + ". Steel ae/2.0", t.idString)
+      //case class CncTool(d: Float, ae: Float, ap: Float, vf: Float, n: Int, description: String, idString: String)
+      val pc1 = createMultiContourStep(newTool)
+      val pcStepList = pc1.pcrList :+ createMultiContourStep(t2)
+      /**
+       * mit Tool 1:
+       * Loop bis Abbruchbedingung erreicht
+       *   Selektion Restgeometrie
+       *   Bildung Konturpfad
+       *   Update Model
+       *
+       * mit Tool 2 und neuem Model:
+       * Loop bis Abbruchbedingung erreicht
+       *   Selektion Restgeometrie
+       *   Bildung Konturpfad
+       *   Update Model
+       */
+      PathCoverageStep(pc1.pcFct, pc1.tool, pcStepList, description_param = pc1.description_param)
+    }
+
+    val semanticType = steel :&: roughing =>: steel :&: finishing =>: pFct :&: steel
+  }
+
+
+  @combinator object SteelRadial extends Contour {
+    def apply(t: CncTool): PathCoverageStep = {
+      val pathFct :cncPathFct =
+        {
+          case (m: Cnc2DModel, c: PathCoverageStepConfig) =>
+            val primitive = new DirectedRadial {
+              override val model: Cnc2DModel = m
+              override val tool: CncTool = t
+              override val config: PathCoverageStepConfig = c
+            }
+
+            (List(primitive.getSteps), m.withMachinedGeo(primitive.machinedGeo))
+      }
+
+      PathCoverageStep(Some(pathFct), Some(t), List.empty, description_param = "Steel directed radial progression")
+    }
+
+    val semanticType = steel =>: pFct :&: steel
+  }
 
   //  @combinator object SingleContourStep extends Contour {
   //    def apply(t: CncTool): PathCoverageStep = {
@@ -243,14 +288,14 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
 //    val semanticType = alu :&: roughing
 //  }
   @combinator object AluRoughing {
-    def apply: CncTool = CncTool(12.0f, 11.0f, 6.0f, 1.2750f, 7960,
+    def apply: CncTool = CncTool(12.0f, 12.0f, 6.0f, 1.2750f, 7960,
       "Alu Roughing, 12mm, Stirnfräsen, TODO Werte aktualisieren", "1 Z S2000")
 
     val semanticType = alu :&: roughing
   }
 
   @combinator object AluFinish {
-    def apply: CncTool = CncTool(8.0f, 7.0f, 4.0f, 1.4300f, 11935,
+    def apply: CncTool = CncTool(8.0f, 8.0f, 4.0f, 1.4300f, 11935,
       "Alu finishing, 8mm, Stirnfraesen, radiale Zustellung 4mm, vf 1430mm/min, n 11935", "2 Z S2000")
 
     val semanticType = alu :&: finishing

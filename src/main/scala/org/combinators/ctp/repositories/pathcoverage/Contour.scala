@@ -3,9 +3,10 @@ package org.combinators.ctp.repositories.pathcoverage
 import com.typesafe.scalalogging.LazyLogging
 import org.combinators.ctp.repositories.cncPathFct
 import org.combinators.ctp.repositories.runinhabitation.RunCncPathCoverage.{gf, logger}
-import org.combinators.ctp.repositories.toplevel.{Cnc2DModel, PathCoverageStep, PathCoverageStepConfig}
+import org.combinators.ctp.repositories.toplevel.{Cnc2DModel, PathCoverageResult, PathCoverageStep, PathCoverageStepConfig}
 import org.locationtech.jts.geom.impl.CoordinateArraySequence
 import org.locationtech.jts.geom.{Coordinate, CoordinateFilter, Geometry, GeometryFactory, LineString, MultiLineString, MultiPolygon, Polygon}
+import org.locationtech.jts.io.WKTReader
 import org.locationtech.jts.util.CoordinateArrayFilter
 
 import scala.annotation.tailrec
@@ -112,7 +113,7 @@ trait Contour extends LazyLogging with JtsUtils {
     pGeo("toolPath", toolPath)
 
     // prio2 fix and test filter for repositioning path
-    val path = toolPath.getCoordinates.filter(coord => gf.createPoint(coord).isWithinDistance(poly, t.d/2.0))
+    val path = toolPath.getCoordinates
 
     val toolpathBuffered = pcConfig.bufferFct(toolPath, (t.d / 2.0)) //Rundungsfehler
     pGeo("toolpathBuffered", toolpathBuffered)
@@ -140,7 +141,7 @@ trait Contour extends LazyLogging with JtsUtils {
         pGeo("invalidToolPositions", invalidToolPositions)
         // val validPos = invalidToolPositions.asInstanceOf[Polygon].getInteriorRingN(0)
 
-        val selectedRestGeo: Option[Geometry] = initialScene.rest.headOption
+        val selectedRestGeo: Option[Geometry] = initialScene.rest.maxByOption(_.getArea)
 
         /**
          * extrahiert für die gewählte fräsfläche jene Grenze, welche an machined Bereich grenzt
@@ -205,4 +206,31 @@ trait Contour extends LazyLogging with JtsUtils {
     }
     PathCoverageStep(Some(combinatorPcFunction), Some(t), List.empty[PathCoverageStep], "Contour-based machining step")
   }
+}
+
+object RunContourExample extends App with LazyLogging with JtsUtils {
+  val wktReader = new WKTReader()
+  val wktStrP1 = """POLYGON ((70 40, 69.42355841209691 36.098193559677426, 67.7163859753386 32.34633135269819, 64.94408836907635 28.888595339607956, 61.21320343559642 25.857864376269045, 56.66710699058805 23.37060775394909, 51.4805029709527 21.522409349774268, 45.852709660483846 20.38429439193539, 39.99999999999999 20, 34.14729033951614 20.384294391935395, 28.51949702904729 21.52240934977427, 23.332893009411933 23.370607753949095, 18.78679656440357 25.85786437626905, 15.055911630923635 28.88859533960796, 12.283614024661393 32.34633135269821, 10.576441587903087 36.09819355967743, 10 40, 10 60, 40 60, 70 60, 70 40))"""
+  val wktMachined = """POLYGON ((10 0, 10 40, 10.576441587903087 36.09819355967743, 12.283614024661393 32.34633135269821, 15.055911630923635 28.88859533960796, 18.78679656440357 25.85786437626905, 23.332893009411933 23.370607753949095, 28.51949702904729 21.52240934977427, 34.14729033951614 20.384294391935395, 39.99999999999999 20, 45.852709660483846 20.38429439193539, 51.4805029709527 21.522409349774268, 56.66710699058805 23.37060775394909, 61.21320343559642 25.857864376269045, 64.94408836907635 28.888595339607956, 67.7163859753386 32.34633135269819, 69.42355841209691 36.098193559677426, 70 40, 70 0, 10 0))"""
+  val tgtGeo = wktReader.read(wktStrP1)
+  val machinedGeo = wktReader.read(wktMachined)
+
+  val model = Cnc2DModel(boundaries = List(0.0f, 50.0f, 0.0f, 50.0f),
+    targetGeometry = tgtGeo.union(machinedGeo), rest = List(tgtGeo), machined = List(machinedGeo), machinedMultiPolygon = machinedGeo)
+  val cont = new Contour {}.createMultiContourStep(CncTool(8.0f, 4.0f, 4.0f, 1.4300f, 11935,
+  "Alu finishing, 8mm, Stirnfraesen, radiale Zustellung 4mm, vf 1430mm/min, n 11935", "2 Z S2000"))
+
+  val res = PathCoverageResult(model, PathCoverageStepConfig(), List(cont))
+
+  val toPaths = res.pathList.map{ singleCompPathlist =>
+    new LineString(
+      new CoordinateArraySequence(
+        singleCompPathlist.map(c => new Coordinate(c(0), c(1))).toArray)
+      , gf)}
+
+  val mlString = new MultiLineString(toPaths.toArray,gf)
+
+  logger.info(s"mlString: \r\n ${mlString}")
+
+  // s: Cnc2DModel, config: PathCoverageStepConfig, l: List[PathCoverageStep]
 }

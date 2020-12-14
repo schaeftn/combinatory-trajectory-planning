@@ -21,7 +21,7 @@ import io.circe.parser.decode
 
 trait RunDecomposition extends LazyLogging with AkkaImplicits with JtsUtils{
   lazy val repository = new CamMpTopRepository {}
-  val aluUseCase:Boolean = true
+  val aluUseCase:Boolean = false
   val printKlartext:Boolean = true
 
   lazy val kinding = if (aluUseCase) repository.aluKinding else repository.steelKinding
@@ -408,7 +408,7 @@ object RunCncPathCoverage extends App with RunDecomposition {
             val restarea = pcr.computeModelHistory._1.last.getRestMultiGeo.getArea
             val initialRest = scene.getRestMultiGeo.getArea
             val percentage = restarea / initialRest
-            val newList = if (percentage < 0.005) {
+            val newList = if (percentage < 0.05) {
               accList :+ (i, pcr)
             }
             else {
@@ -420,6 +420,8 @@ object RunCncPathCoverage extends App with RunDecomposition {
 
         val selectedResults = getResults(List.empty, 0)
         logger.info(s"selected Indizes: ${selectedResults.map(_._1)}")
+        logger.info(s"Times: ${selectedResults.map(_._2.pathTime)}")
+        logger.info(s"with subpaths: ${selectedResults.map(_._2.pathTimesCalculated)}")
         logger.info("Done")
 
       case inputString =>

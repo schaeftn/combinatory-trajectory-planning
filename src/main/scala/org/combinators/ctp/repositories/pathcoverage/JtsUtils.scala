@@ -39,10 +39,26 @@ trait JtsUtils extends LazyLogging with CircleUtils {
     }
   }
 
+  def filterGeoCollectionPolyOnly(g: Geometry) = g.getGeometryType match {
+    case "Polygon" => g
+    case "MultiPolygon" => g
+    case "GeometryCollection" => val arr = getGeoListFromGeo(g).filter(_.getGeometryType == "Polygon").toArray
+      gf.createGeometryCollection(arr)
+  }
+
+  def filterGeoCollectionLsOnly(g: Geometry): Option[LineString] = g.getGeometryType match {
+    case "GeometryCollection" => val arr = getGeoListFromGeo(g).filter(_.getGeometryType == "LineString").toArray
+      if (arr.isEmpty)
+        None
+      else
+        Some(arr.maxBy(_.getLength).asInstanceOf[LineString])
+    case _ => None // Should not happen
+  }
+
 
   def circleUpperLineString(g: Geometry): LineString =
-    if (g.getGeometryType != "Polygon") {
-      logger.warn(s"circleUpperLineString called for geometry type: ${g.getGeometryType}")
+    if (g.getGeometryType != "Polygon" || g.isEmpty) {
+      logger.warn(s"circleUpperLineString called for geometry type: ${g.getGeometryType}, empty: ${g.isEmpty}")
       gf.createLineString()
     } else {
       val env = g.getEnvelopeInternal
@@ -116,6 +132,11 @@ trait JtsUtils extends LazyLogging with CircleUtils {
     val at = rotMat.compose(transMat) // Matrix transforms primitive to use case path
 
     at
+  }
+
+  def translateGeo(g: Geometry, deltaX: Double, deltaY: Double): Geometry = {
+    val at = AffineTransformation.translationInstance(deltaX, deltaY)
+    at.transform(g)
   }
 
   def filterLsAndReturnMultiPoly(g: Geometry): Geometry = {
