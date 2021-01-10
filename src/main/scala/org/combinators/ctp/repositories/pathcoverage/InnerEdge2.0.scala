@@ -18,6 +18,9 @@ trait DirectedRadial extends LazyLogging with JtsUtils {
 
   lazy val selectBoundaryLine: Option[LineString] = {
     val intersectionLineCandidate: Geometry = model.machinedMultiPolygon.intersection(p1)
+    pGeo("p1", p1)
+    pGeo("machMultiPoly", model.machinedMultiPolygon)
+    pGeo("il Candidate", intersectionLineCandidate)
     if (intersectionLineCandidate.isEmpty) None
     else
       intersectionLineCandidate.getGeometryType match {
@@ -25,7 +28,7 @@ trait DirectedRadial extends LazyLogging with JtsUtils {
         case "MultiLineString" =>
           Some(multiGeoToGeoList(intersectionLineCandidate.asInstanceOf[MultiLineString]).
             maxBy(_.getLength).asInstanceOf[LineString])
-        case "GeometryCollection" =>filterGeoCollectionLsOnly(intersectionLineCandidate)
+        case "GeometryCollection" => filterGeoCollectionLsOnly(intersectionLineCandidate)
       }
   }
 
@@ -33,6 +36,9 @@ trait DirectedRadial extends LazyLogging with JtsUtils {
 
   lazy val getSteps: List[List[Float]] = {
     val mbc = new MinimumBoundingCircle(selectBoundaryLine.getOrElse(emptyGeometry))
+
+    pGeo("selectedBoundaryLine", selectBoundaryLine.getOrElse(emptyGeometry))
+
     val numberOfSteps = Math.ceil(mbc.getRadius / tool.ae).toInt
     val stepSize = tool.ae
     val firstCirc = translateGeo(mbc.getCircle, 0.0d, -mbc.getRadius * 2.0d)
@@ -63,7 +69,6 @@ trait DirectedRadial extends LazyLogging with JtsUtils {
 
     val poly = gf.createPolygon(coords)
 
-
     val testWp = filterGeoCollectionPolyOnly(poly.intersection(model.targetWorkpiece))
     pGeo("testWp", testWp)
 
@@ -72,9 +77,22 @@ trait DirectedRadial extends LazyLogging with JtsUtils {
     def geoOutOfPoly(g: Geometry): Boolean = !g.isWithinDistance(p1, 0)
 
     @scala.annotation.tailrec
+    def replaceLast(c: List[Geometry]): List[Geometry] = {
+      val circ = c.last
+      if (geoHitsBounds(circ)) {
+        val xDisplacement = if (directionY) 0.0 else -0.01
+        val yDisplacement = if (directionY) -0.01 else 0.0
+        replaceLast(c.dropRight(1) :+ translateGeo(circ, xDisplacement, yDisplacement))
+      } else {
+        c
+        }
+      }
+
+    @scala.annotation.tailrec
     def spawnCircles(circles: List[Geometry]): List[Geometry] = {
-      if ((geoHitsBounds(circles.last)) || (circles.size > 1 && geoOutOfPoly(circles.last)))
-        circles
+      if ((geoHitsBounds(circles.last)) ||
+        (circles.size > 1 && geoOutOfPoly(circles.last)) || circles.isEmpty || circles.head.isEmpty)
+        replaceLast(circles)
       else {
         val newTab = if (geoOutOfPoly(circles.last)) circles.dropRight(1) else circles
         if (directionY)
@@ -84,6 +102,8 @@ trait DirectedRadial extends LazyLogging with JtsUtils {
       }
     }
 
+    logger.info(s"p1: $p1")
+    logger.info(s"firstLs: $firstLs")
     val circs = spawnCircles(List(firstLs))
     logger.info(s"circs: $circs")
 
@@ -96,15 +116,21 @@ trait DirectedRadial extends LazyLogging with JtsUtils {
     val upper = unbufferedCircs.map(_.norm).map(circleUpperLineString)
     logger.info(s"upper: $upper")
 
-    val sortedCoords = if(directionY)
+    val sortedCoords = if (directionY)
       upper.map(geo => asFloatList(geo.getCoordinates.sortBy(_.x)))
     else
       upper.map(geo => asFloatList(geo.getCoordinates.sortBy(_.y)))
 
+    logger.info("getSteps done")
     sortedCoords.map(i => i ++ i.headOption.toList).reduceOption(_ ++ _).getOrElse(List.empty[List[Float]])
   }
 
-  lazy val machinedGeo = config.bufferFct(getNewLineString(getSteps.map(asCoordinate).toArray), tool.d/2.0)
+  lazy val machinedGeo = {
+    logger.info("getting Machined geo")
+    val geo = config.bufferFct(getNewLineString(getSteps.map(asCoordinate).toArray), tool.d / 2.0)
+    logger.info("after Machined geo")
+    geo
+  }
 }
 
 object InnerEdge2Test extends App with JtsUtils {

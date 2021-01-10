@@ -1,13 +1,15 @@
 package org.combinators.ctp.repositories.pathcoverage
 
+import java.io.File
 import java.util
 
 import com.typesafe.scalalogging.LazyLogging
 import org.combinators.ctp.repositories.toplevel.PathCoverageStepConfig
 import org.locationtech.jts.dissolve.LineDissolver
+import org.locationtech.jts.geom
 import org.locationtech.jts.geom.impl.CoordinateArraySequence
 import org.locationtech.jts.geom.util.AffineTransformation
-import org.locationtech.jts.geom.{Coordinate, Envelope, Geometry, GeometryFactory, LineString, LinearRing, MultiLineString, MultiPolygon, Point, Polygon}
+import org.locationtech.jts.geom.{Coordinate, Envelope, Geometry, GeometryFactory, LineString, LinearRing, MultiLineString, MultiPolygon, Point, Polygon, PrecisionModel}
 import org.locationtech.jts.util.GeometricShapeFactory
 
 trait JtsUtils extends LazyLogging with CircleUtils {
@@ -44,6 +46,7 @@ trait JtsUtils extends LazyLogging with CircleUtils {
     case "MultiPolygon" => g
     case "GeometryCollection" => val arr = getGeoListFromGeo(g).filter(_.getGeometryType == "Polygon").toArray
       gf.createGeometryCollection(arr)
+    case _ => emptyGeometry // intersection: LS
   }
 
   def filterGeoCollectionLsOnly(g: Geometry): Option[LineString] = g.getGeometryType match {
@@ -94,7 +97,8 @@ trait JtsUtils extends LazyLogging with CircleUtils {
     g.buffer(d, numberOfPointsOnArc)
   }
 
-  def pGeo(s: String, g: Geometry): Unit = logger.info(s"$s\r\n$g")
+  def pGeo(s: String, g: Geometry): Unit =
+    () //logger.info(s"$s\r\n$g")
 
   def asFloatList(a: Array[Coordinate]): List[List[Float]] = a.map(c => List(c.x.toFloat, c.y.toFloat)).toList
 
@@ -274,4 +278,13 @@ trait JtsUtils extends LazyLogging with CircleUtils {
       case _ => emptyGeometry
     }
   }
+
+//  def exportGeo(g1: Geometry, g2: Geometry, fileName: String): Unit = {
+//    val pngWriter = new CustomPngWriter()
+//    var tc = new TestCaseEdit(Array(g1,g2), "test123")
+//    tc.setGeometry(0,g1)
+//    tc.setGeometry(1,g2)
+//    pngWriter.createPNGFile("test.png", g1,g2, 200,200)
+//   // (File outputDirectory, TestCaseEdit testCase, PrecisionModel precisionModel)
+//  }
 }

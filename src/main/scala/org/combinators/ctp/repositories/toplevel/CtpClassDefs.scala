@@ -40,16 +40,19 @@ trait MachineAccelerationModel extends JtsUtils {
 }
 
 trait PathCoverageStepConfig extends JtsUtils with MachineAccelerationModel {
+  val pathRefinement: Boolean
   val minPointClearanceOnPath: Double
   val maxPointClearanceOnPath: Double
   val pathIgnoreVal: Double
   val min_ae: Double
   val areaIgnoreVal: Double
+
   def bufferFct(g: Geometry, d: Double): Geometry = paraBuffer(minPointClearanceOnPath)(g, d)
 }
 
 object PathCoverageStepConfig {
   def apply(): PathCoverageStepConfig = new PathCoverageStepConfig {
+    override val pathRefinement = true
     override val minPointClearanceOnPath: Double = 0.01
     override val maxPointClearanceOnPath: Double = 0.1
     override val min_ae: Double = 0.01
@@ -164,21 +167,52 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, l: 
    * model history (first element is initial model),
    * path history (first element is empty path)
    */
-  lazy val computeModelHistory: (List[Cnc2DModel], List[List[List[Float]]], List[CncTool]) = {
-    lazy val (modelList, pathList, compToolList) = unfoldedPcFunctionList.foldLeft((List(s), List.empty[List[List[Float]]], List.empty[CncTool])) {
-      case (((modelList: List[Cnc2DModel],
-      pathList: List[List[List[Float]]], toolList: List[CncTool]), (currentFct, currentFoldTool))) => {
-        val (pathResult, modelResult) = currentFct(modelList.last, config)
-        (modelList :+ modelResult, pathList ++ pathResult,
-          toolList ++ List.fill(pathResult.size)(currentFoldTool))
-      }
-    }
-    val refinedPathList = pathList.map(sPath => refine(sPath, config.minPointClearanceOnPath)).
-      map(sPath => refineMinClearance(sPath, config.maxPointClearanceOnPath))
-    (modelList, refinedPathList, compToolList)
+  lazy val computeModelHistory: (List[Cnc2DModel], List[List[List[Float]]], List[CncTool], Boolean) = {
+    lazy val (modelList, pathList, compToolList, runSuccessful) =
+      unfoldedPcFunctionList.foldLeft(List(s), List.empty[List[List[Float]]], List.empty[CncTool], true: Boolean)({
+        case ((modelList: List[Cnc2DModel],
+        pathList: List[List[List[Float]]],
+        toolList: List[CncTool],
+        continueRun: Boolean),
+        (currentFct, currentFoldTool)) => {
+          logger.info("starting fold step")
+          if (continueRun) {
+            logger.info("continueRun: currentFct")
+            val (pathResult, modelResult) = currentFct(modelList.last, config)
+            logger.info("continueRun: After fct")
+            val newModelList: List[Cnc2DModel] = modelList :+ modelResult
+            val newPathList: List[List[List[Float]]] = pathList ++ pathResult
+            val newToolList: List[CncTool] = toolList ++ List.fill(pathResult.size)(currentFoldTool)
+            val newContVal: Boolean = pathResult.nonEmpty
+
+            val res = (newModelList, newPathList, newToolList, newContVal)
+            logger.info(s"res: $res")
+            res
+          } else {
+            logger.info("dontContinueRun: returning")
+            (modelList, pathList, toolList, continueRun)
+          }
+        }
+        case (a, b) => logger.error("aaaa")
+          logger.info(s"$a")
+          logger.info(s"$b")
+          a
+      })
+
+    logger.info("prefinenent")
+    val refinedPathList = if (config.pathRefinement)
+      pathList.map(sPath => refine(sPath, config.minPointClearanceOnPath)).
+        map(sPath => refineMinClearance(sPath, config.maxPointClearanceOnPath))
+    else
+      pathList
+
+    logger.info("After prefinenent")
+
+    logger.info(s"ModelList: ${modelList}")
+    (modelList, refinedPathList, compToolList, runSuccessful)
   }
 
-  lazy val (modelList, pathList, toolList) = computeModelHistory
+  lazy val (modelList, pathList, toolList, runSuccessful) = computeModelHistory
   lazy val endScene = modelList.last
 
   def vfMaxSegment(c1: Coordinate, c2: Coordinate, c3: Coordinate): Float = {
@@ -406,7 +440,7 @@ case class Cnc2DModel(boundaries: List[Float],
     pGeo("g0", g0)
     logger.info(s"g0.getFactory ${g0.getFactory}")
 
-    val g = DouglasPeuckerSimplifier.simplify(g0, 0.001)
+    val g = DouglasPeuckerSimplifier.simplify(g0, 0.01)
     pGeo("g", g)
 
     val restGeos1 = self.rest.map(i => {
@@ -418,8 +452,12 @@ case class Cnc2DModel(boundaries: List[Float],
 
     val restGeos = restGeos2.getOrElse(List.empty[Geometry]).sortBy(_.getArea)(Ordering[Double].reverse)
     logger.info("with machinedGeo after restGeos")
+    logger.info("attempting to unionize")
+    pGeo("machinedMultiPolygon", machinedMultiPolygon)
+    pGeo("g", g)
     val newMachGeo = machinedMultiPolygon.union(g)
-    gf.createMultiPolygon().union(newMachGeo)
+    logger.info("gotMultiPoly")
+    pGeo("newMachGeo", newMachGeo)
     Cnc2DModel(self.boundaries, self.targetGeometry, restGeos, self.machined :+ g, newMachGeo)
   }
 }

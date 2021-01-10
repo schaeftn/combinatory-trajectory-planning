@@ -17,7 +17,7 @@ lazy val commonSettings = Seq(
     Resolver.sonatypeRepo("snapshots"),
     Resolver.typesafeRepo("snapshots"),
     "apache-snapshot" at "https://repository.apache.org/snapshots/"
-  ),
+),
 
   scalacOptions ++= Seq(
     //"-unchecked",
@@ -25,6 +25,8 @@ lazy val commonSettings = Seq(
     "-feature",
     "-language:implicitConversions")
 ) ++ noPublishSettings
+
+updateOptions := updateOptions.value.withLatestSnapshots(true)
 
 
 lazy val root = (Project(id = "combinatory-trajectory-planning", base = file(".")))

@@ -51,7 +51,6 @@ trait Contour extends LazyLogging with JtsUtils {
       val filteredFull = filterLsAndReturnMultiPoly(fullStuff)
       pGeo("filteredFull", filteredFull)
 
-
       val f1 = validPosPoly.difference(filteredFull) // mit difference noch holes benötigt?
       pGeo("f1", f1)
 
@@ -112,10 +111,14 @@ trait Contour extends LazyLogging with JtsUtils {
     val toolPath = getLongestLineString(f1, pcConfig)
     pGeo("toolPath", toolPath)
 
-    // prio2 fix and test filter for repositioning path
-    val path = toolPath.getCoordinates
 
-    val toolpathBuffered = pcConfig.bufferFct(toolPath, (t.d / 2.0)) //Rundungsfehler
+    //TODO filter toolpath. must not be further away than ...
+    val toolPath2 = toolPath // asLineString(asFloatList(toolPath.getCoordinates).filter(c => asPoint(c).distance(poly)<= t.d/2.0 + pcConfig.maxPointClearanceOnPath))
+
+    // prio2 fix and test filter for repositioning path
+    val path = toolPath2.getCoordinates
+
+    val toolpathBuffered = pcConfig.bufferFct(toolPath2, (t.d / 2.0)) //Rundungsfehler
     pGeo("toolpathBuffered", toolpathBuffered)
 
     pGeo("path aggregated single", {

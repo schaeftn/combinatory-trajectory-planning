@@ -44,41 +44,37 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
 
   // frage: Anfang ende nur in free oder auch ohne? wahrscheinlich beides. Prio nur in free
 
+  lazy val normalizeRotMat = new AffineTransformation().setToRotation(-stepDirection.angle())
+  lazy val polyAndBoundaryAreas = restGeo.buffer(toolDia)
+  lazy val polyAndBoundaryAreasIntersectionOhneBuffer = polyAndBoundaryAreas.intersection(machinedGeo)
+  lazy val polyAndBoundaryAreasIntersection = polyAndBoundaryAreas.
+    intersection(machinedGeo).buffer(-0.001).buffer(0.001)
+  lazy val polyAndBoundaryAreasIntersectionUnion = restGeo.buffer(0.001).
+    union(polyAndBoundaryAreasIntersection.buffer(0.001d))
+
+  lazy val polyAndBoundaryAreasIntersectionUnionSmol = polyAndBoundaryAreasIntersectionUnion.buffer(-0.001)
+
+  lazy val normalizedArea = normalizeRotMat.transform(polyAndBoundaryAreasIntersectionUnionSmol)
+
   lazy val multiLines: Geometry = {
+    logger.info(s"ZigZag Restgeo: $restGeo")
+    logger.info(s"Target Geo: \r\n$targetGeometry")
+    logger.info(s"polyAndBoundaryAreas (restGeo.buffer(toolDia)): $polyAndBoundaryAreas")
+    logger.info(s"ZigZag machinedGeo: $machinedGeo")
+    logger.info(s"polyAndBoundaryAreasIntersectionOhneBuffer: $polyAndBoundaryAreasIntersectionOhneBuffer")
+    logger.info(s"polyAndBoundaryAreasIntersection (polyAndBoundaryAreas.intersection(machinedGeo)): " +
+      s"$polyAndBoundaryAreasIntersection")
+    logger.info(s"polyAndBoundaryAreasIntersectionUnion: $polyAndBoundaryAreasIntersectionUnion")
+    logger.info(s"polyAndBoundaryAreasIntersectionSmol: $polyAndBoundaryAreasIntersectionUnionSmol")
+    logger.info(s"normalizedArea: $normalizedArea")
+
     //    val at = new AffineTransformation().setToTranslation(feedDirection.normalize().multiply(toolDia).getX.toFloat,
     //      feedDirection.normalize().multiply(toolDia).getY.toFloat)
     //
     //    val at2 = new AffineTransformation().setToTranslation(-feedDirection.normalize().multiply(toolDia).getX.toFloat,
     //      -feedDirection.normalize().multiply(toolDia).getY.toFloat)
 
-    val normalizeRotMat = new AffineTransformation().setToRotation(-stepDirection.angle())
-    logger.info(s"ZigZag Restgeo: $restGeo")
 
-    logger.info(s"Target Geo: \r\n$targetGeometry")
-    val polyAndBoundaryAreas = restGeo.buffer(toolDia)
-    //.transform(p1).union(at2.transform(p1))
-    logger.info(s"polyAndBoundaryAreas (restGeo.buffer(toolDia)): $polyAndBoundaryAreas")
-
-    logger.info(s"ZigZag machinedGeo: $machinedGeo")
-
-    val polyAndBoundaryAreasIntersectionOhneBuffer = polyAndBoundaryAreas.intersection(machinedGeo)
-    logger.info(s"polyAndBoundaryAreasIntersectionOhneBuffer: $polyAndBoundaryAreasIntersectionOhneBuffer")
-
-    val polyAndBoundaryAreasIntersection = polyAndBoundaryAreas.
-      intersection(machinedGeo).buffer(-0.001).buffer(0.001)
-    logger.info(s"polyAndBoundaryAreasIntersection (polyAndBoundaryAreas.intersection(machinedGeo)): " +
-      s"$polyAndBoundaryAreasIntersection")
-
-    val polyAndBoundaryAreasIntersectionUnion = restGeo.buffer(0.001).
-      union(polyAndBoundaryAreasIntersection.buffer(0.001d))
-
-    logger.info(s"polyAndBoundaryAreasIntersectionUnion: $polyAndBoundaryAreasIntersectionUnion")
-
-    val polyAndBoundaryAreasIntersectionUnionSmol = polyAndBoundaryAreasIntersectionUnion.buffer(-0.001)
-    logger.info(s"polyAndBoundaryAreasIntersectionSmol: $polyAndBoundaryAreasIntersectionUnionSmol")
-
-    val normalizedArea = normalizeRotMat.transform(polyAndBoundaryAreasIntersectionUnionSmol)
-    logger.info(s"normalizedArea: $polyAndBoundaryAreasIntersectionUnionSmol")
 
     // take 3 points Seq with x<x1<x2, take convex hull, intersect with poly if linestring then all good
 
@@ -173,7 +169,6 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
     val resultMultiLines = LineDissolver.dissolve(resultMultiLines1)
     pGeo("resultMultiLines", resultMultiLines)
 
-
 //    val resultMultiLines: Geometry =
 //      new AffineTransformation().setToRotation(stepDirection.angle()).transform(resultMultiLines1)
     logger.info(s"resultMultiLines.buffer(toolDia): ${resultMultiLines.buffer(toolDia / 2.0)}")
@@ -232,8 +227,26 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
       }
 
     val rPath: List[List[Float]] =
-      if (reversedMultiLines.nonEmpty)
-        reversedMultiLines.reduce(_ ++ _).map(c => List(c.x.toFloat, c.y.toFloat)).toList
+      if (reversedMultiLines.nonEmpty){ //TODO FoldLeft ggf array ergänzen
+        // check connxLine
+        val reduceFct: (Array[Coordinate], Array[Coordinate]) => Array[Coordinate] = {
+          case (a: Array[Coordinate], b: Array[Coordinate]) =>
+            if (!getNewLineString(a.last, b.head).buffer(toolDia.toDouble/2.0d).coveredBy(normalizedArea)) {
+              if (getNewLineString(new Coordinate(a.last.x, b.head.y), b.head).buffer(toolDia.toDouble/2.0d).coveredBy(normalizedArea))
+                (a :+ new Coordinate(a.last.x, b.head.y)) ++ b
+              else if (getNewLineString(a.last, new Coordinate(b.head.x, a.last.y)).buffer(toolDia.toDouble/2.0d).coveredBy(normalizedArea))
+                (a :+ new Coordinate(b.head.x, a.last.y)) ++ b
+              else {
+                a ++ b // should not happen, unless floating error
+              }
+            }
+            else {
+              a ++ b
+            }
+        }
+
+        reversedMultiLines.reduce(reduceFct).map(c => List(c.x.toFloat, c.y.toFloat)).toList
+      }
       else
         List.empty[List[Float]]
     rPath

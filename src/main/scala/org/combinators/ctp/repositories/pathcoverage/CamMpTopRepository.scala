@@ -123,6 +123,28 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
     val semanticType = steel =>: steel  =>: pathCoverageFctRoot :&: steel
   }
 
+  @combinator object IsleHull{
+    def apply(pcFct1: PathCoverageStep,
+              pcFct2: PathCoverageStep):
+    PathCoverageStep = {
+      val pcFct: Option[cncPathFct] = None
+      val modelAllocation: Option[Cnc2DModel => List[Cnc2DModel]] = Some(
+        (model) =>
+      {
+        val convexHull = model.rest.head.asInstanceOf[MultiPolygon]
+        val m1 = model //block hole with targetWorkpiece, remove from rest1
+        val m2 = model // restore set ch as rest1
+        List(m1,m2)
+      }
+      )
+      val l = List(pcFct2)
+      PathCoverageStep(pcFct, None, l, "generic composition")
+    }
+
+    val semanticType = pFct :&: alpha =>:
+      pFct :&: alpha =>:
+      pFct :&: alpha
+  }
 
   @combinator object GenericCompositionPcStep {
     def apply(pcFct1: PathCoverageStep,
@@ -227,6 +249,30 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
     val semanticType = alu :&: roughing =>: alu :&: finishing =>: pFct :&: alu
   }
 
+  @combinator object MultiCountourFinishing extends Contour {
+    def apply(t: CncTool): PathCoverageStep = {
+      val pc1 = createMultiContourStep(t)
+      // val pcStepList = pc1.pcrList
+      /**
+       * mit Tool 1:
+       * Loop bis Abbruchbedingung erreicht
+       *   Selektion Restgeometrie
+       *   Bildung Konturpfad
+       *   Update Model
+       *
+       * mit Tool 2 und neuem Model:
+       * Loop bis Abbruchbedingung erreicht
+       *   Selektion Restgeometrie
+       *   Bildung Konturpfad
+       *   Update Model
+       */
+      // PathCoverageStep(pc1.pcFct, pc1.tool, pcStepList, description_param = pc1.description_param)
+      pc1
+    }
+
+    val semanticType = alu :&: finishing =>: pFct :&: alu
+  }
+
   @combinator object MultiCountourMultiToolSteel extends Contour {
     def apply(t: CncTool, t2: CncTool): PathCoverageStep = {
       val newTool = CncTool(t.d, t.ae / 2.0f,t.ap, t.vf, t.n, t.description + ". Steel ae/2.0", t.idString)
@@ -264,7 +310,10 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
               override val config: PathCoverageStepConfig = c
             }
 
-            (List(primitive.getSteps), m.withMachinedGeo(primitive.machinedGeo))
+            logger.info("Combinator step")
+            val newModel = m.withMachinedGeo(primitive.machinedGeo)
+            logger.info("after newModel")
+            (List(primitive.getSteps), newModel)
       }
 
       PathCoverageStep(Some(pathFct), Some(t), List.empty, description_param = "Steel directed radial progression")

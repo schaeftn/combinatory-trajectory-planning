@@ -50,7 +50,6 @@ trait CircularMotion extends LocalMotionPrimitive {
     new Polygon(lr,
       Array.empty[LinearRing], gf)
   }
-
 }
 
 trait LineStringTraversal extends JtsUtils {
@@ -84,7 +83,6 @@ trait LineStringTraversal extends JtsUtils {
       result :+ result.lastOption.getOrElse(0.0d) + e
     }
 
-
   /**
    * returns list of tuple (coordinate, angle in rad)
    *
@@ -92,7 +90,7 @@ trait LineStringTraversal extends JtsUtils {
    * Here are more details about how it works and what it does.
    */
   lazy val discretePointList: List[(Coordinate, Double)] =
-    (0 to stepCount).map { i =>
+    (0 to stepCount+1).map { i =>
 //      val asd = getContinuousPointAndAngle(i * aeActual)
 //      asd
       getContinuousPointAndAngle(i * aeActual).getOrElse((null, 0.0d))
