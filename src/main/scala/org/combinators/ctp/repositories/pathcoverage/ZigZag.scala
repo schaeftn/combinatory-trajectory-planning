@@ -169,6 +169,10 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
     val resultMultiLines = LineDissolver.dissolve(resultMultiLines1)
     pGeo("resultMultiLines", resultMultiLines)
 
+    val rMultiLinesDirty = resultMultiLines.getCoordinates.groupBy(_.x).map{
+      case (xCoord, cArray) => getNewLineString(cArray.sortBy(_.y))
+    }
+
 //    val resultMultiLines: Geometry =
 //      new AffineTransformation().setToRotation(stepDirection.angle()).transform(resultMultiLines1)
     logger.info(s"resultMultiLines.buffer(toolDia): ${resultMultiLines.buffer(toolDia / 2.0)}")
@@ -200,11 +204,14 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
         }
 
     logger.info(s"filteredLineList $filteredLineList")
-    if (filteredLineList == -1) {
+    //TODO hack
+    val oldResult = if (filteredLineList == -1) {
       rawLineList.reduceOption[Geometry](_ union _).getOrElse(emptyGeometry)
     } else {
       (0 to filteredLineList).map(i => rawLineList(i)).reduceOption[Geometry](_ union _).getOrElse(emptyGeometry)
     }
+
+    rMultiLinesDirty.toList.sortBy(_.getCoordinate.x).reduceOption[Geometry](_ union _).getOrElse(emptyGeometry)
   }
 
   lazy val findPoints: List[List[Float]] = {

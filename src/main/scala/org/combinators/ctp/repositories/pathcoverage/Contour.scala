@@ -226,7 +226,7 @@ object RunContourExample extends App with LazyLogging with JtsUtils {
   val machinedGeo = wktReader.read(wktMachined)
 
   val model = Cnc2DModel(boundaries = List(0.0f, 50.0f, 0.0f, 50.0f),
-    targetGeometry = tgtGeo.union(machinedGeo), rest = List(tgtGeo), machined = List(machinedGeo), machinedMultiPolygon = machinedGeo)
+    targetGeometry = tgtGeo.union(machinedGeo), rest = List(tgtGeo), machined = List(), machinedMultiPolygon = emptyGeometry, emptyGeometry).withInitialMachinedGeo(machinedGeo)
   val cont = new Contour {}.createMultiContourStep(CncTool(8.0f, 4.0f, 4.0f, 1.4300f, 11935,
   "Alu finishing, 8mm, Stirnfraesen, radiale Zustellung 4mm, vf 1430mm/min, n 11935", "2 Z S2000"))
 

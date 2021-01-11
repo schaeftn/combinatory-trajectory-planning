@@ -40,7 +40,7 @@ object RunSpiral extends App with JtsUtils {
   val tgtGeo = wktReader.read(wktStrP1)
 
   val initialScene = Cnc2DModel(boundaries = List(0.0f, 50.0f, 0.0f, 50.0f),
-    targetGeometry = tgtGeo, rest = List(tgtGeo), machined = List(), machinedMultiPolygon = gf.createPolygon())
+    targetGeometry = tgtGeo, rest = List(tgtGeo), machined = List(), machinedMultiPolygon = gf.createPolygon(), initialMachined = emptyGeometry)
 
   val t = CncTool(4.0f, 2.0f, 4.0f, 1.280f, 8000,
     "Alu finishing, d 8mm, ae 4mm, vf 1280 mm/min, n 8000", "2 Z S8000")

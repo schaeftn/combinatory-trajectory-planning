@@ -123,28 +123,28 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
     val semanticType = steel =>: steel  =>: pathCoverageFctRoot :&: steel
   }
 
-  @combinator object IsleHull{
-    def apply(pcFct1: PathCoverageStep,
-              pcFct2: PathCoverageStep):
-    PathCoverageStep = {
-      val pcFct: Option[cncPathFct] = None
-      val modelAllocation: Option[Cnc2DModel => List[Cnc2DModel]] = Some(
-        (model) =>
-      {
-        val convexHull = model.rest.head.asInstanceOf[MultiPolygon]
-        val m1 = model //block hole with targetWorkpiece, remove from rest1
-        val m2 = model // restore set ch as rest1
-        List(m1,m2)
-      }
-      )
-      val l = List(pcFct2)
-      PathCoverageStep(pcFct, None, l, "generic composition")
-    }
-
-    val semanticType = pFct :&: alpha =>:
-      pFct :&: alpha =>:
-      pFct :&: alpha
-  }
+//  @combinator object IsleHull{
+//    def apply(pcFct1: PathCoverageStep,
+//              pcFct2: PathCoverageStep):
+//    PathCoverageStep = {
+//      val pcFct: Option[cncPathFct] = None
+//      val modelAllocation: Option[Cnc2DModel => List[Cnc2DModel]] = Some(
+//        (model) =>
+//      {
+//        val convexHull = model.rest.head.asInstanceOf[MultiPolygon]
+//        val m1 = model //block hole with targetWorkpiece, remove from rest1
+//        val m2 = model // restore set ch as rest1
+//        List(m1,m2)
+//      }
+//      )
+//      val l = List(pcFct2)
+//      PathCoverageStep(pcFct, None, l, "generic composition")
+//    }
+//
+//    val semanticType = pFct :&: alpha =>:
+//      pFct :&: alpha =>:
+//      pFct :&: alpha
+//  }
 
   @combinator object GenericCompositionPcStep {
     def apply(pcFct1: PathCoverageStep,
@@ -273,6 +273,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
     val semanticType = alu :&: finishing =>: pFct :&: alu
   }
 
+  //TODO Bugfix
   @combinator object MultiCountourMultiToolSteel extends Contour {
     def apply(t: CncTool, t2: CncTool): PathCoverageStep = {
       val newTool = CncTool(t.d, t.ae / 2.0f,t.ap, t.vf, t.n, t.description + ". Steel ae/2.0", t.idString)

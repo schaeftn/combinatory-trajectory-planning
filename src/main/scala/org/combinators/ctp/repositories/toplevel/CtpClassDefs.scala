@@ -21,6 +21,7 @@ import scalax.collection.edge.WUnDiEdge
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
 import scala.language.implicitConversions
+import scala.util.{Failure, Try}
 
 
 case class Scene(boundaries: List[Float], obstacles: List[MqttCubeData]) {
@@ -51,8 +52,8 @@ trait PathCoverageStepConfig extends JtsUtils with MachineAccelerationModel {
 }
 
 object PathCoverageStepConfig {
-  def apply(): PathCoverageStepConfig = new PathCoverageStepConfig {
-    override val pathRefinement = true
+  def apply(pathRef: Boolean = false): PathCoverageStepConfig = new PathCoverageStepConfig {
+    override val pathRefinement = pathRef
     override val minPointClearanceOnPath: Double = 0.01
     override val maxPointClearanceOnPath: Double = 0.1
     override val min_ae: Double = 0.01
@@ -384,7 +385,8 @@ case class Cnc2DModel(boundaries: List[Float],
                       targetGeometry: Geometry,
                       rest: List[Geometry],
                       machined: List[Geometry],
-                      machinedMultiPolygon: Geometry) extends LazyLogging with JtsUtils {
+                      machinedMultiPolygon: Geometry,
+                      initialMachined: Geometry) extends LazyLogging with JtsUtils {
   self =>
   def empty = Scene(List.empty, List.empty)
 
@@ -395,7 +397,7 @@ case class Cnc2DModel(boundaries: List[Float],
     lazy val boundRect = getBoundaryRectangle(boundaries)
     pGeo("boundRect", boundRect)
     pGeo("targetGeometry", targetGeometry)
-    lazy val diff = boundRect.difference(targetGeometry)
+    lazy val diff = boundRect.difference(targetGeometry).difference(initialMachined)
     pGeo("diff", diff)
     diff
   }
@@ -434,8 +436,14 @@ case class Cnc2DModel(boundaries: List[Float],
   }
   //rest.reduce(_.union(_))
 
+
+  def withInitialMachinedGeo(g: Geometry): Cnc2DModel = {
+    val nModel = self.withMachinedGeo(g)
+    Cnc2DModel(nModel.boundaries, nModel.targetGeometry, nModel.rest, nModel.machined, nModel.machinedMultiPolygon, g)
+  }
+
   def withMachinedGeo(g0: Geometry): Cnc2DModel = {
-    pGeo("with machinedGeo start:", getMachinedMultiGeo)
+    val t = Try[Cnc2DModel]({pGeo("with machinedGeo start:", getMachinedMultiGeo)
 
     pGeo("g0", g0)
     logger.info(s"g0.getFactory ${g0.getFactory}")
@@ -458,7 +466,14 @@ case class Cnc2DModel(boundaries: List[Float],
     val newMachGeo = machinedMultiPolygon.union(g)
     logger.info("gotMultiPoly")
     pGeo("newMachGeo", newMachGeo)
-    Cnc2DModel(self.boundaries, self.targetGeometry, restGeos, self.machined :+ g, newMachGeo)
+    Cnc2DModel(self.boundaries, self.targetGeometry, restGeos, self.machined :+ g, newMachGeo, self.initialMachined)}
+    )
+    t match {
+      case Failure(e) => logger.error(e.getMessage)
+      case _ => ()
+    }
+
+    t.getOrElse(self)
   }
 }
 

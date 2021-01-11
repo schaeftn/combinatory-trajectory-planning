@@ -107,10 +107,11 @@ trait DirectedRadial extends LazyLogging with JtsUtils {
     val circs = spawnCircles(List(firstLs))
     logger.info(s"circs: $circs")
 
+
     val tempDebug = circs.map(g => gf.createPolygon(g.getCoordinates))
     logger.info(s"tempDebug: $tempDebug")
 
-    val unbufferedCircs = tempDebug.map(g => g.buffer(-6.0))
+    val unbufferedCircs = tempDebug.map(g => g.buffer(-tool.d.toDouble / 2.0d))
     logger.info(s"unbufferedCircs: $unbufferedCircs")
 
     val upper = unbufferedCircs.map(_.norm).map(circleUpperLineString)
@@ -129,6 +130,7 @@ trait DirectedRadial extends LazyLogging with JtsUtils {
     logger.info("getting Machined geo")
     val geo = config.bufferFct(getNewLineString(getSteps.map(asCoordinate).toArray), tool.d / 2.0)
     logger.info("after Machined geo")
+    pGeo("machinedGeo steelradial", geo)
     geo
   }
 }
@@ -140,7 +142,8 @@ object InnerEdge2Test extends App with JtsUtils {
   val tgtGeo = wktReader.read("""POLYGON ((10 40, 40 40, 40 20, 10 20, 10 40))""".stripMargin)
   val machinedGeo = wktReader.read("""POLYGON ((10 20, 40 20, 40 0, 10 0, 10 20))""")
   val scene = Cnc2DModel(boundaries = List(0.0f, 50.0f, 0.0f, 50.0f),
-    targetGeometry = tgtGeo.union(machinedGeo), rest = List(tgtGeo), machined = List(machinedGeo), machinedMultiPolygon = machinedGeo)
+    targetGeometry = tgtGeo.union(machinedGeo), rest = List(tgtGeo), machined = List(),
+    machinedMultiPolygon = emptyGeometry, initialMachined = emptyGeometry).withInitialMachinedGeo(machinedGeo)
 
 
   val ie = new DirectedRadial {

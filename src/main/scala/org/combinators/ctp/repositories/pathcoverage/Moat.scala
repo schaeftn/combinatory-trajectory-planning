@@ -258,10 +258,10 @@ trait Moat extends GeoUtils with LazyLogging with JtsUtils {
         }
       }
 
-      logger.info(s"buffered poly in moat before transformation: ${asd.getPolygon}")
+      //logger.info(s"buffered poly in moat before transformation: ${asd.getPolygon}")
       val p = toAffMatrix(i.getStartPoint, i.getEndPoint).transform(asd.getPolygon)
 
-      logger.info(s"buffered poly in moat: ${p.buffer(tool.d / 2.0f)}")
+//      logger.info(s"buffered poly in moat: ${p.buffer(tool.d / 2.0f)}")
       p.buffer(tool.d / 2.0f)
     }).reduceOption[Geometry] { case (a: Geometry, b: Geometry) => a.union(b) } match {
       case Some(g) => g
