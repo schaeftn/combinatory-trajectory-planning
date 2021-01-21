@@ -22,11 +22,11 @@ import io.circe.parser.decode
 import scala.io.Source
 
 
-trait RunDecomposition extends LazyLogging with AkkaImplicits with JtsUtils {
+trait CncPathCoverageSetup extends LazyLogging with AkkaImplicits with JtsUtils {
   lazy val repository = new CamMpTopRepository {}
   val aluUseCase: Boolean = false
   val printKlartext: Boolean = false
-  val pRefinement: Boolean = true
+  val pRefinement: Boolean = false
   val openPocket: Boolean = true
   val acceptPercentage: Float = 0.005f // vorher: 0.005
 
@@ -132,7 +132,7 @@ trait RunDecomposition extends LazyLogging with AkkaImplicits with JtsUtils {
   }
 }
 
-object RunCncPathCoverage extends App with RunDecomposition {
+object RunCncPathCoverage extends App with CncPathCoverageSetup {
   lazy val lines = Iterator.continually(scala.io.StdIn.readLine()).takeWhile(_ != "exit")
   while (lines.hasNext) {
     lines.next() match {
@@ -163,6 +163,8 @@ object RunCncPathCoverage extends App with RunDecomposition {
           d.listFiles.filter(f => f.isFile && f.getName.startsWith("run_out")).toList.maxBy(_.getName).getName + "1"
         else "asdasd"
 
+        //Pattern, zusammen mit Anna
+        //weitere Args: Liste von bereits evaluierten Inhabitanten + Pattern
         def getResults(accList: List[(Int, PathCoverageResult)], i: Int): List[(Int, PathCoverageResult)] = {
           logger.info(s"inhabitant: $i")
           val tree = true // s"${l.last.terms.index(i)}".startsWith("Tree(GenericCompositionPcStep,org.combinators.ctp.repositories.toplevel.PathCoverageStep & pFct,ArraySeq(Tree(ZigZagStep")
@@ -171,6 +173,8 @@ object RunCncPathCoverage extends App with RunDecomposition {
           } else {
             if (tree) {
               val fct = l.last.interpretedTerms.index(i).asInstanceOf[PathCoverageStep]
+              // Für das Filtern: nach Größe iterieren, über keys von l.last.interpretedTerms.values
+              // val fct = l.last.interpretedTerms.values.asInstanceOf[PathCoverageStep]
               val pcr = PathCoverageResult(scene, config, List(fct))
               val restarea = pcr.computeModelHistory._1.last.getRestMultiGeo.getArea
               val initialRest = scene.getRestMultiGeo.getArea
