@@ -25,7 +25,7 @@ import scala.io.Source
 trait CncPathCoverageSetup extends LazyLogging with AkkaImplicits with JtsUtils {
   lazy val repository = new CamMpTopRepository {}
   val aluUseCase: Boolean = false
-  val printKlartext: Boolean = false
+  val printKlartext: Boolean = true
   val pRefinement: Boolean = false
   val openPocket: Boolean = true
   val acceptPercentage: Float = 0.005f // vorher: 0.005
@@ -183,6 +183,8 @@ object RunCncPathCoverage extends App with CncPathCoverageSetup {
               fw.write(s"$i: \r\n${pcr.computeModelHistory._1.last.machinedPolygonHistory}\r\n")
               fw.close()
 
+              pcr.writeXmlOut("jts_out_inhabitant_" + i + ".xml")
+
               val newList = if (percentage < acceptPercentage && tree) {
                 val fw = new FileWriter(newFile, true);
                 fw.write(s"$i: \r\n${l.last.terms.index(i)}\r\n${pcr.computeModelHistory._1.last.machinedPolygonHistory}\r\n")
@@ -262,7 +264,7 @@ object RunCncPathCoverage extends App with CncPathCoverageSetup {
               logger.info(s"Result path: \r\n${mlString}")
               pcr.computeModelHistory._1.foreach(i => logger.info(s"\r\n${i.getMachinedMultiGeo}"))
               if (printKlartext) {
-                pcr.printAll()
+                pcr.writeKlartextFiles()
               }
 
               logger.info(s"Result path: \r\n${mlString}")

@@ -1,7 +1,7 @@
 package org.combinators.ctp.repositories.pathcoverage
 
 import com.typesafe.scalalogging.LazyLogging
-import org.combinators.ctp.repositories.toplevel.{Cnc2DModel, PathCoverageStep, PathCoverageStepConfig}
+import org.combinators.ctp.repositories.toplevel.{Cnc2DModel, PathCoverageResult, PathCoverageStep, PathCoverageStepConfig}
 import org.combinators.ctp.repositories._
 import org.combinators.cls.interpreter.combinator
 import org.combinators.cls.types.{Constructor, Kinding, Type, Variable}
@@ -9,8 +9,11 @@ import org.combinators.cls.types.syntax._
 import org.locationtech.jts.algorithm.construct.MaximumInscribedCircle
 import org.locationtech.jts.geom.impl.CoordinateArraySequence
 import org.locationtech.jts.geom.{Coordinate, Envelope, Geometry, GeometryFactory, LineString, LinearRing, MultiLineString, MultiPolygon, Polygon}
+import org.locationtech.jts.io.WKTReader
 import org.locationtech.jts.math.Vector2D
 import org.locationtech.jts.util.GeometricShapeFactory
+
+import scala.io.Source
 
 case class CncTool(d: Float, ae: Float, ap: Float, vf: Float, n: Int, description: String, idString: String)
 
@@ -24,6 +27,8 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
   val finishing = Constructor("finishing")
   val steel:Type = Constructor("steel")
   val alu:Type = Constructor("alu")
+  val pFctResult:Type = Constructor("pFctResult")
+  val root:Type = Constructor("root")
   val alpha = Variable("alpha")
   lazy val kindingComplete: Kinding = buildKinding(Map(alpha -> Seq(steel, alu)))
   lazy val aluKinding: Kinding = buildKinding(Map(alpha -> Seq(alu)))
@@ -323,6 +328,28 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
     val semanticType = steel =>: pFct :&: steel
   }
 
+
+  @combinator object ApplyScene extends JtsUtils {
+    def apply(pcs: PathCoverageStep): PathCoverageResult = {
+      val wktReader = new WKTReader()
+
+      val wktStr: String = Source.fromResource("models/machiningUc1.wkt").getLines.mkString("\r\n")
+      val tgtGeo = wktReader.read(wktStr)
+      logger.info(s"tgtGeo \r\n$tgtGeo")
+
+      val bounds = List[Float](0.0f, 50.0f, -15.0f, 40.0f)
+
+      val machinedGeo = wktReader.read("""POLYGON ((0 -15, 0 0, 50 0, 50 -15, 0 -15))""")
+      val scene = Cnc2DModel(boundaries = bounds, targetGeometry = tgtGeo, rest = List(tgtGeo), machined = List(),
+        machinedMultiPolygon = emptyGeometry, initialMachined = emptyGeometry).withInitialMachinedGeo(machinedGeo)
+      val config = PathCoverageStepConfig(false)
+
+      PathCoverageResult(scene, config, List(pcs))
+    }
+
+    val semanticType = (pFct :&: alpha =>: pFctResult :&: alpha) :&:
+      (pathCoverageFctRoot :&: alpha =>: pFctResult :&: alpha :&: root)
+  }
   //  @combinator object SingleContourStep extends Contour {
   //    def apply(t: CncTool): PathCoverageStep = {
   //      val combinatorPcFunction: cncPathFct = singleContourStep(t)

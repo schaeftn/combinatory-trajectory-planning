@@ -1,8 +1,9 @@
 package org.combinators.ctp.repositories.toplevel
 
-import java.io.FileInputStream
+import java.io.{File, FileInputStream, FileOutputStream}
 import java.util
 import java.util.Properties
+import java.util.zip.ZipFile
 
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.math3.util.{FastMath, MathUtils}
@@ -17,11 +18,14 @@ import org.locationtech.jts.operation.union.{CascadedPolygonUnion, UnaryUnionOp}
 import org.locationtech.jts.simplify.DouglasPeuckerSimplifier
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
+import java.io.{BufferedInputStream, FileInputStream, FileOutputStream}
+import java.util.zip.{ZipEntry, ZipOutputStream}
 
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
 import scala.language.implicitConversions
 import scala.util.{Failure, Try}
+import scala.xml.Elem
 
 
 case class Scene(boundaries: List[Float], obstacles: List[MqttCubeData]) {
@@ -284,10 +288,8 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, l: 
       val angle = Angle.angle(asCoordinate(lastCoord), asCoordinate(nextCoord))
       val distanceBetweenPoits = asCoordinate(lastCoord).distance(asCoordinate(nextCoord))
       //logger.info(s"startPoint: $lastCoord, nextCooord: $nextCoord, distance: $distanceBetweenPoits")
-
       //logger.info(s"startV $startV")
       //logger.info(s"comparing velocities for $nextCoord vs ${calcVend(angle, distanceBetweenPoits, 0.0d, startV).toFloat}")
-
 
       lazy val nextCoordWithVelocity: List[Float] =
         (nextCoord.dropRight(1) :+
@@ -303,7 +305,7 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, l: 
     }
   }
 
-  def getString(l: List[List[Float]], withFMAX: Boolean = false) =
+  def getKlartextLineString(l: List[List[Float]], withFMAX: Boolean = false): List[String] =
     l.filter(_.nonEmpty).map(singleCoord => {
       val zCoordString = if (!singleCoord(2).isNaN) s" Z${singleCoord(2)}" else ""
       val fString = s"${if (withFMAX) "MAX" else if (singleCoord.last <= 0.050) "50.0" else singleCoord.last * 1000.0}"
@@ -313,32 +315,74 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, l: 
   lazy val pathTime = completeTime(withMaxVfByAcc)
   lazy val pathTimesCalculated = pathTimes(withMaxVfByAcc)
 
-  def printAll() = withMaxVfByAcc.zip(toolList).zipWithIndex.map {
+  lazy val klartextFileContents: List[String] = withMaxVfByAcc.zip(toolList).zipWithIndex.filter(_._1._1.nonEmpty).map {
     case ((currentPath, currentTool: CncTool), index) =>
-      if (currentPath.nonEmpty) {
-        val linearDive = if ((currentPath.head) (2).isNaN || (currentPath.head) (2) == 0.0)
-          s"${getString(List(currentPath.head.dropRight(2) :+ 0.0f :+ 0.500f)).mkString("\r\n")}"
-        else ""
-        val outStr =
-          s"""BEGIN PGM Single MM
-             |TOOL CALL ${currentTool.idString} ; ${currentTool.description}
-             |${getString(List(currentPath.head.dropRight(2) :+ 3.0f :+ currentTool.vf), true).mkString("\r\n")}
-             |$linearDive
-             |${getString(currentPath.tail).mkString("\r\n")}
-             |${getString(List(currentPath.last.dropRight(2) :+ 3.0f), true).mkString("\r\n")}
-             |END PGM Single MM
-             |""".stripMargin
-        // logger.info(s"Teilpfad: \r\n$outStr")
+      val linearDive = if ((currentPath.head) (2).isNaN || (currentPath.head) (2) == 0.0)
+        s"${getKlartextLineString(List(currentPath.head.dropRight(2) :+ 0.0f :+ 0.500f)).mkString("\r\n")}"
+      else ""
+      s"""BEGIN PGM Single MM
+         |TOOL CALL ${currentTool.idString} ; ${currentTool.description}
+         |${getKlartextLineString(List(currentPath.head.dropRight(2) :+ 3.0f :+ currentTool.vf), true).mkString("\r\n")}
+         |$linearDive
+         |${getKlartextLineString(currentPath.tail).mkString("\r\n")}
+         |${getKlartextLineString(List(currentPath.last.dropRight(2) :+ 3.0f), true).mkString("\r\n")}
+         |END PGM Single MM
+         |""".stripMargin
+    // logger.info(s"Teilpfad: \r\n$outStr")
+  }
 
+  def writeKlartextFiles(): Unit = {
+    klartextFileContents.zipWithIndex.foreach {
+      case (s, i) =>
         import java.io._
-        val pw = new PrintWriter(new File(s"${index + 1}.p"))
-        pw.write(s"$outStr")
+        val pw = new PrintWriter(new File(s"${i + 1}.p"))
+        pw.write(s"$s")
         pw.close
-      } else {
-        logger.info(s"Empty path, no output")
+    }
+    logger.info(s"pathTimes $pathTimesCalculated")
+    logger.info(s"complete Time: $pathTime")
+  }
+
+  def buildZip(out: String, contents: List[String]): Unit = {
+    val zip = new ZipOutputStream(new FileOutputStream(out))
+    contents.foreach { name =>
+      zip.putNextEntry(new ZipEntry(name))
+      val in = new BufferedInputStream(new FileInputStream(name))
+      var b = in.read()
+      while (b > -1) {
+        zip.write(b)
+        b = in.read()
       }
-      logger.info(s"pathTimes $pathTimesCalculated")
-      logger.info(s"complete Time: $pathTime")
+      in.close()
+      zip.closeEntry()
+    }
+    zip.close()
+  }
+
+  def writeXmlOut(fn: String) = {
+    import java.io._
+    val pw = new PrintWriter(new File(fn))
+    pw.write(getXmlString().mkString(s"\r\n"))
+    pw.close
+  }
+
+  def getXmlString(): Elem = {
+    val info = modelList.map { m => m.getMachinedMultiGeo } zipAll(
+      pathList.map { p => asLineString(p) }, emptyGeometry, emptyGeometry)
+
+    <run>
+      <precisionModel type="FLOATING"/>{info.map { case (a, b) => <case>
+      <desc>foo</desc> <a>{a}</a> <b>{b}</b>
+    </case>
+    }}
+    </run>
+  }
+
+  def writeXmlFile(): Unit = {
+    import java.io._
+    val pw = new PrintWriter(new File(s"out.xml"))
+    pw.write(s"$s")
+    pw.close
   }
 }
 
@@ -443,30 +487,32 @@ case class Cnc2DModel(boundaries: List[Float],
   }
 
   def withMachinedGeo(g0: Geometry): Cnc2DModel = {
-    val t = Try[Cnc2DModel]({pGeo("with machinedGeo start:", getMachinedMultiGeo)
+    val t = Try[Cnc2DModel]({
+      pGeo("with machinedGeo start:", getMachinedMultiGeo)
 
-    pGeo("g0", g0)
-    logger.info(s"g0.getFactory ${g0.getFactory}")
+      pGeo("g0", g0)
+      logger.info(s"g0.getFactory ${g0.getFactory}")
 
-    val g = DouglasPeuckerSimplifier.simplify(g0, 0.01)
-    pGeo("g", g)
+      val g = DouglasPeuckerSimplifier.simplify(g0, 0.01)
+      pGeo("g", g)
 
-    val restGeos1 = self.rest.map(i => {
-      i.difference(g)
-    })
+      val restGeos1 = self.rest.map(i => {
+        i.difference(g)
+      })
 
-    val restGeos2 = restGeos1.map(g => multiGeoToGeoList(g)).reduceOption(_ ++ _).filter(_.nonEmpty)
-    logger.info("with machinedGeo: Got restgeos, attempting to sort")
+      val restGeos2 = restGeos1.map(g => multiGeoToGeoList(g)).reduceOption(_ ++ _).filter(_.nonEmpty)
+      logger.info("with machinedGeo: Got restgeos, attempting to sort")
 
-    val restGeos = restGeos2.getOrElse(List.empty[Geometry]).sortBy(_.getArea)(Ordering[Double].reverse)
-    logger.info("with machinedGeo after restGeos")
-    logger.info("attempting to unionize")
-    pGeo("machinedMultiPolygon", machinedMultiPolygon)
-    pGeo("g", g)
-    val newMachGeo = machinedMultiPolygon.union(g)
-    logger.info("gotMultiPoly")
-    pGeo("newMachGeo", newMachGeo)
-    Cnc2DModel(self.boundaries, self.targetGeometry, restGeos, self.machined :+ g, newMachGeo, self.initialMachined)}
+      val restGeos = restGeos2.getOrElse(List.empty[Geometry]).sortBy(_.getArea)(Ordering[Double].reverse)
+      logger.info("with machinedGeo after restGeos")
+      logger.info("attempting to unionize")
+      pGeo("machinedMultiPolygon", machinedMultiPolygon)
+      pGeo("g", g)
+      val newMachGeo = machinedMultiPolygon.union(g)
+      logger.info("gotMultiPoly")
+      pGeo("newMachGeo", newMachGeo)
+      Cnc2DModel(self.boundaries, self.targetGeometry, restGeos, self.machined :+ g, newMachGeo, self.initialMachined)
+    }
     )
     t match {
       case Failure(e) => logger.error(e.getMessage)
