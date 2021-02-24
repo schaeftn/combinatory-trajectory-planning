@@ -5,10 +5,14 @@ import org.combinators.cls.interpreter.combinator
 import org.combinators.cls.types.Type
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
+import org.combinators.ctp.repositories.pathcoverage.JtsUtils
 import org.combinators.ctp.repositories.toplevel._
 import org.combinators.ctp.repositories.scene.SceneUtils
+import org.locationtech.jts.io.WKTReader
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
+
+import scala.io.Source
 
 trait CmpTopLevelRepository extends LazyLogging with CmpRoadmapRepository with CmpCdRepository with SceneUtils{
   val cmpDefaultKindingMap = Map(

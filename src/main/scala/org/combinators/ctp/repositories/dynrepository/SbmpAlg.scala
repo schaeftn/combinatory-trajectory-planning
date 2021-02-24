@@ -15,6 +15,7 @@ import org.combinators.ctp.repositories.python_interop.{PlannerScheme, Substitut
 import org.combinators.ctp.repositories.toplevel._
 import org.locationtech.jts.util.Stopwatch
 import org.combinators.ctp.repositories._
+import org.combinators.ctp.repositories.benchmarks.MpInstance
 import org.combinators.ctp.repositories.benchmarks.MpInstance.logger
 
 case class SbmpAlg(planner: SbmpPlanners.EnumType,
@@ -475,7 +476,8 @@ object run extends App with EncodeImplicits with LazyLogging with AkkaImplicits 
   val watch2: Stopwatch = new Stopwatch
   watch2.start()
   val r = fpp2.getIhResult(repository)
-  val result = repository.inhabit[PlannerScheme[List[List[Float]]]](Constructor("any_sbmp_planner_type"))
+  val result = MpInstance.apply[SbmpAlg, ProblemDefinitionFiles, List[List[Float]]](fpp2)
+
   watch2.stop()
   logger.info(s"elapsed time ${watch2.getTimeString}")
   logger.info(s"${repository.combinators}")
@@ -484,8 +486,9 @@ object run extends App with EncodeImplicits with LazyLogging with AkkaImplicits 
   }
   else {
     logger.info("not empty")
-    result.interpretedTerms.index(0)
+    val pDef = ProblemDefinitionFiles("Home.cfg").get
+    result.get.apply(pDef)
+    logger.info("done")
   }
-
 }
 

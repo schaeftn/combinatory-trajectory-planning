@@ -33,6 +33,7 @@ object RunBmClient extends App with LazyLogging with AkkaImplicits with Property
       MqttSubscriptions(subscribeTopic, MqttQoS.AtLeastOnce),
       bufferSize = 8).map { i =>
       logger.info(s"Received $logString: $i")
+      logger.info(s"${i.message.payload.utf8String}")
       decodeFct(i.message.payload.utf8String)
     }.filter {
       case Some(_) => true

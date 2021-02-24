@@ -215,7 +215,7 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
   @combinator object InformedRRTstarPlannerTemplate extends CombinatorPlannerTemplateStdPath {
     override val st: SubstitutionScheme = defaultPlannerSubstScheme("InformedRRTstar")
     override val startFile: String = sbmpMainStartFile
-    val semanticType = (any_sbmp_optimization_objective_type=>:sbmp_spaceSampler_type=>:sbmp_planner_InformedRRTstar):&:
+    val semanticType =
       (any_sbmp_optimization_objective_type=>:sbmp_informedSampler_type=>:sbmp_planner_InformedRRTstar)
   }
 

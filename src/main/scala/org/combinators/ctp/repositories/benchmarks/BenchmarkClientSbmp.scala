@@ -18,6 +18,7 @@ import org.combinators.ctp.repositories.dynrepository.{CmpAlg, SbmpAlg, SceneInp
 import GraphDSL.Implicits._
 import org.combinators.cls.interpreter.InhabitationResult
 import org.combinators.ctp.repositories.geometry.GeometryUtils
+import org.combinators.ctp.repositories.python_interop.{PythonTemplateUtils, PythonWrapper, SimplePythonWrapper, SubstitutionScheme}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -32,7 +33,7 @@ case class StatesPathBmResults(states: List[List[List[Float]]], paths: List[List
 case class PathBmResults(paths: List[List[List[Float]]], pathLengths: List[Float],
                          computationTimes: List[Float], failures: Int)
 
-case class BenchmarkClientSbmp[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) extends MpAkkaUtils {
+case class BenchmarkClientSbmp[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) extends MpAkkaUtils with PythonTemplateUtils {
   val uuidString = sbmpAlg.id.toString
   val sourceGenericInput: Source[Any, Future[Done]] =
     sbmpAlg.sceneInput match {
@@ -62,6 +63,13 @@ case class BenchmarkClientSbmp[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) e
               }
           })
     }
+
+  def validatePath(s: List[List[Float]]): Boolean = {
+    val a = SubstitutionScheme.apply(Map(pathDataTemplate -> pathDataFile),
+      Map("$path_data.path$" -> writePyPathData(s))) //File in, File out
+    val fct: String => Boolean = a => a.contains("Path is valid")
+    PythonWrapper(a, samplingFolder + "path_validator.py", fct).computeResult
+  }
 
   def bmRunGraph: RunnableGraph[NotUsed] = RunnableGraph.fromGraph(GraphDSL.create() { implicit b =>
     sbmpAlg.sceneInput match {
@@ -115,7 +123,7 @@ case class BenchmarkClientSbmp[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) e
               val startTime = System.currentTimeMillis
               logger.debug(s"singleRun. Start time: $startTime")
               logger.debug(s"inside single run: running alg")
-              val result = algInterpreted(arg)
+              val result:T = algInterpreted(arg)
               val stopTime = System.currentTimeMillis
               logger.debug(s"singleRun. Stop time: $stopTime")
               (result, stopTime - startTime)
@@ -131,7 +139,7 @@ case class BenchmarkClientSbmp[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) e
                 if (path.asInstanceOf[List[Any]].isEmpty) {
                   (List.empty[List[Float]], 0.0f, time)
                 } else {
-                  (path.asInstanceOf[List[List[Float]]], path_distance(path.asInstanceOf[List[List[Float]]]), time)
+                    (path.asInstanceOf[List[List[Float]]], path_distance(path.asInstanceOf[List[List[Float]]]), time)
                 }
               }
             }
@@ -185,8 +193,19 @@ case class BenchmarkClientSbmp[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) e
                 logger.debug(s"Results length: ${resultsFutures.size}")
                 logger.debug(s"Duration: ${b.maxTime * 3 seconds}")
 
-                val filteredResults = resultsFutures.filter { case (_, a: Float, _) => a != 0.0 }
-                filteredResults
+                val filteredResults = resultsFutures.filter { case (_: T, a: Float, _) => a != 0.0 }
+                val validatedResults = filteredResults.map {
+                  case (path: List[List[Float]], b, c) =>
+                    if (validatePath(path.asInstanceOf[List[List[Float]]])) {
+                      (path, b, c)
+                    } else {
+                      val pythonString = writePyPathData(path.asInstanceOf[List[List[Float]]])
+                      logger.warn(s"Path validation found invalid path: $pythonString")
+                      (List.empty[List[Float]], 0.0f, c)
+                    }
+                  case (a, b: Float, c: Float) => (a, b, c)
+                }
+                validatedResults
               }
             }
 

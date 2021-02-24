@@ -9,8 +9,8 @@ import scala.sys.process._
 case class SubstitutionScheme(f: Map[String, String], substitutes: Map[String, String])
   extends PythonTemplateUtils with LazyLogging {
   self =>
-  def executeTemplating() = {
-    f.map { case (template, target) =>
+  def executeTemplating():Unit = {
+    f.foreach { case (template, target) =>
       logger.debug(s"Trying to read template file: $template")
       val templateSource = Source.fromFile(template)
       val content = templateSource.getLines.mkString("\n")

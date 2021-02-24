@@ -146,7 +146,8 @@ ${scene.obstacles.indices.map(id => s"    mesh.addSubModel(verts$id, tris$id)").
 //       |sceneobj = fcl.CollisionObject(scene, fcl.Transform())
 //       |objs = [sceneobj]""".stripMargin
     s"""
-      |scene, robot = loadModels("${tg.envModelLocation}", "${tg.robotModelLocation}")
+      |env_location, robot_location = "${tg.envModelLocation}", "${tg.robotModelLocation}"
+      |scene, robot = loadModels(env_location, robot_location)
       |
       |env_mesh = fcl.BVHModel()
       |env_mesh.beginModel(len(scene.vertices), len(scene.faces))

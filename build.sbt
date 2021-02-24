@@ -35,7 +35,7 @@ lazy val root = (Project(id = "combinatory-trajectory-planning", base = file("."
     moduleName := "cls-ctp",
     libraryDependencies ++= Seq(
       //"org.combinators" %% "cls-scala" % "2.1.0+7-9e42ea3e",
-      "org.combinators" %% "cls-scala" % "2.2.0-TEMP",
+      "org.combinators" %% "cls-scala" % "3.0.0",
       "org.scalactic" %% "scalactic" % "3.1.2" % "test",
       "org.scalatest" %% "scalatest" % "3.1.2" % "test",
       "org.scala-lang.modules" %% "scala-parallel-collections" % "0.2.0",
