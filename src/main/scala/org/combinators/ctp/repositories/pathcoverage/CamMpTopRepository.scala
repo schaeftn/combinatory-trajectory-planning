@@ -28,6 +28,8 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
   val steel:Type = Constructor("steel")
   val alu:Type = Constructor("alu")
   val pFctResult:Type = Constructor("pFctResult")
+  val pFctResultRoot:Type = Constructor("pFctResultRoot")
+
   val root:Type = Constructor("root")
   val alpha = Variable("alpha")
   lazy val kindingComplete: Kinding = buildKinding(Map(alpha -> Seq(steel, alu)))
@@ -348,7 +350,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
     }
 
     val semanticType = (pFct :&: alpha =>: pFctResult :&: alpha) :&:
-      (pathCoverageFctRoot :&: alpha =>: pFctResult :&: alpha :&: root)
+      (pathCoverageFctRoot :&: alpha =>: pFctResultRoot :&: alpha)
   }
   //  @combinator object SingleContourStep extends Contour {
   //    def apply(t: CncTool): PathCoverageStep = {

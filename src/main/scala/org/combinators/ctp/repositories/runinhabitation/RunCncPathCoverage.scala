@@ -5,7 +5,7 @@ import java.io.{File, FileWriter}
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.math3.util.{FastMath, MathUtils}
 import org.combinators.cls.interpreter.{InhabitationResult, ReflectedRepository}
-import org.combinators.cls.types.Taxonomy
+import org.combinators.cls.types.{Constructor, Taxonomy}
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.pathcoverage.{CamMpTopRepository, JtsUtils}
@@ -167,44 +167,39 @@ object RunCncPathCoverage extends App with CncPathCoverageSetup {
         //weitere Args: Liste von bereits evaluierten Inhabitanten + Pattern
         def getResults(accList: List[(Int, PathCoverageResult)], i: Int): List[(Int, PathCoverageResult)] = {
           logger.info(s"inhabitant: $i")
-          val tree = true // s"${l.last.terms.index(i)}".startsWith("Tree(GenericCompositionPcStep,org.combinators.ctp.repositories.toplevel.PathCoverageStep & pFct,ArraySeq(Tree(ZigZagStep")
           if (accList.size > 10) {
             accList
           } else {
-            if (tree) {
-              val fct = l.last.interpretedTerms.index(i).asInstanceOf[PathCoverageStep]
-              // Für das Filtern: nach Größe iterieren, über keys von l.last.interpretedTerms.values
-              // val fct = l.last.interpretedTerms.values.asInstanceOf[PathCoverageStep]
-              val pcr = PathCoverageResult(scene, config, List(fct))
-              val restarea = pcr.computeModelHistory._1.last.getRestMultiGeo.getArea
-              val initialRest = scene.getRestMultiGeo.getArea
-              val percentage = restarea / initialRest
-              val fw = new FileWriter("run_out.txt", true);
-              fw.write(s"$i: \r\n${pcr.computeModelHistory._1.last.machinedPolygonHistory}\r\n")
+            val fct = l.last.interpretedTerms.index(i).asInstanceOf[PathCoverageStep]
+            // Für das Filtern: nach Größe iterieren, über keys von l.last.interpretedTerms.values
+            // val fct = l.last.interpretedTerms.values.asInstanceOf[PathCoverageStep]
+            val pcr = PathCoverageResult(scene, config, List(fct))
+            val restarea = pcr.computeModelHistory._1.last.getRestMultiGeo.getArea
+            val initialRest = scene.getRestMultiGeo.getArea
+            val percentage = restarea / initialRest
+            val fw = new FileWriter("run_out.txt", true);
+            fw.write(s"$i: \r\n${pcr.computeModelHistory._1.last.machinedPolygonHistory}\r\n")
+            fw.close()
+
+            pcr.writeXmlOut("jts_out_inhabitant_" + i + ".xml")
+
+            val newList = if (percentage < acceptPercentage) {
+              val fw = new FileWriter(newFile, true);
+              fw.write(s"$i: \r\n${l.last.terms.index(i)}\r\n${pcr.computeModelHistory._1.last.machinedPolygonHistory}\r\n")
+              val pathList = pcr.pathList
+              val rPath = new MultiLineString(pathList.filter(_.length > 1).map(p =>
+                new LineString(
+                  new CoordinateArraySequence(
+                    p.map(i => new Coordinate(i(0), i(1))).toArray), new GeometryFactory())).toArray, gf)
+
+              fw.write(s"${rPath}\r\n")
               fw.close()
-
-              pcr.writeXmlOut("jts_out_inhabitant_" + i + ".xml")
-
-              val newList = if (percentage < acceptPercentage && tree) {
-                val fw = new FileWriter(newFile, true);
-                fw.write(s"$i: \r\n${l.last.terms.index(i)}\r\n${pcr.computeModelHistory._1.last.machinedPolygonHistory}\r\n")
-                val pathList = pcr.pathList
-                val rPath = new MultiLineString(pathList.filter(_.length > 1).map(p =>
-                  new LineString(
-                    new CoordinateArraySequence(
-                      p.map(i => new Coordinate(i(0), i(1))).toArray), new GeometryFactory())).toArray, gf)
-
-                fw.write(s"${rPath}\r\n")
-                fw.close()
-                accList :+ (i, pcr)
-              }
-              else {
-                accList
-              }
-              getResults(newList, i + 1)
-            } else {
-              getResults(accList, i + 1)
+              accList :+ (i, pcr)
             }
+            else {
+              accList
+            }
+            getResults(newList, i + 1)
           }
         }
 

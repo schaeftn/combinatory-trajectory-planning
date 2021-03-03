@@ -1,9 +1,8 @@
 package org.combinators.ctp.repositories.toplevel
 
-import java.io.{File, FileInputStream, FileOutputStream}
+import java.io.{BufferedInputStream, File, FileInputStream, FileOutputStream}
 import java.util
-import java.util.Properties
-import java.util.zip.ZipFile
+import java.util.{Calendar, Properties}
 
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.math3.util.{FastMath, MathUtils}
@@ -18,8 +17,9 @@ import org.locationtech.jts.operation.union.{CascadedPolygonUnion, UnaryUnionOp}
 import org.locationtech.jts.simplify.DouglasPeuckerSimplifier
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
-import java.io.{BufferedInputStream, FileInputStream, FileOutputStream}
-import java.util.zip.{ZipEntry, ZipOutputStream}
+import java.text.SimpleDateFormat
+
+import org.combinators.cls.interpreter.InhabitationResult
 
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters._
@@ -64,6 +64,7 @@ object PathCoverageStepConfig {
     override val areaIgnoreVal: Double = 0.01
     override val pathIgnoreVal: Double = 0.01
 
+    @scala.annotation.tailrec
     override def machineModelAccX(velocity: Double): Double = {
       velocity match {
         case v if (0.0 <= v && v < 1.0) => -0.0624 * Math.pow(v, 2) + 0.2603 * v + 0.0216
@@ -73,6 +74,7 @@ object PathCoverageStepConfig {
       }
     }
 
+    @scala.annotation.tailrec
     override def machineModelAccY(velocity: Double): Double = {
       velocity match {
         case v if (0.0 <= v && v < 1.0) => -0.1979 * Math.pow(v, 2) + 0.3970 * v + 0.0184
@@ -331,11 +333,11 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, l: 
     // logger.info(s"Teilpfad: \r\n$outStr")
   }
 
-  def writeKlartextFiles(): Unit = {
+  def writeKlartextFiles(path: String = "."): Unit = {
     klartextFileContents.zipWithIndex.foreach {
       case (s, i) =>
         import java.io._
-        val pw = new PrintWriter(new File(s"${i + 1}.p"))
+        val pw = new PrintWriter(new File(new File(path), s"${i + 1}.p"))
         pw.write(s"$s")
         pw.close
     }
@@ -343,11 +345,24 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, l: 
     logger.info(s"complete Time: $pathTime")
   }
 
-  def buildZip(out: String, contents: List[String]): Unit = {
-    val zip = new ZipOutputStream(new FileOutputStream(out))
-    contents.foreach { name =>
-      zip.putNextEntry(new ZipEntry(name))
-      val in = new BufferedInputStream(new FileInputStream(name))
+  def buildZip(path: String, outFile: String): Unit = {
+    import java.io.{ BufferedInputStream, FileInputStream, FileOutputStream }
+    import java.util.zip.{ ZipEntry, ZipOutputStream }
+
+    val zip = new ZipOutputStream(new FileOutputStream(outFile))
+    val files = {
+      val d = new File(path)
+      if (d.exists && d.isDirectory) {
+        d.listFiles.filter(_.isFile).filter(_.getName.endsWith(".p")).toList
+      } else {
+        List[File]()
+      }
+    }
+
+
+    files.foreach { f =>
+      zip.putNextEntry(new ZipEntry(f.getName))
+      val in = new BufferedInputStream(new FileInputStream(f))
       var b = in.read()
       while (b > -1) {
         zip.write(b)
@@ -356,6 +371,7 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, l: 
       in.close()
       zip.closeEntry()
     }
+
     zip.close()
   }
 
