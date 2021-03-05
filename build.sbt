@@ -8,7 +8,7 @@ val circeVersion = "0.12.3"
 lazy val commonSettings = Seq(
   organization := "org.combinators",
 
-  scalaVersion := "2.13.2",
+  scalaVersion := "2.12.13",
   crossScalaVersions := Seq("2.11.12", scalaVersion.value),
 
   resolvers ++= Seq(
@@ -38,15 +38,14 @@ lazy val root = (Project(id = "combinatory-trajectory-planning", base = file("."
       "org.combinators" %% "cls-scala" % "3.0.0",
       "org.scalactic" %% "scalactic" % "3.1.2" % "test",
       "org.scalatest" %% "scalatest" % "3.1.2" % "test",
-      "org.scala-lang.modules" %% "scala-parallel-collections" % "0.2.0",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
       "org.apache.poi" % "poi" % "3.9",
       "org.apache.poi" % "poi-ooxml" % "3.9",
       "com.lightbend.akka" %% "akka-stream-alpakka-mqtt" % "2.0.0-M1",
       "com.typesafe.akka" %% "akka-stream" % "2.5.31",
       "com.typesafe.scala-logging" %% "scala-logging" % "3.9.0",
-      "org.scala-graph" %% "graph-core" % "1.13.2",
-      "org.scala-graph" %% "graph-json" % "1.13.0",
+      "org.scala-graph" %% "graph-core" % "1.12.5",
+      "org.scala-graph" %% "graph-json" % "1.12.1",
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.0",
       "org.locationtech.jts" % "jts-core" % "1.17.1",
       "com.dreizak" % "miniball" % "1.0.3",

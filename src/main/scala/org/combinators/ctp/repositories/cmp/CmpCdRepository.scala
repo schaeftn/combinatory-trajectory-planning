@@ -19,7 +19,6 @@ import org.locationtech.jts.geom.{Coordinate, Geometry, GeometryFactory, LineSeg
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
 import scala.collection.parallel.ParSeq
-import scala.collection.parallel.CollectionConverters._
 
 
 trait CmpCdRepository extends PythonTemplateUtils with CmpUtils with SceneUtils {

@@ -220,7 +220,7 @@ trait JtsUtils extends LazyLogging with CircleUtils {
     }
 
   def getPolygonByLineStrings(ls1: List[Coordinate], ls2: List[Coordinate]): Polygon =
-    new Polygon(gf.createLinearRing(ls1.toArray ++ ls2.toArray), Array.empty[LinearRing], gf)
+    new Polygon(gf.createLinearRing((ls1 ++ ls2).toArray), Array.empty[LinearRing], gf)
 
   def getPolygonByCoordList(l: List[Coordinate]): Polygon =
     new Polygon(gf.createLinearRing(l.toArray :+ l.head), Array.empty[LinearRing], gf)

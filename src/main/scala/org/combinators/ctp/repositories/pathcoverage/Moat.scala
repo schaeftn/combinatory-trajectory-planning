@@ -212,9 +212,11 @@ trait Moat extends GeoUtils with LazyLogging with JtsUtils {
     //
     val lsPoly = getPolygonByLineStrings(upperString, lowerString.reverse)
     val xLimiter: Option[LineString] = {
-      p1diffToolRadius.getCoordinates.filter(i => lsPoly.contains(gf.createPoint(i))).minByOption(_.x).
-        map(delimiterCoord => getNewLineString(Array(new Coordinate(delimiterCoord.x, maxY),
-          new Coordinate(delimiterCoord.x, minY))))
+      val filteredCoordList = p1diffToolRadius.getCoordinates.filter(i => lsPoly.contains(gf.createPoint(i)))
+      val coordOption = if (filteredCoordList.nonEmpty) Some(filteredCoordList.minBy(_.x))
+      else None
+      coordOption.map(delimiterCoord => getNewLineString(Array(new Coordinate(delimiterCoord.x, maxY),
+        new Coordinate(delimiterCoord.x, minY))))
     }
 
 

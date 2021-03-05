@@ -70,18 +70,20 @@ trait InnerEdgeTop extends SceneUtils with NonLinearStepSize with LazyLogging{
     (p1 zip diffVector.map(i => i * t)).map { case (a, b) => a + b }
   }
 
+def findLast(l: IndexedSeq[Float], f: Float=> Boolean): Option[Float] =
+  l.reverse.find(f)
+
   val localFunctionsComplete = localFunctions.foldLeft(List.empty[Float => List[Float]]){
     case(f1,f2) if f1.isEmpty => List(f2.getLocalPathFct)
     case(f1,f2) => f1 :+ getLinearFctFor(f1.last(1.0f), f2.getLocalPathFct(0.0f)) :+ f2.getLocalPathFct
   }
-
   override def getGlobalToLocalT(t: Float): (Int, Float) = {
     //logger.info(s"checking List ($mapPlToTUntil for t:$t)")
 
     val stepId: Int = mapPlToTUntil.takeWhile(value => value <= t).size
     logger.debug(s"t: $t, mapPlToTUntil: $mapPlToTUntil")
-    val adaptedmapPlToTUntil = 0.0f +: mapPlToTUntil
-    val takenList: (Float, Float) = (adaptedmapPlToTUntil.findLast(value => t>=value).getOrElse(0.0f),
+    val adaptedmapPlToTUntil:IndexedSeq[Float] = 0.0f +: mapPlToTUntil
+    val takenList: (Float, Float) = (findLast(adaptedmapPlToTUntil, { value => t >= value }).getOrElse(0.0f),
       adaptedmapPlToTUntil.find(value => t<=value).getOrElse(1.0f))
     logger.debug(s"t: $t, takenList: $takenList")
     val moduloT: Float = t - takenList._1

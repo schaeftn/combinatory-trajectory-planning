@@ -212,7 +212,7 @@ trait VcdUtils extends LazyLogging {
 
   //adds line (v,v) for all obstacle vertices on top, bottom boundaries
   def addUtilityLines(ls: PolySceneLineSegmentation): PolySceneLineSegmentation = {
-    val i_lines = ls.topVertices.concat(ls.bottomVertices).intersect(ls.obstacles.flatten).map(i => List(i, i))
+    val i_lines = (ls.topVertices ++ls.bottomVertices).intersect(ls.obstacles.flatten).map(i => List(i, i))
     val newLines = (ls.lines ++ i_lines).map { i => i.zip(i.map(a => indexToVertex(a, ls))) }.map(
       o => if (o.head._2(1) > o(1)._2(1)) o.map(_._1) else o.map(_._1).reverse)
     PolySceneLineSegmentation(ls.vertices, ls.obstacles, ls.boundaries, ls.topVertices, ls.bottomVertices, newLines)

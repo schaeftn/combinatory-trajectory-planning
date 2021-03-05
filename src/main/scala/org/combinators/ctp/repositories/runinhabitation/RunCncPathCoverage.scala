@@ -133,11 +133,18 @@ trait CncPathCoverageSetup extends LazyLogging with AkkaImplicits with JtsUtils 
 }
 
 object RunCncPathCoverage extends App with CncPathCoverageSetup {
+  def toInt(s: String):Option[Int] = {
+    try {
+      Some(s.toInt)
+    } catch {
+      case e: NumberFormatException => None
+    }
+  }
   lazy val lines = Iterator.continually(scala.io.StdIn.readLine()).takeWhile(_ != "exit")
   while (lines.hasNext) {
     lines.next() match {
       case inputString if inputString.contains("-") =>
-        val values = inputString.split("-").map(i => i.toIntOption).filter {
+        val values = inputString.split("-").map(i => toInt(i)).filter {
           case Some(a) => true
           case _ => false
         }.map(_.get)
@@ -210,7 +217,7 @@ object RunCncPathCoverage extends App with CncPathCoverageSetup {
         logger.info("Done")
 
       case inputString =>
-        inputString.toIntOption match {
+        toInt(inputString) match {
           case Some(i) =>
             logger.info(s"${l.last.terms.index(i)}")
             val pcs =

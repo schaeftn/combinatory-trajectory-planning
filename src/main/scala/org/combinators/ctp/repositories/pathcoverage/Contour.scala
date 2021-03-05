@@ -148,7 +148,9 @@ trait Contour extends LazyLogging with JtsUtils {
         val invalidToolPositions = initialScene.targetWorkpiece.buffer(t.d / 2.0d) // ???
         pGeo("invalidToolPositions", invalidToolPositions)
 
-        val selectedRestGeo: Option[Geometry] = initialScene.rest.maxByOption(_.getArea)
+        val selectedRestGeo: Option[Geometry] = if (initialScene.rest.nonEmpty) Some(
+          initialScene.rest.maxBy(_.getArea))
+        else None
 
         /**
          * extrahiert für die gewählte fräsfläche jene Grenze, welche an machined Bereich grenzt

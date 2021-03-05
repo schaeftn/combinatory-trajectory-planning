@@ -48,7 +48,7 @@ abstract class PythonWrapper[B](t: SubstitutionScheme, startFile: String) extend
 
   def executePythonFile(args: String): String = {
     val foo = s"python3 $startFile $args"
-    foo.lazyLines_!.takeWhile(_ => true).toList.mkString("\r\n")
+    foo.lineStream_!.takeWhile(_ => true).toList.mkString("\r\n")
   }
 }
 

@@ -22,7 +22,6 @@ import java.text.SimpleDateFormat
 import org.combinators.cls.interpreter.InhabitationResult
 
 import scala.annotation.tailrec
-import scala.jdk.CollectionConverters._
 import scala.language.implicitConversions
 import scala.util.{Failure, Try}
 import scala.xml.Elem

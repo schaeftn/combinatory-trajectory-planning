@@ -61,7 +61,7 @@ trait LineStringTraversal extends JtsUtils {
   lazy val aeActual: Double = lsLength / stepCount
   lazy val accList: IndexedSeq[(Int, Coordinate, Double)] = {
     val coords = ls.getCoordinates
-    val lengthList: Array[Double] = 0.0f +:
+    val lengthList: Array[Double] = 0.0f.toDouble +:
       (coords zip coords.tail).map { case (a, b) => getNewLineString(a, b).getLength }
     val accLengthList: Vector[Double] = accumulate(lengthList)
     (coords.indices zip coords zip accLengthList).map { case ((a, b), c) => (a, b, c) }
@@ -96,11 +96,18 @@ trait LineStringTraversal extends JtsUtils {
       getContinuousPointAndAngle(i * aeActual).getOrElse((null, 0.0d))
     }.toList.filter { case (a, _) => a != null }
 
+  def findLast(aList :  IndexedSeq[(Int, Coordinate, Double)], filter: ((Int, Coordinate, Double)) => Boolean ): Option[(Int, Coordinate, Double)] =
+  {
+    if (aList.nonEmpty)
+      aList.reverse.find(filter)
+    else
+      None
+  }
   def getContinuousPointAndAngle(targetLength: Double): Option[(Coordinate, Double)] = {
-    accList.findLast(_._3 <= targetLength).flatMap { // find last c thats leq targetLength
+    findLast(accList, {_._3 <= targetLength}).flatMap { // find last c thats leq targetLength
       case (a, b, c) =>
         val restLength = targetLength - c
-        accList.reverse.findLast(_._3 > c).map(_._2).map { // find first thats gt c
+        accList.find(_._3 > c).map(_._2).map { // find first thats gt c
           segEndCoord =>
             (LinearLocation.pointAlongSegmentByFraction(b, segEndCoord, restLength / b.distance(segEndCoord)),
               Angle.angle(b, segEndCoord))
@@ -112,15 +119,17 @@ trait LineStringTraversal extends JtsUtils {
 
   /**
    * selects a step number for a float parameter in between 0, 1
+   *
    * @param tpara
    * @return
    */
   def getStepForT(tpara: Float): Option[Int] = tpara match {
     case t if t < 0.0f || t > 1.0 => None
     case t =>
-      accList.findLast { case (_, _, accLength) =>
+      val last = findLast(accList, { case (_, _, accLength) =>
         accLength < t * lsLength
-      }.map(_._1)
+      })
+      last.map(_._1)
   }
 }
 
