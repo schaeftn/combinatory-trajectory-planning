@@ -21,7 +21,7 @@ import akka.stream.scaladsl.GraphDSL.Implicits._
 import akka.util.ByteString
 import akka.{Done, NotUsed}
 import org.combinators.cls.interpreter.InhabitationResult
-import org.combinators.ctp.repositories.python_interop.{PlannerScheme, SubstitutionScheme}
+import org.combinators.ctp.repositories.python_interop.{PlannerScheme, SubstitutionSchema}
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.runinhabitation.RunAkkaTopLevelCmp.{Gamma, ihBatch}
 import org.combinators.ctp.repositories.taxkinding.{CtpSemanticTypes, SbmpSemanticTypes}

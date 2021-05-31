@@ -18,7 +18,7 @@ import org.combinators.ctp.repositories.dynrepository.{CmpAlg, SbmpAlg, SceneInp
 import GraphDSL.Implicits._
 import org.combinators.cls.interpreter.InhabitationResult
 import org.combinators.ctp.repositories.geometry.GeometryUtils
-import org.combinators.ctp.repositories.python_interop.{PythonTemplateUtils, PythonWrapper, SimplePythonWrapper, SubstitutionScheme}
+import org.combinators.ctp.repositories.python_interop.{PythonTemplateUtils, PythonWrapper, SimplePythonWrapper, SubstitutionSchema}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -65,7 +65,7 @@ case class BenchmarkClientSbmp[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) e
     }
 
   def validatePath(s: List[List[Float]]): Boolean = {
-    val a = SubstitutionScheme.apply(Map(pathDataTemplate -> pathDataFile),
+    val a = SubstitutionSchema.apply(Map(pathDataTemplate -> pathDataFile),
       Map("$path_data.path$" -> writePyPathData(s))) //File in, File out
     val fct: String => Boolean = a => a.contains("Path is valid")
     PythonWrapper(a, samplingFolder + "path_validator.py", fct).computeResult

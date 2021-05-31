@@ -8,7 +8,7 @@ import org.combinators.cls.types.Constructor
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.toplevel._
 import org.combinators.ctp.repositories.geometry.GeometryUtils
-import org.combinators.ctp.repositories.python_interop.{PythonTemplateUtils, PythonWrapper, SubstitutionScheme}
+import org.combinators.ctp.repositories.python_interop.{PythonTemplateUtils, PythonWrapper, SubstitutionSchema}
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
 
@@ -37,7 +37,7 @@ trait GraphSearchPyRepository extends GeometryUtils with PythonTemplateUtils wit
           "$edges$" -> str._3,
           "$startIndex$" -> startIndex.toString,
           "$goalIndex$" -> goalIndex.toString)
-        val t = SubstitutionScheme(fileMap, substMap)
+        val t = SubstitutionSchema(fileMap, substMap)
 
         val pWrapper = PythonWrapper.apply(t, aStarStartFile, parseResult)
         pWrapper.computeResult
@@ -106,7 +106,7 @@ trait GraphSearchPyRepository extends GeometryUtils with PythonTemplateUtils wit
 //        print(s"asdtest")
         val fileMap = Map(tspTemplateLocation -> tspStartLocation)
         val substMap = Map("$substitute$" -> s)
-        val t = SubstitutionScheme(fileMap, substMap)
+        val t = SubstitutionSchema(fileMap, substMap)
 
         val pWrapper = PythonWrapper.apply(t, tspStartLocation, parseResult)
         pWrapper.computeResult
@@ -196,7 +196,7 @@ trait GraphSearchPyRepository extends GeometryUtils with PythonTemplateUtils wit
 
         val fileMap = Map(mstTemplateFile -> mstStartLocation)
         val substMap = Map("$substitute$" -> distanceString)
-        val t = SubstitutionScheme(fileMap, substMap)
+        val t = SubstitutionSchema(fileMap, substMap)
 
         val pWrapper = PythonWrapper.apply(t, mstStartLocation, parseResult)
         pWrapper.computeResult

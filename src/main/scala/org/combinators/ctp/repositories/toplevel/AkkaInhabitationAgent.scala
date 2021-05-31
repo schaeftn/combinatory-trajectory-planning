@@ -21,7 +21,7 @@ import akka.stream.scaladsl.GraphDSL.Implicits._
 import akka.util.ByteString
 import akka.{Done, NotUsed}
 import org.combinators.cls.interpreter.InhabitationResult
-import org.combinators.ctp.repositories.python_interop.{PlannerScheme, SubstitutionScheme}
+import org.combinators.ctp.repositories.python_interop.{PlannerScheme, SubstitutionSchema}
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.runinhabitation.RunAkkaTopLevelCmp.{Gamma, ihBatch}
 import org.combinators.ctp.repositories.taxkinding.SbmpSemanticTypes
@@ -135,8 +135,8 @@ object MpEndpoint extends LazyLogging with SbmpSemanticTypes {
       .addJob[Any](any_sbmp_motion_validator_type)
       .addJob[Any](any_sbmp_cost_type)
       .addJob[Any](any_sbmp_optimization_objective_type)
-      .addJob[((SceneSRT, MpTaskStartGoal)) => SubstitutionScheme](sbmp_input_data)
-      .addJob[(SceneSRT, MpTaskStartGoal) => SubstitutionScheme](sbmp_input_data)
+      .addJob[((SceneSRT, MpTaskStartGoal)) => SubstitutionSchema](sbmp_input_data)
+      .addJob[(SceneSRT, MpTaskStartGoal) => SubstitutionSchema](sbmp_input_data)
       .addJob[Any](any_sbmp_simplification_type)
       .addJob[Any](any_dimensionality_type)
       .addJob[((SceneSRT, MpTaskStartGoal)) => List[List[Float]]](sbmp_planning_algorithm)

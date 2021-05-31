@@ -11,7 +11,7 @@ import io.circe.parser.decode
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.combinators.cls.inhabitation.Repository
-import org.combinators.ctp.repositories.python_interop.{PlannerScheme, SubstitutionScheme}
+import org.combinators.ctp.repositories.python_interop.{PlannerScheme, SubstitutionSchema}
 import org.combinators.ctp.repositories.toplevel._
 import org.locationtech.jts.util.Stopwatch
 import org.combinators.ctp.repositories._
@@ -269,7 +269,7 @@ case class SbmpAlg(planner: SbmpPlanners.EnumType,
           .addJob[Any](any_sbmp_motion_validator_type)
           .addJob[Any](any_sbmp_cost_type)
           .addJob[Any](any_sbmp_optimization_objective_type)
-          .addJob[((ProblemDefinitionFiles, String)) => SubstitutionScheme](sbmp_input_data)
+          .addJob[((ProblemDefinitionFiles, String)) => SubstitutionSchema](sbmp_input_data)
           .addJob[Any](any_sbmp_simplification_type)
           .addJob[Any](any_dimensionality_type)
           .addJob[((ProblemDefinitionFiles, String)) => List[List[Float]]](sbmp_planning_algorithm)
@@ -281,7 +281,7 @@ case class SbmpAlg(planner: SbmpPlanners.EnumType,
           .addJob[Any](any_sbmp_motion_validator_type)
           .addJob[Any](any_sbmp_cost_type)
           .addJob[Any](any_sbmp_optimization_objective_type)
-          .addJob[ProblemDefinitionFiles => SubstitutionScheme](sbmp_input_data)
+          .addJob[ProblemDefinitionFiles => SubstitutionSchema](sbmp_input_data)
           .addJob[Any](any_sbmp_simplification_type)
           .addJob[Any](any_dimensionality_type)
           .addJob[ProblemDefinitionFiles => List[List[Float]]](sbmp_planning_algorithm)
@@ -293,7 +293,7 @@ case class SbmpAlg(planner: SbmpPlanners.EnumType,
           .addJob[Any](any_sbmp_motion_validator_type)
           .addJob[Any](any_sbmp_cost_type)
           .addJob[Any](any_sbmp_optimization_objective_type)
-          .addJob[((SceneSRT, MpTaskStartGoal, Map[String, String])) => SubstitutionScheme](sbmp_input_data)
+          .addJob[((SceneSRT, MpTaskStartGoal, Map[String, String])) => SubstitutionSchema](sbmp_input_data)
           .addJob[Any](any_sbmp_simplification_type)
           .addJob[Any](any_dimensionality_type)
           .addJob[((SceneSRT, MpTaskStartGoal, Map[String, String])) => List[List[Float]]](sbmp_planning_algorithm)
@@ -304,7 +304,7 @@ case class SbmpAlg(planner: SbmpPlanners.EnumType,
           .addJob[Any](any_sbmp_motion_validator_type)
           .addJob[Any](any_sbmp_cost_type)
           .addJob[Any](any_sbmp_optimization_objective_type)
-          .addJob[((ProblemDefinitionFiles, String)) => SubstitutionScheme](sbmp_input_data)
+          .addJob[((ProblemDefinitionFiles, String)) => SubstitutionSchema](sbmp_input_data)
           .addJob[Any](any_sbmp_simplification_type)
           .addJob[Any](any_dimensionality_type)
           .addJob[((ProblemDefinitionFiles, String)) => (List[List[Float]], List[List[Float]])](sbmp_planning_algorithm)
@@ -316,7 +316,7 @@ case class SbmpAlg(planner: SbmpPlanners.EnumType,
           .addJob[Any](any_sbmp_motion_validator_type)
           .addJob[Any](any_sbmp_cost_type)
           .addJob[Any](any_sbmp_optimization_objective_type)
-          .addJob[ProblemDefinitionFiles => SubstitutionScheme](sbmp_input_data)
+          .addJob[ProblemDefinitionFiles => SubstitutionSchema](sbmp_input_data)
           .addJob[Any](any_sbmp_simplification_type)
           .addJob[Any](any_dimensionality_type)
           .addJob[ProblemDefinitionFiles => (List[List[Float]], List[List[Float]])](sbmp_planning_algorithm)
@@ -328,7 +328,7 @@ case class SbmpAlg(planner: SbmpPlanners.EnumType,
           .addJob[Any](any_sbmp_motion_validator_type)
           .addJob[Any](any_sbmp_cost_type)
           .addJob[Any](any_sbmp_optimization_objective_type)
-          .addJob[((SceneSRT, MpTaskStartGoal, Map[String, String])) => SubstitutionScheme](sbmp_input_data)
+          .addJob[((SceneSRT, MpTaskStartGoal, Map[String, String])) => SubstitutionSchema](sbmp_input_data)
           .addJob[Any](any_sbmp_simplification_type)
           .addJob[Any](any_dimensionality_type)
           .addJob[((SceneSRT, MpTaskStartGoal, Map[String, String])) => (List[List[Float]], List[List[Float]])](sbmp_planning_algorithm)
@@ -339,7 +339,7 @@ case class SbmpAlg(planner: SbmpPlanners.EnumType,
           .addJob[Any](any_sbmp_motion_validator_type)
           .addJob[Any](any_sbmp_cost_type)
           .addJob[Any](any_sbmp_optimization_objective_type)
-          .addJob[((SceneSRT, MpTaskStartGoal)) => SubstitutionScheme](sbmp_input_data)
+          .addJob[((SceneSRT, MpTaskStartGoal)) => SubstitutionSchema](sbmp_input_data)
           .addJob[Any](any_sbmp_simplification_type)
           .addJob[Any](any_dimensionality_type)
           .addJob[((SceneSRT, MpTaskStartGoal)) => List[List[Float]]](sbmp_planning_algorithm)

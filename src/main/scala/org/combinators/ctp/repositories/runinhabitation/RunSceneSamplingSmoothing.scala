@@ -14,7 +14,7 @@ import org.combinators.ctp.repositories.taxkinding.CtpSemanticTypes
 import org.combinators.ctp.repositories.toplevel.{AkkaImplicits, AkkaMqttTopLevelCmp, AkkaMqttTopLevelCmpSbmp, ProblemDefinitionFiles}
 import org.combinators.ctp.repositories._
 import org.combinators.cls.types.syntax._
-import org.combinators.ctp.repositories.python_interop.{PlannerScheme, SubstitutionScheme}
+import org.combinators.ctp.repositories.python_interop.{PlannerScheme, SubstitutionSchema}
 import org.combinators.ctp.repositories.runinhabitation.RunSbmpTopLevel.{Gamma, getTypeFromMap, kindingMap, resolveTypeExpression}
 
 import scala.concurrent.Future
@@ -79,11 +79,11 @@ object RunSceneSamplingSmoothing extends App with LazyLogging {
         sbmp_cost_var))
     .addJob[PlannerScheme[List[List[Float]]]](
       resolveTypeExpression(sbmp_planner_var))
-    .addJob[SubstitutionScheme](resolveTypeExpression(sbmp_sampler_var))
-    .addJob[SubstitutionScheme](resolveTypeExpression(sbmp_state_validator_var :&: sbmp_state_validator_var))
-    .addJob[SubstitutionScheme](resolveTypeExpression(sbmp_motion_validator_var))
-    .addJob[SubstitutionScheme](resolveTypeExpression(sbmp_cost_var :&: sbmp_optimization_objective_var))
-    .addJob[((ProblemDefinitionFiles, List[List[Float]])) => SubstitutionScheme](
+    .addJob[SubstitutionSchema](resolveTypeExpression(sbmp_sampler_var))
+    .addJob[SubstitutionSchema](resolveTypeExpression(sbmp_state_validator_var :&: sbmp_state_validator_var))
+    .addJob[SubstitutionSchema](resolveTypeExpression(sbmp_motion_validator_var))
+    .addJob[SubstitutionSchema](resolveTypeExpression(sbmp_cost_var :&: sbmp_optimization_objective_var))
+    .addJob[((ProblemDefinitionFiles, List[List[Float]])) => SubstitutionSchema](
       resolveTypeExpression(sbmp_input_data :&: dimensionality_var))
     .addJob[Sink[MqttMessage, Future[Done]]](
       resolveTypeExpression(p_mqttAkkaSink_type :&: cmp_path_only :&: dimensionality_var))
