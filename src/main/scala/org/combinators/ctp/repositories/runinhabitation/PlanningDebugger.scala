@@ -36,8 +36,12 @@ class PlanningDebugger @Inject()(val webJarsUtil: WebJarsUtil, val lifeCycle: Ap
   override val refRepo: Option[ReflectedRepository[_]] = Some(Gamma)
   override val result = Some(inhabitationResult)
   override val tgts: Seq[Type] = Seq(result.get.target)
-  val dUtils = PcrDebuggerUtils(inhabitationResult, true)
-  dUtils.evalInhabitants(0 to 100)
+  override val nativeType: Option[_] = Some(PathCoverageResult)
+  override def computeTermsForDownload = {
+    print("....", filteredResult)
+    PcrDebuggerUtils(filteredResult.get, true).evalInhabitants(0 to 2)
+ }
+
   lazy val inhabitationResult = Gamma.inhabit[PathCoverageResult](tgtType)
 
 
