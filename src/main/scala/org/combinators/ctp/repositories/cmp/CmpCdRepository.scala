@@ -7,7 +7,7 @@ import org.combinators.cls.interpreter._
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.geometry.{PpAaBb2D, PpVertexList}
-import org.combinators.ctp.repositories.python_interop.{PythonTemplateUtils, PythonWrapper, SubstitutionScheme}
+import org.combinators.ctp.repositories.python_interop.{PythonTemplateUtils, PythonWrapper, SubstitutionSchema}
 import org.combinators.ctp.repositories.toplevel.{CellSegmentation, MpTaskStartGoal, PolySceneCellSegmentation, PolySceneLineSegmentation, PolySceneSegmentationRoadmap, PolygonScene, ProblemDefinitionFiles, RmInput}
 import org.combinators.cls.interpreter._
 import org.combinators.cls.types.Constructor
@@ -40,7 +40,7 @@ trait CmpCdRepository extends PythonTemplateUtils with CmpUtils with SceneUtils 
 
       val fileMap = Map(cdTemplateLocationTri -> cdStartLocationTri)
       val substMap = Map("$substitute$" -> pythonSceneString(polyScene))
-      val t = SubstitutionScheme(fileMap, substMap)
+      val t = SubstitutionSchema(fileMap, substMap)
 
       val pWrapper = PythonWrapper.apply(t, cdStartLocationTri, decodeCellSegmentationFct)
       pWrapper.computeResult(polyScene)
@@ -64,7 +64,7 @@ trait CmpCdRepository extends PythonTemplateUtils with CmpUtils with SceneUtils 
 
       val fileMap = Map(cdTemplateLocationTriPara -> cdStartLocationTriPara)
       val substMap = Map("$substitute$" -> pythonSceneString(polyScene))
-      val t = SubstitutionScheme(fileMap, substMap)
+      val t = SubstitutionSchema(fileMap, substMap)
 
       val pWrapper = PythonWrapper.apply(t, cdStartLocationTriPara, decodeCellSegmentationFct)
       pWrapper.computeResult(polyScene)
@@ -90,7 +90,7 @@ trait CmpCdRepository extends PythonTemplateUtils with CmpUtils with SceneUtils 
 
       val fileMap = Map(cdTemplateLocationTet -> cdStartLocationTet)
       val substMap = Map("$substitute$" -> pythonSceneString(polyScene))
-      val t = SubstitutionScheme(fileMap, substMap)
+      val t = SubstitutionSchema(fileMap, substMap)
 
       val pWrapper = PythonWrapper.apply(t, cdStartLocationTet, decodeCellSegmentationFct)
       pWrapper.computeResult(polyScene)
@@ -104,7 +104,7 @@ trait CmpCdRepository extends PythonTemplateUtils with CmpUtils with SceneUtils 
       val fileMap = Map(cdTemplateLocationTetFileBased -> cdStartLocationTetFileBased)
       val substMap = Map("$run_tetrahedralization_file.envFile$" -> s""""${pdef.envModelLocation}"""",
         "$run_tetrahedralization_file.boxminmax$" -> getBoxMinMaxString(pdef.problemProperties))
-      val t = SubstitutionScheme(fileMap, substMap)
+      val t = SubstitutionSchema(fileMap, substMap)
 
       def decodeCellSegmentationFile: String => PolySceneCellSegmentation = {
         resultString: String =>
@@ -133,7 +133,7 @@ trait CmpCdRepository extends PythonTemplateUtils with CmpUtils with SceneUtils 
       val fileMap = Map(cdTemplateLocationTetFileBasedRm -> cdStartLocationTetFileBasedRm)
       val substMap = Map("$run_tetrahedralization_file.envFile$" -> s""""${pdef.envModelLocation}"""",
         "$run_tetrahedralization_file.boxminmax$" -> getBoxMinMaxString(pdef.problemProperties))
-      val t = SubstitutionScheme(fileMap, substMap)
+      val t = SubstitutionSchema(fileMap, substMap)
 
       def decodeCellSegmentationFile: String => RmInput = {
         resultString: String =>

@@ -4,7 +4,7 @@ import org.combinators.cls.interpreter.combinator
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.toplevel._
-import org.combinators.ctp.repositories.python_interop.{PythonTemplateUtils, SubstitutionScheme}
+import org.combinators.ctp.repositories.python_interop.{PythonTemplateUtils, SubstitutionSchema}
 import org.combinators.ctp.repositories.scene._
 
 
@@ -12,7 +12,7 @@ import org.combinators.ctp.repositories.scene._
 trait SbmpInputDataRepository extends SceneUtils with PythonTemplateUtils {
 
   @combinator object SceneSrtToFclSceneData {
-    def apply: ((SceneSRT, MpTaskStartGoal)) => SubstitutionScheme = {
+    def apply: ((SceneSRT, MpTaskStartGoal)) => SubstitutionSchema = {
       case (scene: SceneSRT, task: MpTaskStartGoal) =>
         val fileMapping: Map[String, String] = Map(sbmpStartTemplate -> sbmpMainStartFile,
           fclSceneDataTemplate -> fclSceneDataFile)
@@ -22,7 +22,7 @@ trait SbmpInputDataRepository extends SceneUtils with PythonTemplateUtils {
             "$sbmp_main.r3bounds$" -> getOmplBoundsFromScene(scene),
             "$path_data.path$" -> "path_list=np.array([])")
         }
-        SubstitutionScheme(fileMapping, substituteMap)
+        SubstitutionSchema(fileMapping, substituteMap)
     }
 
     val semanticType = sbmp_input_data :&: dimensionality_three_d_t
@@ -31,7 +31,7 @@ trait SbmpInputDataRepository extends SceneUtils with PythonTemplateUtils {
 
 
   @combinator object ScenePolyToCgalSceneData {
-    def apply: (PolySceneSegmentationRoadmapPath, MpTaskStartGoal) => SubstitutionScheme = {
+    def apply: (PolySceneSegmentationRoadmapPath, MpTaskStartGoal) => SubstitutionSchema = {
       (scene: PolySceneSegmentationRoadmapPath, task: MpTaskStartGoal) =>
         val fileMapping: Map[String, String] = Map(sbmpStartTemplate -> sbmpMainStartFile,
           cgalSceneDataTemplate -> cgalSceneDataFile)
@@ -39,7 +39,7 @@ trait SbmpInputDataRepository extends SceneUtils with PythonTemplateUtils {
           Map("$cgal_scene_data.data$" -> cgalSceneStringPolyPath(scene),
             "$sbmp_main.startstop$" -> taskGoalStartToPythonOMPLString(task))
         }
-        SubstitutionScheme(fileMapping, substituteMap)
+        SubstitutionSchema(fileMapping, substituteMap)
     }
 
     val semanticType = sbmp_input_data :&: dimensionality_two_d_t
@@ -48,7 +48,7 @@ trait SbmpInputDataRepository extends SceneUtils with PythonTemplateUtils {
 
 
   @combinator object SceneFileImportSceneData {
-    def apply: ProblemDefinitionFiles => SubstitutionScheme = {
+    def apply: ProblemDefinitionFiles => SubstitutionSchema = {
       scene: ProblemDefinitionFiles =>
         val fileMapping: Map[String, String] = Map(sbmpStartTemplate -> sbmpMainStartFile,
           fclSceneDataTemplate -> fclSceneDataFile)
@@ -59,7 +59,7 @@ trait SbmpInputDataRepository extends SceneUtils with PythonTemplateUtils {
             "$sbmp_main.r3bounds$" -> readOmplBoundsFromCfg(scene.problemProperties),
             "$path_data.path$" -> "path_list=np.array([])")
         }
-        SubstitutionScheme(fileMapping, substituteMap)
+        SubstitutionSchema(fileMapping, substituteMap)
     }
 
     val semanticType = sbmp_input_data :&: dimensionality_three_d_t
@@ -67,7 +67,7 @@ trait SbmpInputDataRepository extends SceneUtils with PythonTemplateUtils {
   }
 
   @combinator object SceneFileImportPathSceneData {
-    def apply: ((ProblemDefinitionFiles, List[List[Float]])) => SubstitutionScheme = {
+    def apply: ((ProblemDefinitionFiles, List[List[Float]])) => SubstitutionSchema = {
       case (scene: ProblemDefinitionFiles, pathNodes: List[List[Float]]) =>
         val fileMapping: Map[String, String] = Map(sbmpStartTemplate -> sbmpMainStartFile,
           fclSceneDataTemplate -> fclSceneDataFile,
@@ -80,7 +80,7 @@ trait SbmpInputDataRepository extends SceneUtils with PythonTemplateUtils {
             "$path_data.path$" -> writePyPathData(pathNodes)
           )
         }
-        SubstitutionScheme(fileMapping, substituteMap)
+        SubstitutionSchema(fileMapping, substituteMap)
     }
 
     val semanticType = sbmp_input_data :&: dimensionality_three_d_t
@@ -88,7 +88,7 @@ trait SbmpInputDataRepository extends SceneUtils with PythonTemplateUtils {
   }
 
   @combinator object FileBasedWithConfigInputData {
-    def apply: ((ProblemDefinitionFiles, String)) => SubstitutionScheme = {
+    def apply: ((ProblemDefinitionFiles, String)) => SubstitutionSchema = {
       case (scene: ProblemDefinitionFiles, _: String) =>
         val fileMapping: Map[String, String] = Map(sbmpStartTemplate -> sbmpMainStartFile,
           fclSceneDataTemplate -> fclSceneDataFile,
@@ -100,7 +100,7 @@ trait SbmpInputDataRepository extends SceneUtils with PythonTemplateUtils {
             "$sbmp_main.r3bounds$" -> readOmplBoundsFromCfg(scene.problemProperties),
             "$path_data.path$" -> "path_list=np.array([])")
         }
-        SubstitutionScheme(fileMapping, substituteMap)
+        SubstitutionSchema(fileMapping, substituteMap)
     }
 
     val semanticType = sbmp_input_data :&: dimensionality_three_d_t

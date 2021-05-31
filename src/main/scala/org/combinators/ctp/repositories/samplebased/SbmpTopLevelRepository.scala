@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.combinators.cls.interpreter.combinator
 import org.combinators.cls.types.{Constructor, Taxonomy}
 import org.combinators.ctp.repositories.scene.SceneUtils
-import org.combinators.ctp.repositories.python_interop.{PlannerScheme, PythonTemplateUtils, PythonWrapper, SubstitutionScheme}
+import org.combinators.ctp.repositories.python_interop.{PlannerScheme, PythonTemplateUtils, PythonWrapper, SubstitutionSchema}
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.toplevel._
@@ -94,15 +94,31 @@ trait SbmpTopLevelRepository extends SceneUtils with PythonTemplateUtils with Sb
       dimensionality_n_d_t)
   )
 
-  val taxType = any_sbmp_planner_type =>: any_sbmp_state_validator_type =>: any_sbmp_motion_validator_type =>:
-    any_sbmp_simplification_type =>: sbmp_input_data :&: any_dimensionality_type =>: sbmp_planning_algorithm
+
+
+  trait VarSemanticType {
+    val semanticType =
+      sbmp_planner_var :&: sbmp_sampler_var :&: sbmp_optimization_objective_var =>: //TODO Prio2 Test
+        sbmp_state_validator_var =>:
+        sbmp_motion_validator_var =>:
+        sbmp_simplification_var =>:
+        sbmp_input_data :&: dimensionality_var =>: //ggf plus sampler, plus motion validator?
+        sbmp_planning_algorithm :&: sbmp_planner_var :&: sbmp_sampler_var :&:
+          sbmp_state_validator_var :&: sbmp_motion_validator_var :&: sbmp_optimization_objective_var :&:
+          sbmp_cost_var :&: sbmp_simplification_var :&: dimensionality_var
+  }
+
+  trait TaxSemanticType{
+    val semanticType = any_sbmp_planner_type =>: any_sbmp_state_validator_type =>: any_sbmp_motion_validator_type =>:
+      any_sbmp_simplification_type =>: sbmp_input_data :&: any_dimensionality_type =>: sbmp_planning_algorithm
+  }
 
   trait OmplPlannerTrait[A, B] {
     def apply(pScheme: PlannerScheme[B],
-              stateValidatorSubstScheme: SubstitutionScheme,
-              motionValidatorSubstScheme: SubstitutionScheme,
-              simplificationSubstScheme: SubstitutionScheme,
-              dataSubstScheme: (A) => SubstitutionScheme): (A) => B = { (input: A) =>
+              stateValidatorSubstScheme: SubstitutionSchema,
+              motionValidatorSubstScheme: SubstitutionSchema,
+              simplificationSubstScheme: SubstitutionSchema,
+              dataSubstScheme: (A) => SubstitutionSchema): (A) => B = { (input: A) =>
       logger.debug("OmplPlannerTrait: Starting")
       logger.debug(s"input: $input")
       val schemeList = List(pScheme.st, stateValidatorSubstScheme,
@@ -123,65 +139,51 @@ trait SbmpTopLevelRepository extends SceneUtils with PythonTemplateUtils with Sb
       logger.debug("OmplPlannerTrait: Starting PyWrapper")
       pWrapper.computeResult
     }
-
-    val semanticType =
-      sbmp_planner_var :&: sbmp_sampler_var :&: sbmp_optimization_objective_var =>: //TODO Prio2 Test
-        sbmp_state_validator_var =>:
-        sbmp_motion_validator_var =>:
-        sbmp_simplification_var =>:
-        sbmp_input_data :&: dimensionality_var =>: //ggf plus sampler, plus motion validator?
-        sbmp_planning_algorithm :&: sbmp_planner_var :&: sbmp_sampler_var :&:
-          sbmp_state_validator_var :&: sbmp_motion_validator_var :&: sbmp_optimization_objective_var :&:
-          sbmp_cost_var :&: sbmp_simplification_var :&: dimensionality_var
-  }
-
-  @combinator object OmplPlannerRefinement extends
-    OmplPlannerTrait[(ProblemDefinitionFiles, List[List[Float]]), List[List[Float]]] {}
-
-  @combinator object OmplPlannerRefinementTaxonomy extends
-    OmplPlannerTrait[(ProblemDefinitionFiles, List[List[Float]]), List[List[Float]]] {
-    override val semanticType = taxType
-  }
-
-  @combinator object OmplPlannerRefinementWithStates extends
-    OmplPlannerTrait[(ProblemDefinitionFiles, List[List[Float]]), (List[List[Float]], List[List[Float]])] {
-    override val semanticType = taxType
-  }
-
-  @combinator object OmplPlannerWithStates extends
-    OmplPlannerTrait[ProblemDefinitionFiles, (List[List[Float]], List[List[Float]])] {
-    override val semanticType = taxType
-  }
-
-  @combinator object OmplPlannerProblemFileConfigWithStates extends
-    OmplPlannerTrait[(ProblemDefinitionFiles, String), (List[List[Float]], List[List[Float]])] {
-    override val semanticType = taxType
-  }
-
-  @combinator object OmplPlannerStandard extends
-    OmplPlannerTrait[(SceneSRT, MpTaskStartGoal), List[List[Float]]] {}
-
-  @combinator object OmplPlannerProblemFile extends
-    OmplPlannerTrait[ProblemDefinitionFiles, List[List[Float]]] {}
-
-  @combinator object OmplPlannerProblemFileConfig extends
-    OmplPlannerTrait[(ProblemDefinitionFiles, String), List[List[Float]]] {
-    override val semanticType = taxType
-  }
-
-  @combinator object OmplPlannerStandardTaxonomy extends
-    OmplPlannerTrait[(SceneSRT, MpTaskStartGoal), List[List[Float]]] {
-    override val semanticType = taxType
   }
 
   @combinator object OmplPlannerProblemFileTaxonomy extends
     OmplPlannerTrait[ProblemDefinitionFiles, List[List[Float]]] {
-    override val semanticType = taxType
+    val semanticType = any_sbmp_planner_type =>: any_sbmp_state_validator_type =>:
+      any_sbmp_motion_validator_type =>: any_sbmp_simplification_type =>:
+      sbmp_input_data :&: any_dimensionality_type =>: sbmp_planning_algorithm
   }
 
+  @combinator object OmplPlannerProblemFile extends
+    OmplPlannerTrait[ProblemDefinitionFiles, List[List[Float]]] with VarSemanticType {}
+
+  @combinator object OmplPlannerRefinementTaxonomy extends
+    OmplPlannerTrait[(ProblemDefinitionFiles, List[List[Float]]), List[List[Float]]] with TaxSemanticType{
+  }
+
+  @combinator object OmplPlannerRefinement extends
+    OmplPlannerTrait[(ProblemDefinitionFiles, List[List[Float]]), List[List[Float]]] with VarSemanticType {}
+
+  @combinator object OmplPlannerRefinementWithStates extends
+    OmplPlannerTrait[(ProblemDefinitionFiles, List[List[Float]]), (List[List[Float]], List[List[Float]])] with TaxSemanticType{
+  }
+
+  @combinator object OmplPlannerWithStates extends
+    OmplPlannerTrait[ProblemDefinitionFiles, (List[List[Float]], List[List[Float]])] with TaxSemanticType {
+  }
+
+  @combinator object OmplPlannerProblemFileConfigWithStates extends
+    OmplPlannerTrait[(ProblemDefinitionFiles, String), (List[List[Float]], List[List[Float]])] with TaxSemanticType {
+  }
+
+  @combinator object OmplPlannerStandard extends
+    OmplPlannerTrait[(SceneSRT, MpTaskStartGoal), List[List[Float]]] with VarSemanticType {}
+
+
+  @combinator object OmplPlannerProblemFileConfig extends
+    OmplPlannerTrait[(ProblemDefinitionFiles, String), List[List[Float]]] with TaxSemanticType {
+  }
+
+  @combinator object OmplPlannerStandardTaxonomy extends
+    OmplPlannerTrait[(SceneSRT, MpTaskStartGoal), List[List[Float]]] with TaxSemanticType {
+  }
 
   trait EmptyTemplateScheme[A] {
-    def apply: A => SubstitutionScheme = (_: A) => SubstitutionScheme(
+    def apply: A => SubstitutionSchema = (_: A) => SubstitutionSchema(
       Map.empty[String, String], //no files
       Map.empty[String, String], //no substitutions
     )

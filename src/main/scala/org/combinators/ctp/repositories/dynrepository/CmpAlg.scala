@@ -15,7 +15,7 @@ import io.circe.generic.auto._
 import io.circe.syntax._
 import org.combinators.cls.types.syntax._
 import org.combinators.cls.inhabitation.Repository
-import org.combinators.ctp.repositories.python_interop.{PlannerScheme, SubstitutionScheme}
+import org.combinators.ctp.repositories.python_interop.{PlannerScheme, SubstitutionSchema}
 import org.combinators.ctp.repositories.toplevel.{AkkaImplicits, AkkaMqttTopLevelCmp, AkkaMqttTopLevelSbmp, EncodeImplicits, MpTaskStartGoal, PolySceneCellSegmentation, PolySceneSegmentationRoadmap, PolySceneSegmentationRoadmapPath, PolygonScene, ProblemDefinitionFiles, Scene, SceneSRT}
 import org.locationtech.jts.util.Stopwatch
 import org.combinators.ctp.repositories._
