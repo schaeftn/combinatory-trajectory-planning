@@ -1,7 +1,9 @@
 import java.nio.file.Paths
 
-import sbt.Keys._
+import sbt.Keys.{sources, _}
 import sbt.Resolver
+import play.sbt.PlayLayoutPlugin
+import play.twirl.sbt.SbtTwirl
 
 val circeVersion = "0.12.3"
 
@@ -31,11 +33,16 @@ updateOptions := updateOptions.value.withLatestSnapshots(true)
 
 lazy val root = (Project(id = "combinatory-trajectory-planning", base = file(".")))
   .settings(commonSettings: _*)
+  .enablePlugins(SbtTwirl)
+  .enablePlugins(PlayScala)
+  .disablePlugins(PlayLayoutPlugin)
   .settings(
     moduleName := "cls-ctp",
     libraryDependencies ++= Seq(
-      //"org.combinators" %% "cls-scala" % "2.1.0+7-9e42ea3e",
-      "org.combinators" %% "cls-scala" % "3.0.0",
+      "org.combinators" %% "cls-scala-presentation-play-git" % "1.0.0-RC1+1-00659e19",
+      //"org.combinators" %% "cls-scala" % "2.1.0+8-cf2ab1a1+20200608-1714",
+      "org.combinators" %% "cls-scala" % "2.1.0+22-fff1dbf4",
+      "org.combinators" %% "cls-scala-ide" % "c10cebf7+20210530-1120",
       "org.scalactic" %% "scalactic" % "3.1.2" % "test",
       "org.scalatest" %% "scalatest" % "3.1.2" % "test",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
@@ -47,27 +54,35 @@ lazy val root = (Project(id = "combinatory-trajectory-planning", base = file("."
       "org.scala-graph" %% "graph-core" % "1.12.5",
       "org.scala-graph" %% "graph-json" % "1.12.1",
       "org.eclipse.paho" % "org.eclipse.paho.client.mqttv3" % "1.2.0",
+      //ide
+      "org.webjars" %% "webjars-play" % "2.6.1",
+      "org.webjars" % "bootstrap" % "3.3.7-1",
+      "org.webjars.bower" % "cytoscape" % "3.2.5",
+      "com.typesafe.play" %% "play-json" % "2.6.2",
+      //
       "org.locationtech.jts" % "jts-core" % "1.17.1",
       "com.dreizak" % "miniball" % "1.0.3",
       "org.scalaz" %% "scalaz-core" % "7.2.27",
       "org.apache.commons" % "commons-math3" % "3.6.1",
       "org.apache.commons" % "commons-geometry-core" % "1.0-SNAPSHOT",
-      "org.apache.commons" % "commons-geometry-euclidean" % "1.0-SNAPSHOT") ++
+      "org.apache.commons" % "commons-geometry-euclidean" % "1.0-SNAPSHOT",
+      guice) ++
 
       //<module>commons-geometry-spherical</module>
       //<module>commons-geometry-hull</module>
       //<module>commons-geometry-enclosing</module>
 
-      Seq(
+    Seq(
         "io.circe" %% "circe-core",
         "io.circe" %% "circe-generic",
         "io.circe" %% "circe-parser"
       ).map(_ % circeVersion),
-    unmanagedSources / excludeFilter := {
+   unmanagedSources / excludeFilter := {
       val pf = (baseDirectory.value / "src" ) ** ("temp") ** ("*.scala" || "*.package")
       (s => pf.get().contains(s))
     },
-    mainClass in (Compile, packageBin) := Some("org.combinators.ctp.repositories.benchmarks.RunBmClient")
+    mainClass in (Compile, packageBin) := Some("org.combinators.ctp.repositories.benchmarks.RunBmClient"),
+      sources in (Test, play.sbt.routes.RoutesKeys.routes) ++= ((unmanagedResourceDirectories in Test).value * "routes").get
   )
 lazy val noPublishSettings = Seq(
   publish := Seq.empty,
