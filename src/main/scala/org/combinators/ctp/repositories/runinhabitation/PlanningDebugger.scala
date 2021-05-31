@@ -1,17 +1,15 @@
 package org.combinators.ctp.repositories.runinhabitation
 
 import controllers.Assets
-
 import javax.inject.Inject
 import org.combinators.cls.ide.{DebuggerController, DebuggerEnabled}
 import org.combinators.cls.interpreter.{InhabitationResult, ReflectedRepository}
 import org.combinators.cls.types.{Taxonomy, Type}
 import org.combinators.cls.types.syntax._
-import org.combinators.ctp.repositories.pathcoverage.CamMpTopRepository
-import org.combinators.ctp.repositories.runinhabitation.RunCncDebugger.inhabitationResult
-import org.combinators.ctp.repositories.toplevel.{PathCoverageResult, PcrDebuggerUtils}
+import org.combinators.ctp.repositories.pathcoverage.{CamMpTopRepository, PathCoverageResult}
+import org.combinators.ctp.repositories.toplevel.PcrEvaluationUtils
 import org.webjars.play.WebJarsUtil
-import play.api.inject.ApplicationLifecycle
+import play.inject.ApplicationLifecycle
 
 class PlanningDebugger @Inject()(val webJarsUtil: WebJarsUtil, val lifeCycle: ApplicationLifecycle, assets: Assets)
   extends DebuggerController(webJarsUtil, assets)
@@ -36,8 +34,12 @@ class PlanningDebugger @Inject()(val webJarsUtil: WebJarsUtil, val lifeCycle: Ap
   override val refRepo: Option[ReflectedRepository[_]] = Some(Gamma)
   override val result = Some(inhabitationResult)
   override val tgts: Seq[Type] = Seq(result.get.target)
-  val dUtils = PcrDebuggerUtils(inhabitationResult, true)
-  dUtils.evalInhabitants(0 to 100)
+  override val nativeType: Option[_] = Some(PathCoverageResult)
+  override def computeTermsForDownload = {
+    print("....", filteredResult)
+    PcrEvaluationUtils(filteredResult.get, true,0.005f).evalInhabitants(0 to 2)
+ }
+
   lazy val inhabitationResult = Gamma.inhabit[PathCoverageResult](tgtType)
 
 

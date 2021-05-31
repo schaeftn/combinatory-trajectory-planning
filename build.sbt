@@ -40,8 +40,9 @@ lazy val root = (Project(id = "combinatory-trajectory-planning", base = file("."
     moduleName := "cls-ctp",
     libraryDependencies ++= Seq(
       "org.combinators" %% "cls-scala-presentation-play-git" % "1.0.0-RC1+1-00659e19",
-      "org.combinators" %% "cls-scala" % "2.1.0+8-cf2ab1a1+20200608-1714",
-      "org.combinators" %% "cls-scala-ide" % "5e3fe737+20210409-1504",
+      //"org.combinators" %% "cls-scala" % "2.1.0+8-cf2ab1a1+20200608-1714",
+      "org.combinators" %% "cls-scala" % "2.1.0+22-fff1dbf4",
+      "org.combinators" %% "cls-scala-ide" % "c10cebf7+20210530-1120",
       "org.scalactic" %% "scalactic" % "3.1.2" % "test",
       "org.scalatest" %% "scalatest" % "3.1.2" % "test",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
