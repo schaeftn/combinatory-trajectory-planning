@@ -7,7 +7,7 @@ import java.util.Calendar
 import org.combinators.cls.interpreter.InhabitationResult
 
 trait PcrDebuggerUtils{
-  val inhabitants: InhabitationResult[_]
+  val inhabitants: InhabitationResult[PathCoverageResult]
   val timeString: String
   val printKlartext: Boolean
 
@@ -21,8 +21,9 @@ trait PcrDebuggerUtils{
     new java.io.File(path).mkdirs
   }
 
-  def runInhabitant(i: Int): PathCoverageResult =
+  def runInhabitant(i: Int): PathCoverageResult = {
     inhabitants.interpretedTerms.index(i).asInstanceOf[PathCoverageResult]
+  }
 
   def evalInhabitants(range: Range) = {
     val evaluatedInhabitants = range.map(runInhabitant)
@@ -48,8 +49,8 @@ trait PcrDebuggerUtils{
 }
 
 object PcrDebuggerUtils {
-  def apply(inhabitationResult: InhabitationResult[_], withKlarText: Boolean = true): PcrDebuggerUtils = new PcrDebuggerUtils {
-    override val inhabitants: InhabitationResult[_] = inhabitationResult
+  def apply(inhabitationResult: InhabitationResult[PathCoverageResult], withKlarText: Boolean = true): PcrDebuggerUtils = new PcrDebuggerUtils {
+    override val inhabitants: InhabitationResult[PathCoverageResult] = inhabitationResult
     override val timeString: String = {
       val now = Calendar.getInstance().getTime()
       val minuteFormat = new SimpleDateFormat("yyyyMMdd_HHmm")
