@@ -14,7 +14,9 @@ import org.locationtech.jts.math.Vector2D
 import org.locationtech.jts.operation.distance.DistanceOp
 import org.locationtech.jts.util.GeometricShapeFactory
 
-case class CncTool(d: Float, ae: Float, ap: Float, vf: Float, n: Int, description: String, idString: String) {
+case class CncTool(d: Float, ae: Float, ap: Float, vf: Float,
+                   n: Int, description: String,
+                   shortDesc: String = "no short description", idString: String) {
   lazy val r: Double = d / 2.0d
 }
 
@@ -249,9 +251,9 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
 
 
 
-      val pc1 = PathCoverageStep(Some(pathCoverageFunctionBlock), None, List(), "convex hull block operation")
-      val pc3 = PathCoverageStep(Some(pathCoverageFunctionRelease), None, List(), "convex hull release operation")
-      PathCoverageStep(None, None, List(pc1, pcStep, pc3), "convex hull wrapper")
+      val pc1 = PathCoverageStep(Some(pathCoverageFunctionBlock), None, List(), "Convex Hull Block Operation")
+      val pc3 = PathCoverageStep(Some(pathCoverageFunctionRelease), None, List(), "Convex Hull Release Operation")
+      PathCoverageStep(None, None, List(pc1, pcStep, pc3), "Convex Hull Wrapper")
     }
     val semanticType = pcFct :&: alpha =>:
       pcFct :&: alpha
@@ -511,7 +513,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
   //TODO Bugfix
   @combinator object MultiContourMultiToolSteel extends Contour {
     def apply(t: CncTool, t2: CncTool): PathCoverageStep = {
-      val newTool = CncTool(t.d, t.ae / 2.0f, t.ap, t.vf, t.n, t.description + ". Steel ae/2.0", t.idString)
+      val newTool = CncTool(t.d, t.ae / 2.0f, t.ap, t.vf, t.n, t.description + ". Steel ae/2.0", t.shortDesc, t.idString)
       //case class CncTool(d: Float, ae: Float, ap: Float, vf: Float, n: Int, description: String, idString: String)
       val pc1 = createMultiContourStep(newTool)
       val pcStepList = pc1.pcrList :+ createFinishContourStep(t2)
@@ -583,8 +585,8 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
       PathCoverageResult(scene6, config, pcs)
     }
 
-    val semanticType = (pcFctRootWithFinishing :&: alpha  =>: pFctResult :&: alpha) :&:
-      (pcFctWithFinishing :&: alpha  =>: pFctResultRoot :&: alpha)
+    val semanticType = (pcFctWithFinishing :&: alpha =>: pFctResult :&: alpha) :&:
+      (pcFctRootWithFinishing :&: alpha =>: pFctResultRoot :&: alpha)
   }
 
   //  @combinator object SingleContourStep extends Contour {
@@ -607,7 +609,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
 
   @combinator object AluRoughing {
     def apply: CncTool = CncTool(12.0f, 3.0f, 6.0f, 3990f, 13300,
-      "Alu Roughing, d 12 mm, ae 3 mm, vf 3990 mm/min, n 13300", "1 Z S13300")
+      "Alu Roughing, d 12 mm, ae 3 mm, vf 3990 mm/min, n 13300", "Alu Roughing Tool", "1 Z S13300" )
       // Orig "Alu Roughing, d 12mm, ae 3mm, vf 3990 mm/min, n 13300", "1 Z S13300")
 
     val semanticType = alu :&: roughing
@@ -623,21 +625,21 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
 
   @combinator object AluFinish {
     def apply: CncTool = CncTool(8.0f, 4.0f, 4.0f, 1280.0f, 8000,
-      "Alu finishing, d 8mm, ae 4mm, vf 1280 mm/min, n 8000", "2 Z S8000")
+      "Alu finishing, d 8mm, ae 4mm, vf 1280 mm/min, n 8000", "Alu Finishing Tool", "2 Z S8000")
 
     val semanticType = alu :&: finishing
   }
 
   @combinator object SteelRoughing {
     def apply: CncTool = CncTool(d = 10.0f, ae = 6.0f, ap = 10.0f,
-      vf = 1948.0f, n = 4775, "Steel Roughing, d: 10mm, radiale Zustellung 6mm, vf 1948mm/min, n 4775", "3 Z S2000")
+      vf = 1948.0f, n = 4775, "Steel Roughing, d: 10mm, radiale Zustellung 6mm, vf 1948mm/min, n 4775",  "Steel Roughing Tool", "3 Z S2000")
 // korrekt wäre 1625
     val semanticType = steel :&: roughing
   }
 
   @combinator object SteelFinishing {
     def apply: CncTool = CncTool(d = 5.0f, ae = 0.5f, ap = 7.5f, vf = 380.0f, n = 6365,
-      "Steel Finishing, d: 5mm, radiale Zustellung 0.5mm, vf 380mm/min, n 6365", "4 Z S2000")
+      "Steel Finishing, d: 5mm, radiale Zustellung 0.5mm, vf 380mm/min, n 6365", "Steel Finishing Tool","4 Z S2000")
 
     val semanticType = steel :&: finishing
   }

@@ -43,7 +43,7 @@ object RunSpiral extends App with JtsUtils {
     targetGeometry = tgtGeo, rest = List(tgtGeo), machined = List(), machinedMultiPolygon = gf.createPolygon(), initialMachined = emptyGeometry)
 
   val t = CncTool(4.0f, 2.0f, 4.0f, 1.280f, 8000,
-    "Alu finishing, d 8mm, ae 4mm, vf 1280 mm/min, n 8000", "2 Z S8000")
+    "Alu finishing, d 8mm, ae 4mm, vf 1280 mm/min, n 8000", "2 Z S8000", "Alu Finishing")
   val largestEmptyCircle = new MaximumInscribedCircle(initialScene.rest.head, 1.0)
   val c1 = largestEmptyCircle.getCenter.getCoordinate
   val c11 = new Coordinate(c1.x, c1.y, 20.0f)

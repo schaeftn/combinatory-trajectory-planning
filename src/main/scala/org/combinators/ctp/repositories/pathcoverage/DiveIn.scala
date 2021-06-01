@@ -82,6 +82,7 @@ object TestDiveIn  extends App with LazyLogging with JtsUtils {
       vf = 1.2750f,
       n = 7960,
       description = "Alu Roughing, 12mm, Stirnfräsen, TODO Werte aktualisieren",
+      shortDesc = "Alu Roughing",
       idString = "123")
     override val config: PathCoverageStepConfig = PathCoverageStepConfig()
     override val lineString: LineString = ls

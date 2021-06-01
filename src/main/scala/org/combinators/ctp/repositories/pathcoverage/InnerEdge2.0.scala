@@ -150,7 +150,7 @@ object InnerEdge2Test extends App with JtsUtils {
   val ie = new DirectedRadial {
     override val model: Cnc2DModel = scene
     override val tool: CncTool = CncTool(12.0f, 2.0f, 6.0f, 1.2750f, 7960,
-      "Alu Roughing, 12mm, Stirnfräsen, TODO Werte aktualisieren", "1 Z S2000")
+      "Alu Roughing, 12mm, Stirnfräsen, TODO Werte aktualisieren", "1 Z S2000", "Alu Roughing")
     override val config: PathCoverageStepConfig = PathCoverageStepConfig()
   }
 

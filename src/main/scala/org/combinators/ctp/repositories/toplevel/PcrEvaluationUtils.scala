@@ -152,6 +152,14 @@ trait PcrEvaluationUtils extends LazyLogging with TreePrinting{
     }
   }
 
+
+  def stringForPcs(pcs: PathCoverageStep, layer: Int = 0): String = {
+    s"""${"\t"*layer}${pcs.description_param}""" +pcs.tool.map(t=> " with " + t.shortDesc).getOrElse("") + {
+      val chStr = pcs.pcrList.map(stringForPcs(_, layer + 1)).mkString("\r\n")
+      if(chStr.nonEmpty) s"\r\n$chStr" else ""
+    }
+  }
+
   def getKlarTextZipPath(i: Int) = getInhabitantFolder(i) + File.separator + s"klartext.zip"
 
   def writeKlarTextFiles(i: Int, pcr: PathCoverageResult) = {

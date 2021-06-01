@@ -32,7 +32,7 @@ object RunCncTestLinear extends App with JtsUtils {
   }
 
   val tool = CncTool(12.0f, 3.0f, 6.0f, 3990f, 13300,
-    "Alu Roughing, d 12mm, ae 3mm, vf 3990 mm/min, n 13300", "1 Z S13300")
+    "Alu Roughing, d 12mm, ae 3mm, vf 3990 mm/min, n 13300", "1 Z S13300","Alu Roughing")
   val pFct: (Cnc2DModel, PathCoverageStepConfig) => (List[List[List[Float]]], Cnc2DModel) = {
     case (a, c) => (List(List(List(0.0f, 0.0f, 0.0f), List(0.0f, 1000.0f, 0.0f), List(1.0f, 1000.0f, 0.0f))), a)
   }
