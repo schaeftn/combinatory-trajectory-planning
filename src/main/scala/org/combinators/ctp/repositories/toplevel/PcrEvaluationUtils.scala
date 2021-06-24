@@ -6,7 +6,7 @@ import java.util.Calendar
 
 import org.combinators.cls.interpreter.InhabitationResult
 
-trait PcrDebuggerUtils{
+trait PcrEvaluationUtils{
   val inhabitants: InhabitationResult[_]
   val timeString: String
   val printKlartext: Boolean
@@ -25,8 +25,8 @@ trait PcrDebuggerUtils{
     inhabitants.interpretedTerms.index(i).asInstanceOf[PathCoverageResult]
 
   def evalInhabitants(range: Range) = {
-    val evaluatedInhabitants = range.map(runInhabitant)
-    (range zip evaluatedInhabitants).map { case (i, pcr) => writeFilesForInhabitant(i, pcr) }
+    val evaluatedInhabitants = range.par.map(runInhabitant)
+    (range zip evaluatedInhabitants).par.map { case (i, pcr) => writeFilesForInhabitant(i, pcr) }
   }
 
   def writeFilesForInhabitant(i: Int, pcr: PathCoverageResult): Unit = {
@@ -47,8 +47,8 @@ trait PcrDebuggerUtils{
   def getKlarTextFileObj(i: Int): File = new File(getKlarTextZipPath(i))
 }
 
-object PcrDebuggerUtils {
-  def apply(inhabitationResult: InhabitationResult[_], withKlarText: Boolean = true): PcrDebuggerUtils = new PcrDebuggerUtils {
+object PcrEvaluationUtils {
+  def apply(inhabitationResult: InhabitationResult[_], withKlarText: Boolean = true): PcrEvaluationUtils = new PcrEvaluationUtils {
     override val inhabitants: InhabitationResult[_] = inhabitationResult
     override val timeString: String = {
       val now = Calendar.getInstance().getTime()
