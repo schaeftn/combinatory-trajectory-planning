@@ -18,10 +18,13 @@ import org.locationtech.jts.simplify.DouglasPeuckerSimplifier
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
 import java.text.SimpleDateFormat
+import java.nio.file.{Files, Paths}
 
 import org.combinators.cls.interpreter.InhabitationResult
+import org.locationtech.jts.io.WKTReader
 
 import scala.annotation.tailrec
+import scala.io.Source
 import scala.language.implicitConversions
 import scala.util.{Failure, Try}
 import scala.xml.Elem
@@ -50,18 +53,21 @@ trait PathCoverageStepConfig extends JtsUtils with MachineAccelerationModel {
   val pathIgnoreVal: Double
   val min_ae: Double
   val areaIgnoreVal: Double
+  val xAccLookup: List[(Float, Float, Float)]
+  val yAccLookup: List[(Float, Float, Float)]
 
   def bufferFct(g: Geometry, d: Double): Geometry = paraBuffer(minPointClearanceOnPath)(g, d)
 }
 
 object PathCoverageStepConfig {
   def apply(pathRef: Boolean = false): PathCoverageStepConfig = new PathCoverageStepConfig {
-    override val pathRefinement = pathRef
-    override val minPointClearanceOnPath: Double = 0.01
-    override val maxPointClearanceOnPath: Double = 0.1
-    override val min_ae: Double = 0.01
-    override val areaIgnoreVal: Double = 0.01
-    override val pathIgnoreVal: Double = 0.01
+    val pathRefinement = pathRef
+    val minPointClearanceOnPath: Double = 0.01
+    val maxPointClearanceOnPath: Double = 0.1
+    val min_ae: Double = 0.01
+    val areaIgnoreVal: Double = 0.01
+    val pathIgnoreVal: Double = 0.01
+
 
     @scala.annotation.tailrec
     override def machineModelAccX(velocity: Double): Double = {
@@ -86,17 +92,80 @@ object PathCoverageStepConfig {
     //mm/min
 
     override def vfMaxByAngle(angle: Double): Double = {
+      lookupMaxVfByAngle(angle)
+
+//      val normalizedAngle = Math.PI - Math.abs(MathUtils.normalizeAngle(angle, 0.0))
+//      val normalizedDegree = FastMath.toDegrees(normalizedAngle)
+//      if (normalizedDegree < 1)
+//        Double.PositiveInfinity
+//      else {
+//        val vf = (-14.8311 / (Math.pow(normalizedDegree, 2)) + 28.4664 / normalizedDegree - 0.1496)
+//        // if(vf < 0)
+//        //   logger.info(s"vf lt zero: angle: $angle, normalizedDegree: $normalizedDegree, vf: $vf")
+//        vf
+//      }
+    }
+
+    def lookupMaxVfByAngle(angle:Double): Float ={
       val normalizedAngle = Math.PI - Math.abs(MathUtils.normalizeAngle(angle, 0.0))
-      val normalizedDegree = FastMath.toDegrees(normalizedAngle)
-      if (normalizedDegree < 1)
-        Double.PositiveInfinity
-      else {
-        val vf = (-14.8311 / (Math.pow(normalizedDegree, 2)) + 28.4664 / normalizedDegree - 0.1496)
-        // if(vf < 0)
-        //   logger.info(s"vf lt zero: angle: $angle, normalizedDegree: $normalizedDegree, vf: $vf")
-        vf
+      val normalizedDegree = FastMath.floor(FastMath.toDegrees(normalizedAngle)).toInt
+      vByAngleLookup(normalizedDegree)
+    }
+
+    lazy val vByAngleLookup = setUpMaxByAngleNormalized()
+
+    def retrieveLookup(machineModelAcc: Double => Double,
+                       xDir: Boolean): List[(Float, Float, Float)] = {
+      val fileName = if (xDir) "accmodels/xDirection.txt" else "accmodels/yDirection.txt"
+
+      val src = Source.fromResource(fileName)
+      if (src.iter.hasNext) {
+        val tuples = src.getLines().toList.map {
+          s => s.split(",").map(_.toFloat)
+        }.map(i => (i.head, i(1), i(2)))
+        src.close
+        tuples
+      } else {
+        logger.warn("Acceleration model file not found. Computing lookup table.")
+        buildLookup(machineModelAcc)
       }
     }
+
+    def buildLookup(machineModelAccX: Double => Double): List[(Float, Float, Float)] = {
+      val deltaT = 0.00005f // 50 ms
+      (0 to 100000).foldLeft((List[(Float, Float, Float)]((0.0f, 0.0f, 0.0f)), (0.0f, 0.0f, 0.0f))) {
+        case ((a, lastBufferedElement), newIndex) => {
+          val vNew: Float = lastBufferedElement._1 +
+            deltaT * machineModelAccX(lastBufferedElement._1).toFloat * 60.0f * 1000.0f
+          val tNew: Float = lastBufferedElement._2 + deltaT
+          val sNew: Float = lastBufferedElement._3 + deltaT * lastBufferedElement._1 / 60
+          if (sNew - a.last._3 < 0.1)
+            (a, (vNew, tNew, sNew))
+          else
+            (a :+ (vNew, tNew, sNew), (vNew, tNew, sNew))
+        }
+      }._1
+    }
+
+    val xAccLookup: List[(Float, Float, Float)] = {
+      val l = retrieveLookup(machineModelAccX, true)
+      println(s"Last Element full xList ${l.last}")
+      l
+    }
+
+    val yAccLookup: List[(Float, Float, Float)] = {
+      retrieveLookup(machineModelAccY, false)
+    }
+
+    def setUpMaxByAngleNormalized(): List[Float] = {
+      val vList = Float.PositiveInfinity +: (1 to 180).map{nDegree =>
+        (-14.8311 / (Math.pow(nDegree.toDouble, 2)) + 28.4664 / nDegree.toDouble - 0.1496).toFloat
+      }.map{_ * 1000.0f }
+
+      logger.info(s"vListByAngle: \r\n $vList")
+      vList.toList
+    }
+
 
     // v_0: Winkel, in richtige Richtung
     //v in angle direction
@@ -108,8 +177,8 @@ object PathCoverageStepConfig {
       val (vx, vy) = (Math.abs(Math.cos(angleModPi)) * startV, Math.sin(angleModPi) * startV)
 
       // logger.info(s"newVf: vx: $vx, vy: $vy")
-      val maxPossibleVx = machineModelAccX(vx) * deltaT * 60
-      val maxPossibleVy = machineModelAccY(vy) * deltaT * 60
+      val maxPossibleVx = vx + machineModelAccX(vx) * deltaT * 60
+      val maxPossibleVy = vy + machineModelAccY(vy) * deltaT * 60
 
       //  logger.info(s"maxPossibleVx: $maxPossibleVx, maxPossibleVy: $maxPossibleVy")
       val tanAngle = Math.tan(angleModPi)
@@ -120,8 +189,7 @@ object PathCoverageStepConfig {
       val achievableVy = List(maxPossibleVy, maxRelativeVy).map(Math.abs).min
       // logger.info(s"max pos: achievableVx: $achievableVx, achievableVy: $achievableVy")
 
-      val vNew = startV + math.sqrt(math.pow(achievableVx, 2) + math.pow(achievableVy, 2))
-      val vNewMetersPerMinute = vNew
+      val vNew = math.sqrt(math.pow(achievableVx, 2) + math.pow(achievableVy, 2))
 
       //      logger.info(s"vOld: $startV, vNew: $vNew, vNew in m/min: $vNewMetersPerMinute")
       //      logger.info(s"angle: $angle, angleModPi: $angleModPi")
@@ -134,270 +202,7 @@ object PathCoverageStepConfig {
       vNew
     }
 
-    override val deltaT: Double = 0.05d // Paper example 0 to 5 m/min in 0.2 secs taken from Example
-  }
-}
-
-/**
- * @param s      scene applied to pc steps
- * @param config Config object that will be applied to all path coverage steps
- * @param l      unfolded pc step list
- */
-case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, l: List[PathCoverageStep])
-  extends JtsUtils with PathRefinement {
-  def unfoldPathCoverageStepsDepthFirst(l: List[PathCoverageStep]): List[(cncPathFct, CncTool)] =
-    l match {
-      case Nil => Nil
-      case (a: PathCoverageStep) :: tail =>
-        val currentCncStep: Option[cncPathFct] = a.pcFct
-        val currentCncTool: Option[CncTool] = a.tool
-        val currentCncStepsSubtree: List[(cncPathFct, CncTool)] =
-          if (a.pcrList.nonEmpty)
-            unfoldPathCoverageStepsDepthFirst(a.pcrList)
-          else
-            List.empty[(cncPathFct, CncTool)]
-        val restCncSteps: List[(cncPathFct, CncTool)] = unfoldPathCoverageStepsDepthFirst(tail) // other part of decomposition
-        val list1: List[(cncPathFct, CncTool)] =
-          (currentCncStep, currentCncTool) match {
-            case (Some(a), Some(tool)) => (a, tool) +: currentCncStepsSubtree
-            case _ => currentCncStepsSubtree
-          }
-        list1 ++ restCncSteps
-    }
-
-
-  lazy val unfoldedPcFunctionList: List[(cncPathFct, CncTool)] = unfoldPathCoverageStepsDepthFirst(l)
-
-  /**
-   * quatruple: EndModel, Aux List Path Functions (empty when done),
-   * model history (first element is initial model),
-   * path history (first element is empty path)
-   */
-  lazy val computeModelHistory: (List[Cnc2DModel], List[List[List[Float]]], List[CncTool], Boolean) = {
-    lazy val (modelList, pathList, compToolList, runSuccessful) =
-      unfoldedPcFunctionList.foldLeft(List(s), List.empty[List[List[Float]]], List.empty[CncTool], true: Boolean)({
-        case ((modelList: List[Cnc2DModel],
-        pathList: List[List[List[Float]]],
-        toolList: List[CncTool],
-        continueRun: Boolean),
-        (currentFct, currentFoldTool)) => {
-          logger.info("starting fold step")
-          if (continueRun) {
-            logger.info("continueRun: currentFct")
-            val (pathResult, modelResult) = currentFct(modelList.last, config)
-            logger.info("continueRun: After fct")
-            val newModelList: List[Cnc2DModel] = modelList :+ modelResult
-            val newPathList: List[List[List[Float]]] = pathList ++ pathResult
-            val newToolList: List[CncTool] = toolList ++ List.fill(pathResult.size)(currentFoldTool)
-            val newContVal: Boolean = pathResult.nonEmpty
-
-            val res = (newModelList, newPathList, newToolList, newContVal)
-            logger.info(s"res: $res")
-            res
-          } else {
-            logger.info("dontContinueRun: returning")
-            (modelList, pathList, toolList, continueRun)
-          }
-        }
-        case (a, b) => logger.error("aaaa")
-          logger.info(s"$a")
-          logger.info(s"$b")
-          a
-      })
-
-    logger.info("prefinenent")
-    val refinedPathList = if (config.pathRefinement)
-      pathList.map(sPath => refine(sPath, config.minPointClearanceOnPath)).
-        map(sPath => refineMinClearance(sPath, config.maxPointClearanceOnPath))
-    else
-      pathList
-
-    logger.info("After prefinenent")
-
-    logger.info(s"ModelList: ${modelList}")
-    (modelList, refinedPathList, compToolList, runSuccessful)
-  }
-
-  lazy val (modelList, pathList, toolList, runSuccessful) = computeModelHistory
-  lazy val endScene = modelList.last
-
-  def vfMaxSegment(c1: Coordinate, c2: Coordinate, c3: Coordinate): Float = {
-    val ang = Angle.angleBetween(c1, c2, c3)
-    val asd = config.vfMaxByAngle(ang)
-    // logger.info(s"angleVelocity: $asd ${asd.toFloat}")
-    asd.toFloat
-  }
-
-
-  lazy val withMaxVfByAngle: List[List[List[Float]]] = {
-    (pathList).filter(_.nonEmpty).map {
-      case (singlePath: List[List[Float]]) =>
-        singlePath.reduce[List[Float]] { case (a, b) =>
-          if (asCoordinate(a).distance(asCoordinate(b)) < config.minPointClearanceOnPath)
-            logger.info("Min Point clearance violation")
-          else
-            ()
-          a
-        }
-        if (singlePath.length > 2) {
-          val singlePathCoords = singlePath.map(asCoordinate)
-          val constrPath = singlePathCoords.zip(singlePathCoords.tail).zip(singlePathCoords.tail.tail).map { case ((a, b), c) => (a, b, c) }
-          val headEntry: List[Float] = List(
-            singlePathCoords.head.x,
-            singlePathCoords.head.y,
-            singlePathCoords.head.getZ,
-            Double.PositiveInfinity).map(_.toFloat)
-          val listResults: List[List[Float]] = constrPath.map {
-            case (c1, c2, c3) => List(c2.x.toFloat, c2.y.toFloat, c2.getZ.toFloat, vfMaxSegment(c1, c2, c3).toFloat)
-          }
-          val lastEntry: List[Float] = List(
-            singlePathCoords.last.x,
-            singlePathCoords.last.y,
-            singlePathCoords.last.getZ,
-            Double.PositiveInfinity).map(_.toFloat)
-          headEntry +: listResults :+ lastEntry
-        }
-        else
-          singlePath.map(coord => coord :+ 0.0f)
-    }
-  }
-
-
-  lazy val maxVfByToolAndAngle: List[List[List[Float]]] = (withMaxVfByAngle.zip(toolList)).map {
-    case (singlePath: List[List[Float]], tool: CncTool) => singlePath.map(l => l.dropRight(1) :+ List(l.last, tool.vf).min)
-  } //Tool.vf for every coordinate
-
-  lazy val withMaxVfByAcc: List[List[List[Float]]] = {
-    def buildList(l: List[List[Float]], lastCoord: List[Float], nextCoord: List[Float]): List[List[Float]] = {
-      @tailrec
-      def calcVend(angle: Double, targetDistance: Double, accumulatedDistance: Double,
-                   currentVelocity: Double): Double = {
-        if (accumulatedDistance < targetDistance) {
-          // println(s"currentVelocity: $currentVelocity, accumulatedDistance: $accumulatedDistance")
-          val newVelocity = config.newVf(angle, currentVelocity)
-          val newDistance = accumulatedDistance + newVelocity * 1000 / 60 * config.deltaT
-          //println(s"currentVelocity: $currentVelocity, accumulatedDistance: $accumulatedDistance, newVelocity: $newVelocity,newDistance:$newDistance")
-          calcVend(angle, targetDistance, newDistance, newVelocity)
-        }
-        else {
-          //  logger.info(s"targetVelocity: $currentVelocity")
-          currentVelocity
-        }
-      }
-
-      val startV = lastCoord.last
-      val angle = Angle.angle(asCoordinate(lastCoord), asCoordinate(nextCoord))
-      val distanceBetweenPoits = asCoordinate(lastCoord).distance(asCoordinate(nextCoord))
-      //logger.info(s"startPoint: $lastCoord, nextCooord: $nextCoord, distance: $distanceBetweenPoits")
-      //logger.info(s"startV $startV")
-      //logger.info(s"comparing velocities for $nextCoord vs ${calcVend(angle, distanceBetweenPoits, 0.0d, startV).toFloat}")
-
-      lazy val nextCoordWithVelocity: List[Float] =
-        (nextCoord.dropRight(1) :+
-          List(nextCoord.last, calcVend(angle, distanceBetweenPoits, 0.0d, startV).toFloat).min)
-      l :+ nextCoordWithVelocity
-    }
-
-    maxVfByToolAndAngle.map {
-      case (singlePath: List[List[Float]]) =>
-        if (singlePath.size > 2) {
-          singlePath.tail.foldLeft(List(singlePath.head.take(3) :+ 0.0f)) { case (a, b) => buildList(a, a.last, b) }
-        } else List.empty[List[Float]]
-    }
-  }
-
-  def getKlartextLineString(l: List[List[Float]], withFMAX: Boolean = false): List[String] =
-    l.filter(_.nonEmpty).map(singleCoord => {
-      val zCoordString = if (!singleCoord(2).isNaN) s" Z${singleCoord(2)}" else ""
-      val fString = s"${if (withFMAX) "MAX" else if (singleCoord.last <= 0.050) "50.0" else singleCoord.last * 1000.0}"
-      s"""L X${singleCoord.head} Y${singleCoord(1)}$zCoordString F$fString""".stripMargin
-    })
-
-  lazy val pathTime = completeTime(withMaxVfByAcc)
-  lazy val pathTimesCalculated = pathTimes(withMaxVfByAcc)
-
-  lazy val klartextFileContents: List[String] = withMaxVfByAcc.zip(toolList).zipWithIndex.filter(_._1._1.nonEmpty).map {
-    case ((currentPath, currentTool: CncTool), index) =>
-      val linearDive = if ((currentPath.head) (2).isNaN || (currentPath.head) (2) == 0.0)
-        s"${getKlartextLineString(List(currentPath.head.dropRight(2) :+ 0.0f :+ 0.500f)).mkString("\r\n")}"
-      else ""
-      s"""BEGIN PGM Single MM
-         |TOOL CALL ${currentTool.idString} ; ${currentTool.description}
-         |${getKlartextLineString(List(currentPath.head.dropRight(2) :+ 3.0f :+ currentTool.vf), true).mkString("\r\n")}
-         |$linearDive
-         |${getKlartextLineString(currentPath.tail).mkString("\r\n")}
-         |${getKlartextLineString(List(currentPath.last.dropRight(2) :+ 3.0f), true).mkString("\r\n")}
-         |END PGM Single MM
-         |""".stripMargin
-    // logger.info(s"Teilpfad: \r\n$outStr")
-  }
-
-  def writeKlartextFiles(path: String = "."): Unit = {
-    klartextFileContents.zipWithIndex.foreach {
-      case (s, i) =>
-        import java.io._
-        val pw = new PrintWriter(new File(new File(path), s"${i + 1}.p"))
-        pw.write(s"$s")
-        pw.close
-    }
-    logger.info(s"pathTimes $pathTimesCalculated")
-    logger.info(s"complete Time: $pathTime")
-  }
-
-  def buildZip(path: String, outFile: String): Unit = {
-    import java.io.{ BufferedInputStream, FileInputStream, FileOutputStream }
-    import java.util.zip.{ ZipEntry, ZipOutputStream }
-
-    val zip = new ZipOutputStream(new FileOutputStream(outFile))
-    val files = {
-      val d = new File(path)
-      if (d.exists && d.isDirectory) {
-        d.listFiles.filter(_.isFile).filter(_.getName.endsWith(".p")).toList
-      } else {
-        List[File]()
-      }
-    }
-
-
-    files.foreach { f =>
-      zip.putNextEntry(new ZipEntry(f.getName))
-      val in = new BufferedInputStream(new FileInputStream(f))
-      var b = in.read()
-      while (b > -1) {
-        zip.write(b)
-        b = in.read()
-      }
-      in.close()
-      zip.closeEntry()
-    }
-
-    zip.close()
-  }
-
-  def writeXmlOut(fn: String) = {
-    import java.io._
-    val pw = new PrintWriter(new File(fn))
-    pw.write(getXmlString().mkString(s"\r\n"))
-    pw.close
-  }
-
-  def getXmlString(): Elem = {
-    val info = modelList.map { m => m.getMachinedMultiGeo } zipAll(
-      pathList.map { p => asLineString(p) }, emptyGeometry, emptyGeometry)
-
-    <run>
-      <precisionModel type="FLOATING"/>{info.map { case (a, b) => <case>
-      <desc>foo</desc> <a>{a}</a> <b>{b}</b>
-    </case>
-    }}
-    </run>
-  }
-
-  def writeXmlFile(): Unit = {
-    import java.io._
-    val pw = new PrintWriter(new File(s"out.xml"))
-    pw.write(s"$s")
-    pw.close
+    override val deltaT: Double = 0.15d // Paper example 0 to 5 m/min in 0.2 secs taken from Example
   }
 }
 
@@ -536,6 +341,19 @@ case class Cnc2DModel(boundaries: List[Float],
 
     t.getOrElse(self)
   }
+}
+
+object Cnc2DModel extends JtsUtils {
+  def apply(s: String,bounds: List[Float]): Cnc2DModel = {
+    val wktReader = new WKTReader()
+    val wktStr: String = Source.fromResource(s).getLines.mkString("\r\n")
+    val tgtGeo = wktReader.read(wktStr)
+
+    Cnc2DModel(boundaries = bounds,
+    targetGeometry = tgtGeo, rest = List(tgtGeo), machined = List(),
+    machinedMultiPolygon = emptyGeometry, initialMachined = emptyGeometry)
+  }
+
 }
 
 case class SceneSRT(boundaries: List[Float], obstacles: List[MqttObstacleSRT]) {

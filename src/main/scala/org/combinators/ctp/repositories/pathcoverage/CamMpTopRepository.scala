@@ -1,7 +1,7 @@
 package org.combinators.ctp.repositories.pathcoverage
 
 import com.typesafe.scalalogging.LazyLogging
-import org.combinators.ctp.repositories.toplevel.{Cnc2DModel, PathCoverageResult, PathCoverageStep, PathCoverageStepConfig}
+import org.combinators.ctp.repositories.toplevel.{Cnc2DModel, PathCoverageStep, PathCoverageStepConfig}
 import org.combinators.ctp.repositories._
 import org.combinators.cls.interpreter.combinator
 import org.combinators.cls.types.{Constructor, Kinding, Type, Variable}
@@ -333,18 +333,11 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
 
   @combinator object ApplyScene extends JtsUtils {
     def apply(pcs: PathCoverageStep): PathCoverageResult = {
-      val wktReader = new WKTReader()
-
-      val wktStr: String = Source.fromResource("models/machiningUc1.wkt").getLines.mkString("\r\n")
-      val tgtGeo = wktReader.read(wktStr)
-      logger.info(s"tgtGeo \r\n$tgtGeo")
-
       val bounds = List[Float](0.0f, 50.0f, -15.0f, 40.0f)
+      val machinedGeo: Geometry = wktRead("""POLYGON ((0 -15, 0 0, 50 0, 50 -15, 0 -15))""")
 
-      val machinedGeo = wktReader.read("""POLYGON ((0 -15, 0 0, 50 0, 50 -15, 0 -15))""")
-      val scene = Cnc2DModel(boundaries = bounds, targetGeometry = tgtGeo, rest = List(tgtGeo), machined = List(),
-        machinedMultiPolygon = emptyGeometry, initialMachined = emptyGeometry).withInitialMachinedGeo(machinedGeo)
-      val config = PathCoverageStepConfig(false)
+      val scene: Cnc2DModel = Cnc2DModel("models/machiningUc1.wkt", bounds).withInitialMachinedGeo(machinedGeo)
+      val config = PathCoverageStepConfig()
 
       PathCoverageResult(scene, config, List(pcs))
     }
@@ -352,6 +345,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
     val semanticType = (pFct :&: alpha =>: pFctResult :&: alpha) :&:
       (pathCoverageFctRoot :&: alpha =>: pFctResultRoot :&: alpha)
   }
+
   //  @combinator object SingleContourStep extends Contour {
   //    def apply(t: CncTool): PathCoverageStep = {
   //      val combinatorPcFunction: cncPathFct = singleContourStep(t)
@@ -371,7 +365,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
 
 
   @combinator object AluRoughing {
-    def apply: CncTool = CncTool(12.0f, 3.0f, 6.0f, 3.990f, 13300,
+    def apply: CncTool = CncTool(12.0f, 3.0f, 6.0f, 3990f, 13300,
       "Alu Roughing, d 12mm, ae 3mm, vf 3990 mm/min, n 13300", "1 Z S13300")
 
     val semanticType = alu :&: roughing
@@ -386,7 +380,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
 //  }
 
   @combinator object AluFinish {
-    def apply: CncTool = CncTool(8.0f, 4.0f, 4.0f, 1.280f, 8000,
+    def apply: CncTool = CncTool(8.0f, 4.0f, 4.0f, 1280.0f, 8000,
       "Alu finishing, d 8mm, ae 4mm, vf 1280 mm/min, n 8000", "2 Z S8000")
 
     val semanticType = alu :&: finishing
@@ -394,13 +388,13 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
 
   @combinator object SteelRoughing {
     def apply: CncTool = CncTool(d = 10.0f, ae = 6.0f, ap = 10.0f,
-      vf = 1.9480f, n = 4775, "Steel Roughing, d: 10mm, radiale Zustellung 6mm, vf 1948mm/min, n 4775", "3 Z S2000")
+      vf = 1948.0f, n = 4775, "Steel Roughing, d: 10mm, radiale Zustellung 6mm, vf 1948mm/min, n 4775", "3 Z S2000")
 // korrekt wäre 1625
     val semanticType = steel :&: roughing
   }
 
   @combinator object SteelFinishing {
-    def apply: CncTool = CncTool(d = 5.0f, ae = 0.5f, ap = 7.5f, vf = 0.3800f, n = 6365,
+    def apply: CncTool = CncTool(d = 5.0f, ae = 0.5f, ap = 7.5f, vf = 380.0f, n = 6365,
       "Steel Finishing, d: 5mm, radiale Zustellung 0.5mm, vf 380mm/min, n 6365", "4 Z S2000")
 
     val semanticType = steel :&: finishing
