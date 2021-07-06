@@ -2,8 +2,8 @@ package org.combinators.ctp.repositories.pathcoverage
 
 import com.typesafe.scalalogging.LazyLogging
 import org.combinators.ctp.repositories.cncPathFct
-import org.combinators.ctp.repositories.runinhabitation.RunCncPathCoverage.{gf, logger}
-import org.combinators.ctp.repositories.toplevel.{Cnc2DModel, PathCoverageResult, PathCoverageStep, PathCoverageStepConfig}
+import org.combinators.ctp.repositories.runinhabitation.RunCncTestLinear.{gf, logger}
+import org.combinators.ctp.repositories.toplevel.{Cnc2DModel, PathCoverageStep, PathCoverageStepConfig}
 import org.locationtech.jts.geom.impl.CoordinateArraySequence
 import org.locationtech.jts.geom.{Coordinate, CoordinateFilter, Geometry, GeometryFactory, LineString, MultiLineString, MultiPolygon, Polygon}
 import org.locationtech.jts.io.WKTReader

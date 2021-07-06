@@ -9,14 +9,22 @@ import org.locationtech.jts.dissolve.LineDissolver
 import org.locationtech.jts.geom
 import org.locationtech.jts.geom.impl.CoordinateArraySequence
 import org.locationtech.jts.geom.util.AffineTransformation
-import org.locationtech.jts.geom.{Coordinate, Envelope, Geometry, GeometryFactory, LineString, LinearRing, MultiLineString, MultiPolygon, Point, Polygon, PrecisionModel}
+import org.locationtech.jts.geom.{Coordinate, Envelope, Geometry, GeometryFactory, LineSegment, LineString, LinearRing, MultiLineString, MultiPolygon, Point, Polygon, PrecisionModel}
+import org.locationtech.jts.io.WKTReader
 import org.locationtech.jts.util.GeometricShapeFactory
+
+import scala.io.Source
 
 trait JtsUtils extends LazyLogging with CircleUtils {
   val gf = new GeometryFactory()
   val emptyLs = gf.createLineString()
   val emptyGeometry = new Point(null, gf)
   val zIdleValue = 20.0f
+
+  def wktRead(s: String): Geometry = {
+    val wktReader = new WKTReader()
+    wktReader.read(s)
+  }
 
   def withIdleZ(c: List[Float]): List[Float] =
     if (c.length == 2) c :+ zIdleValue else if (c.length == 3) c.dropRight(1) :+ zIdleValue else List.empty[Float]
@@ -40,6 +48,13 @@ trait JtsUtils extends LazyLogging with CircleUtils {
         emptyGeometry
     }
   }
+
+  def pointAlongByDistance(p1: List[Float], p2: List[Float], distance: Float): List[Float] = {
+    val ls = new LineSegment(asCoordinate(p1), asCoordinate(p2))
+    asFloatList3(Array(ls.pointAlong(distance / ls.getLength))).head
+  }
+
+
 
   def filterGeoCollectionPolyOnly(g: Geometry) = g.getGeometryType match {
     case "Polygon" => g
@@ -97,9 +112,11 @@ trait JtsUtils extends LazyLogging with CircleUtils {
     g.buffer(d, numberOfPointsOnArc)
   }
 
-  def pGeo(s: String, g: Geometry): Unit = logger.info(s"$s\r\n$g")
+  def pGeo(s: String, g: Geometry): Unit = logger.debug(s"$s\r\n$g")
 
   def asFloatList(a: Array[Coordinate]): List[List[Float]] = a.map(c => List(c.x.toFloat, c.y.toFloat)).toList
+
+  def asFloatList3(a: Array[Coordinate]): List[List[Float]] = a.map(c => List(c.x.toFloat, c.y.toFloat, c.getZ.toFloat)).toList
 
   def getBoundaryRectangle(l: List[Float]): Geometry = {
     if (l.length < 4) {
@@ -192,7 +209,7 @@ trait JtsUtils extends LazyLogging with CircleUtils {
   }
   def asCoordinate(a: List[Float]): Coordinate =
     if (a.size > 1)
-      new Coordinate(a.head, a.tail.head) // a can also contain velocity...
+      new Coordinate(a.head, a.tail.head) // a float list can also contain velocity...
     else emptyGeometry.getCoordinate
 
   def asCoordinateD(a: List[Double]): Coordinate =
