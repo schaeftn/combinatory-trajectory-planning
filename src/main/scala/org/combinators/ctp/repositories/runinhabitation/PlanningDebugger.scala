@@ -26,25 +26,27 @@ class PlanningDebugger @Inject()(val webJarsUtil: WebJarsUtil, val lifeCycle: Ap
     (if (openPocket) repository.pFctResult else repository.pFctResultRoot) :&:
       (if (aluUseCase) repository.alu else repository.steel)
 
- lazy val Gamma = ReflectedRepository(repository, Taxonomy.empty,
-   substitutionSpace= kinding,
-   classLoader = this.getClass.getClassLoader,
-   algorithm = debugger())
+  lazy val Gamma = ReflectedRepository(repository, Taxonomy.empty,
+    substitutionSpace = kinding,
+    classLoader = this.getClass.getClassLoader,
+    algorithm = debugger())
   override val controllerAddress = "trajectory"
   override val projectName: String = controllerAddress
   override val refRepo: Option[ReflectedRepository[_]] = Some(Gamma)
   override val result = Some(inhabitationResult)
   override val tgts: Seq[Type] = Seq(result.get.target)
   override val nativeType: Option[_] = Some(PathCoverageResult)
+
   override def computeTermsForDownload = {
-    val newFilRes =  Some(InhabitationResult[PathCoverageResult](filteredTreeGraph, tgtsFilter,Gamma.evalInhabitant[PathCoverageResult]))
-    if(newFilRes.get.isInfinite) {
-      PcrEvaluationUtils(newFilRes.get, true,acceptPercentage).evalInhabitants(0 to 50)
-    }else{
-      PcrEvaluationUtils(newFilRes.get, true,acceptPercentage).evalInhabitants(0 until newFilRes.get.size.get.toInt)
+    val newFilRes = Some(InhabitationResult[PathCoverageResult](filteredTreeGraph,
+      tgtsFilter, Gamma.evalInhabitant[PathCoverageResult]))
+    if (newFilRes.get.isInfinite) {
+      PcrEvaluationUtils(newFilRes.get, true, acceptPercentage).evalInhabitants(0 to 50)
+    } else {
+      PcrEvaluationUtils(newFilRes.get, true, acceptPercentage).evalInhabitants(0 until newFilRes.get.size.get.toInt)
     }
     filteredResult = newFilRes
- }
+  }
 
   lazy val inhabitationResult = Gamma.inhabit[PathCoverageResult](tgtType)
 
