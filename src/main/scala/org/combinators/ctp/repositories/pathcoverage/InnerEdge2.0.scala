@@ -46,7 +46,7 @@ trait DirectedRadial extends LazyLogging with JtsUtils {
 
     val env = firstCirc.getBoundary.getEnvelopeInternal
 
-    logger.info(s"env: $env")
+    logger.debug(s"env: $env")
     if (directionY)
       env.expandBy(0.0f, 100.0f)
     else
@@ -102,34 +102,34 @@ trait DirectedRadial extends LazyLogging with JtsUtils {
       }
     }
 
-    logger.info(s"p1: $p1")
-    logger.info(s"firstLs: $firstLs")
+    logger.debug(s"p1: $p1")
+    logger.debug(s"firstLs: $firstLs")
     val circs = spawnCircles(List(firstLs))
-    logger.info(s"circs: $circs")
+    logger.debug(s"circs: $circs")
 
 
     val tempDebug = circs.map(g => gf.createPolygon(g.getCoordinates))
-    logger.info(s"tempDebug: $tempDebug")
+    logger.debug(s"tempDebug: $tempDebug")
 
     val unbufferedCircs = tempDebug.map(g => g.buffer(-tool.d.toDouble / 2.0d))
-    logger.info(s"unbufferedCircs: $unbufferedCircs")
+    logger.debug(s"unbufferedCircs: $unbufferedCircs")
 
     val upper = unbufferedCircs.map(_.norm).map(circleUpperLineString)
-    logger.info(s"upper: $upper")
+    logger.debug(s"upper: $upper")
 
     val sortedCoords = if (directionY)
       upper.map(geo => asFloatList(geo.getCoordinates.sortBy(_.x)))
     else
       upper.map(geo => asFloatList(geo.getCoordinates.sortBy(_.y)))
 
-    logger.info("getSteps done")
+    logger.debug("getSteps done")
     sortedCoords.map(i => i ++ i.headOption.toList).reduceOption(_ ++ _).getOrElse(List.empty[List[Float]])
   }
 
   lazy val machinedGeo = {
-    logger.info("getting Machined geo")
+    logger.debug("getting Machined geo")
     val geo = config.bufferFct(getNewLineString(getSteps.map(asCoordinate).toArray), tool.d / 2.0)
-    logger.info("after Machined geo")
+    logger.debug("after Machined geo")
     pGeo("machinedGeo steelradial", geo)
     geo
   }
@@ -160,5 +160,5 @@ object InnerEdge2Test extends App with JtsUtils {
         ie.getSteps.map(c => new Coordinate(c(0), c(1))).toArray)
       , gf)
 
-  logger.info(s"mlString: ${toPaths}")
+  logger.debug(s"mlString: ${toPaths}")
 }

@@ -318,9 +318,9 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
               override val config: PathCoverageStepConfig = c
             }
 
-            logger.info("Combinator step")
+            logger.debug("Combinator step")
             val newModel = m.withMachinedGeo(primitive.machinedGeo)
-            logger.info("after newModel")
+            logger.debug("after newModel")
             (List(primitive.getSteps), newModel)
       }
 

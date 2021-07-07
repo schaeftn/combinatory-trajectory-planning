@@ -61,7 +61,7 @@ trait PathFeedUtils extends JtsUtils with PathRefinement {
     case (singlePath: List[List[Float]], tool: CncTool) => {
 
       (singlePath.map { l =>
-        println(s"last: ${l.last} tool.vf: ${tool.vf}")
+        logger.debug(s"last: ${l.last} tool.vf: ${tool.vf}")
         l.dropRight(1) :+ min(l.last, tool.vf)
       }, tool)
     }
@@ -130,9 +130,9 @@ trait PathFeedUtils extends JtsUtils with PathRefinement {
             case None => accList
           }
         } else {
-          println(s"Building Acc Segments for ${pathList.head} to ${pathList(1)}")
+          logger.debug(s"Building Acc Segments for ${pathList.head} to ${pathList(1)}")
           val accelerationSequence = buildAccSegments(pathList.head, pathList(1), tool)
-          println(s"Got Acc Segments for ${pathList.head} to ${pathList(1)}: ${accelerationSequence}")
+          logger.debug(s"Got Acc Segments for ${pathList.head} to ${pathList(1)}: ${accelerationSequence}")
 
           val newAccList: List[(List[Float], List[(Float, Float, Float)])] =
             accList :+ (pathList.head, accelerationSequence.toList)
@@ -201,7 +201,7 @@ trait PathFeedUtils extends JtsUtils with PathRefinement {
         forwardAccs.map { nodesWithAcc => nodesWithAcc.map{_._2} } zip
         withDecelleration.map { nodesWithDecel => nodesWithDecel.map{_._2} }
 
-    println(s"$coordPairsWithAccelDecel")
+    logger.debug(s"$coordPairsWithAccelDecel")
     coordPairsWithAccelDecel.map {
       case ((pairList, accList), decList) =>
         ((pairList._1 zip pairList._2) zip accList zip decList).map {
@@ -217,10 +217,10 @@ trait PathFeedUtils extends JtsUtils with PathRefinement {
         def calcVend(angle: Double, targetDistance: Double, accumulatedDistance: Double,
                      currentVelocity: Double): Double = {
           if (accumulatedDistance < targetDistance) {
-            // println(s"currentVelocity: $currentVelocity, accumulatedDistance: $accumulatedDistance")
+            // logger.debug(s"currentVelocity: $currentVelocity, accumulatedDistance: $accumulatedDistance")
             val newVelocity = config.newVf(angle, currentVelocity)
             val newDistance = accumulatedDistance + newVelocity * 1000 / 60 * config.deltaT
-            //println(s"currentVelocity: $currentVelocity, accumulatedDistance: $accumulatedDistance, newVelocity: $newVelocity,newDistance:$newDistance")
+            //logger.debug(s"currentVelocity: $currentVelocity, accumulatedDistance: $accumulatedDistance, newVelocity: $newVelocity,newDistance:$newDistance")
             calcVend(angle, targetDistance, newDistance, newVelocity)
           }
           else {

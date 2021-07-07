@@ -66,7 +66,7 @@ trait Contour extends LazyLogging with JtsUtils {
       val toolpathBuffered = pcConfig.bufferFct(toolPath, t.d / 2.0)
       pGeo("toolpathBuffered", toolpathBuffered)
       val newScene = initialScene.withMachinedGeo(toolpathBuffered)
-      logger.info(s"Contour after machinedGeo")
+      logger.debug(s"Contour after machinedGeo")
 
       pGeo("path aggregated single", {
         new LineString(
@@ -167,15 +167,15 @@ trait Contour extends LazyLogging with JtsUtils {
                                     polyOption: Option[Geometry],
                                     aggregatedPath: List[List[List[Float]]],
                                     s: Cnc2DModel): (List[List[List[Float]]], Cnc2DModel) = {
-          logger.info(s"saniPoly: \r\n${polyOption.get}")
+          logger.debug(s"saniPoly: \r\n${polyOption.get}")
           val poly = saniPoly(polyOption.get, pcConfig)
 
-          logger.info(s"saniPoly: \r\n$poly")
+          logger.debug(s"saniPoly: \r\n$poly")
           if (polyOption.isEmpty || poly.isEmpty || poly.getArea < 0.01) {
             (aggregatedPath, s)
           } else {
             val (path, bufferedToolPath) =   singleContourStep2(poly, t, s, pcConfig)
-            logger.info(s"path Ls: ${asLineString(path)}")
+            logger.debug(s"path Ls: ${asLineString(path)}")
             pGeo("poly",poly)
             pGeo("bufferedToolPath",bufferedToolPath)
             val diff = poly.getArea - poly.difference(bufferedToolPath).getArea

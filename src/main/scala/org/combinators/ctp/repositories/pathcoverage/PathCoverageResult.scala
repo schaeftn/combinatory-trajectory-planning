@@ -56,7 +56,7 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, l: 
         pathList: List[List[List[Float]]],
         toolList: List[CncTool],
         continueRun: Boolean),
-        (currentFct, currentFoldTool)) => {
+        (currentFct, currentFoldTool)) =>
           logger.debug("starting fold step")
           if (continueRun) {
             logger.debug("continueRun: currentFct")
@@ -68,17 +68,12 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, l: 
             val newContVal: Boolean = pathResult.nonEmpty
 
             val res = (newModelList, newPathList, newToolList, newContVal)
-            logger.info(s"res: $res")
+            logger.debug(s"res: $res")
             res
           } else {
-            logger.info("dontContinueRun: returning")
+            logger.debug("dontContinueRun: returning")
             (modelList, pathList, toolList, continueRun)
           }
-        }
-        case (a, b) => logger.error("aaaa")
-          logger.info(s"$a")
-          logger.info(s"$b")
-          a
       })
 
     logger.debug("Starting path refinement.")
@@ -101,7 +96,7 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, l: 
     import java.io._
     val pw = new PrintWriter(new File(fn))
     pw.write(getXmlString(fn).mkString(s"\r\n"))
-    pw.close
+    pw.close()
   }
 
   def getXmlString(description: String): Elem = {
@@ -124,6 +119,6 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, l: 
     import java.io._
     val pw = new PrintWriter(new File(s"out.xml"))
     pw.write(s"$s")
-    pw.close
+    pw.close()
   }
 }

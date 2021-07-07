@@ -57,16 +57,16 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
   lazy val normalizedArea = normalizeRotMat.transform(polyAndBoundaryAreasIntersectionUnionSmol)
 
   lazy val multiLines: Geometry = {
-    logger.info(s"ZigZag Restgeo: $restGeo")
-    logger.info(s"Target Geo: \r\n$targetGeometry")
-    logger.info(s"polyAndBoundaryAreas (restGeo.buffer(toolDia)): $polyAndBoundaryAreas")
-    logger.info(s"ZigZag machinedGeo: $machinedGeo")
-    logger.info(s"polyAndBoundaryAreasIntersectionOhneBuffer: $polyAndBoundaryAreasIntersectionOhneBuffer")
-    logger.info(s"polyAndBoundaryAreasIntersection (polyAndBoundaryAreas.intersection(machinedGeo)): " +
+    logger.debug(s"ZigZag Restgeo: $restGeo")
+    logger.debug(s"Target Geo: \r\n$targetGeometry")
+    logger.debug(s"polyAndBoundaryAreas (restGeo.buffer(toolDia)): $polyAndBoundaryAreas")
+    logger.debug(s"ZigZag machinedGeo: $machinedGeo")
+    logger.debug(s"polyAndBoundaryAreasIntersectionOhneBuffer: $polyAndBoundaryAreasIntersectionOhneBuffer")
+    logger.debug(s"polyAndBoundaryAreasIntersection (polyAndBoundaryAreas.intersection(machinedGeo)): " +
       s"$polyAndBoundaryAreasIntersection")
-    logger.info(s"polyAndBoundaryAreasIntersectionUnion: $polyAndBoundaryAreasIntersectionUnion")
-    logger.info(s"polyAndBoundaryAreasIntersectionSmol: $polyAndBoundaryAreasIntersectionUnionSmol")
-    logger.info(s"normalizedArea: $normalizedArea")
+    logger.debug(s"polyAndBoundaryAreasIntersectionUnion: $polyAndBoundaryAreasIntersectionUnion")
+    logger.debug(s"polyAndBoundaryAreasIntersectionSmol: $polyAndBoundaryAreasIntersectionUnionSmol")
+    logger.debug(s"normalizedArea: $normalizedArea")
 
     //    val at = new AffineTransformation().setToTranslation(feedDirection.normalize().multiply(toolDia).getX.toFloat,
     //      feedDirection.normalize().multiply(toolDia).getY.toFloat)
@@ -80,14 +80,14 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
 
     val c = normalizedArea.getGeometryType match {
       case "Polygon" => {
-        logger.info(s"zipzag coord extraction Polygon")
+        logger.debug(s"zipzag coord extraction Polygon")
         val a = normalizedArea.asInstanceOf[Polygon]
         val exRing = a.getExteriorRing
-        logger.info(s"zipzag coord extraction Exring: $exRing")
+        logger.debug(s"zipzag coord extraction Exring: $exRing")
         a.getExteriorRing.getCoordinates
       }
       case "MultiPolygon" => {
-        logger.info(s"zipzag coord extraction MultiPolygon")
+        logger.debug(s"zipzag coord extraction MultiPolygon")
         val a = normalizedArea.asInstanceOf[MultiPolygon]
         a.getCoordinates
       }
@@ -114,7 +114,7 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
       Array.empty[((Coordinate, Coordinate), Coordinate)]
     }
 
-    logger.info(
+    logger.debug(
       s"""selectedPoint:
          |${if (xSelectedNonConvexPointTriple.nonEmpty) xSelectedNonConvexPointTriple.min else "empty"}""".stripMargin)
 
@@ -128,7 +128,7 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
         xSelectedNonConvexPointTriple.min._1._2.x - envelopeMinX
     else
         envelopegetMaxX - envelopeMinX
-    logger.info(s"sIntervalLength: $xIntervalLength")
+    logger.debug(s"sIntervalLength: $xIntervalLength")
     val segmentCount = math.ceil(xIntervalLength / a_e).toInt
     val stepDistance = xIntervalLength / segmentCount
     val lines = (0 to segmentCount + 1).map(i => {
@@ -148,10 +148,10 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
     multiLinesList.foreach(pGeo("Ml: ", _))
 
     val multiLineGeometryA = gf.createMultiLineString(multiLinesList)
-    logger.info(s"multiLineGeometry: ${multiLineGeometryA}")
+    logger.debug(s"multiLineGeometry: ${multiLineGeometryA}")
 
     val multiLineGeometry = VWSimplifier.simplify(multiLineGeometryA, 0.01)
-    logger.info(s"multiLineGeometry simplified: ${multiLineGeometryA}")
+    logger.debug(s"multiLineGeometry simplified: ${multiLineGeometryA}")
 
     pGeo("targetWorkpiece", targetWorkpiece)
     pGeo("initialScene.getMachinedMultiGeo", machinedGeo)
@@ -175,13 +175,13 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
 
 //    val resultMultiLines: Geometry =
 //      new AffineTransformation().setToRotation(stepDirection.angle()).transform(resultMultiLines1)
-    logger.info(s"resultMultiLines.buffer(toolDia): ${resultMultiLines.buffer(toolDia / 2.0)}")
+    logger.debug(s"resultMultiLines.buffer(toolDia): ${resultMultiLines.buffer(toolDia / 2.0)}")
 
     val rawLineList = (0 until resultMultiLines.getNumGeometries).map { i =>
       val asd = resultMultiLines.getGeometryN(i)
-      //logger.info(s"temp: $asd")
+      //logger.debug(s"temp: $asd")
       val asd2 = if (asd.getGeometryType == "Point") asd else LineDissolver.dissolve(asd)
-      // logger.info(s"asd2: $asd2")
+      // logger.debug(s"asd2: $asd2")
 
       DouglasPeuckerSimplifier.simplify(
         asd2, 0.001)
@@ -193,17 +193,17 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
         rawLineList.zip(rawLineList.tail).indexWhere {
           case (g1, g2) => {
             val ch = new ConvexHull((g1.getCoordinates ++ g2.getCoordinates).toArray, gf)
-            //logger.info(s"ch: ${ch.getConvexHull}")
-            //logger.info(s"intersection: ${ch.getConvexHull.buffer(-0.01).intersection(normalizedArea)}")
+            //logger.debug(s"ch: ${ch.getConvexHull}")
+            //logger.debug(s"intersection: ${ch.getConvexHull.buffer(-0.01).intersection(normalizedArea)}")
             val notContains =
             ch.getConvexHull.buffer(-0.01).getArea -
               ch.getConvexHull.buffer(-0.01).intersection(normalizedArea).getArea > ch.getConvexHull.buffer(-0.01).getArea * 0.1
-            //logger.info(s"notContains: ${notContains}")
+            //logger.debug(s"notContains: ${notContains}")
             notContains
           }
         }
 
-    logger.info(s"filteredLineList $filteredLineList")
+    logger.debug(s"filteredLineList $filteredLineList")
     //TODO hack
     val oldResult = if (filteredLineList == -1) {
       rawLineList.reduceOption[Geometry](_ union _).getOrElse(emptyGeometry)
@@ -216,7 +216,7 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
 
   lazy val findPoints: List[List[Float]] = {
     val resultMultiLines = multiLines
-    logger.info(s"resultMultiLines: ${resultMultiLines}")
+    logger.debug(s"resultMultiLines: ${resultMultiLines}")
     val reversedMultiLines: List[Array[Coordinate]] =
       if (zagOnly) {
         (0 until resultMultiLines.getNumGeometries).map(i => {
@@ -291,8 +291,8 @@ object runZigZag extends App with LazyLogging with JtsUtils {
   }
 
   val p = zz.findPoints.map(i => i :+ 0.0f) // z-Coord
-  println(p)
+  logger.debug(s"$p")
   val ls = getNewLineString(p.map(asCoordinate).toArray)
-  println(s"ls: \r\n$ls")
+  logger.debug(s"ls: \r\n$ls")
   //ToAkka(p)
 }

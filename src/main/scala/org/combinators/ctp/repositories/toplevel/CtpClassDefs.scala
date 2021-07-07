@@ -311,7 +311,7 @@ case class Cnc2DModel(boundaries: List[Float],
       pGeo("with machinedGeo start:", getMachinedMultiGeo)
 
       pGeo("g0", g0)
-      logger.info(s"g0.getFactory ${g0.getFactory}")
+      logger.debug(s"g0.getFactory ${g0.getFactory}")
 
       val g = DouglasPeuckerSimplifier.simplify(g0, 0.01)
       pGeo("g", g)
@@ -321,15 +321,15 @@ case class Cnc2DModel(boundaries: List[Float],
       })
 
       val restGeos2 = restGeos1.map(g => multiGeoToGeoList(g)).reduceOption(_ ++ _).filter(_.nonEmpty)
-      logger.info("with machinedGeo: Got restgeos, attempting to sort")
+      logger.debug("with machinedGeo: Got restgeos, attempting to sort")
 
       val restGeos = restGeos2.getOrElse(List.empty[Geometry]).sortBy(_.getArea)(Ordering[Double].reverse)
-      logger.info("with machinedGeo after restGeos")
-      logger.info("attempting to unionize")
+      logger.debug("with machinedGeo after restGeos")
+      logger.debug("attempting to unionize")
       pGeo("machinedMultiPolygon", machinedMultiPolygon)
       pGeo("g", g)
       val newMachGeo = machinedMultiPolygon.union(g)
-      logger.info("gotMultiPoly")
+      logger.debug("gotMultiPoly")
       pGeo("newMachGeo", newMachGeo)
       Cnc2DModel(self.boundaries, self.targetGeometry, restGeos, self.machined :+ g, newMachGeo, self.initialMachined)
     }
@@ -343,11 +343,14 @@ case class Cnc2DModel(boundaries: List[Float],
   }
 }
 
-object Cnc2DModel extends JtsUtils {
+object Cnc2DModel extends JtsUtils with LazyLogging {
   def apply(s: String,bounds: List[Float]): Cnc2DModel = {
+    val t0 = System.currentTimeMillis()
     val wktReader = new WKTReader()
     val wktStr: String = Source.fromResource(s).getLines.mkString("\r\n")
     val tgtGeo = wktReader.read(wktStr)
+    val t1 = System.currentTimeMillis()
+    logger.debug("Reading wktString elapsed time: " + (t1 - t0) + "ms")
 
     Cnc2DModel(boundaries = bounds,
     targetGeometry = tgtGeo, rest = List(tgtGeo), machined = List(),

@@ -7,8 +7,7 @@ import org.combinators.cls.interpreter.{InhabitationResult, ReflectedRepository}
 import org.combinators.cls.types.{Taxonomy, Type}
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories.pathcoverage.{CamMpTopRepository, PathCoverageResult}
-import org.combinators.ctp.repositories.runinhabitation.RunCncEvaluation.inhabitationResult
-import org.combinators.ctp.repositories.toplevel.{PcrEvaluationUtils}
+import org.combinators.ctp.repositories.toplevel.PcrEvaluationUtils
 import org.webjars.play.WebJarsUtil
 import play.api.inject.ApplicationLifecycle
 
@@ -41,9 +40,10 @@ class PlanningDebugger @Inject()(val webJarsUtil: WebJarsUtil, val lifeCycle: Ap
     val newFilRes = Some(InhabitationResult[PathCoverageResult](filteredTreeGraph,
       tgtsFilter, Gamma.evalInhabitant[PathCoverageResult]))
     if (newFilRes.get.isInfinite) {
-      PcrEvaluationUtils(newFilRes.get, true, acceptPercentage).evalInhabitants(0 to 50)
+      PcrEvaluationUtils(newFilRes.get, withKlarText = true, acceptPercentage).evalInhabitants(0 to 50)
     } else {
-      PcrEvaluationUtils(newFilRes.get, true, acceptPercentage).evalInhabitants(0 until newFilRes.get.size.get.toInt)
+      PcrEvaluationUtils(newFilRes.get, withKlarText = true, acceptPercentage).evalInhabitants(
+        0 until newFilRes.get.size.get.toInt)
     }
     filteredResult = newFilRes
   }
