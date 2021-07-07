@@ -233,7 +233,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
 //    val semanticType = alpha =>: pFct :&: alpha
 //    }
 
-  @combinator object MultiCountourMultiTool extends Contour {
+  @combinator object MultiContourMultiTool extends Contour {
     def apply(t: CncTool, t2: CncTool): PathCoverageStep = {
       val pc1 = createMultiContourStep(t)
       val pcStepList = pc1.pcrList :+ createFinishContourStep(t2)
@@ -256,7 +256,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
     val semanticType = alu :&: roughing =>: alu :&: finishing =>: pFct :&: alu
   }
 
-  @combinator object MultiCountourFinishing extends Contour {
+  @combinator object MultiContourFinishing extends Contour {
     def apply(t: CncTool): PathCoverageStep = {
       val pc1 = createMultiContourStep(t)
       // val pcStepList = pc1.pcrList
@@ -281,7 +281,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
   }
 
   //TODO Bugfix
-  @combinator object MultiCountourMultiToolSteel extends Contour {
+  @combinator object MultiContourMultiToolSteel extends Contour {
     def apply(t: CncTool, t2: CncTool): PathCoverageStep = {
       val newTool = CncTool(t.d, t.ae / 2.0f,t.ap, t.vf, t.n, t.description + ". Steel ae/2.0", t.idString)
       //case class CncTool(d: Float, ae: Float, ap: Float, vf: Float, n: Int, description: String, idString: String)
