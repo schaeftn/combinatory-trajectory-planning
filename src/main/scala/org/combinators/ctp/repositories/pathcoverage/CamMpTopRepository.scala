@@ -330,16 +330,14 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
     val semanticType = steel =>: pFct :&: steel
   }
 
+  val bounds1 = List[Float](0.0f, 50.0f, -15.0f, 40.0f)
+  val machinedGeo1: Geometry = wktRead("""POLYGON ((0 -15, 0 0, 50 0, 50 -15, 0 -15))""")
+  val scene1: Cnc2DModel = Cnc2DModel("models/machiningUc1.wkt", bounds1).withInitialMachinedGeo(machinedGeo1)
+  val config = PathCoverageStepConfig()
 
   @combinator object ApplyScene extends JtsUtils {
     def apply(pcs: PathCoverageStep): PathCoverageResult = {
-      val bounds = List[Float](0.0f, 50.0f, -15.0f, 40.0f)
-      val machinedGeo: Geometry = wktRead("""POLYGON ((0 -15, 0 0, 50 0, 50 -15, 0 -15))""")
-
-      val scene: Cnc2DModel = Cnc2DModel("models/machiningUc1.wkt", bounds).withInitialMachinedGeo(machinedGeo)
-      val config = PathCoverageStepConfig()
-
-      PathCoverageResult(scene, config, List(pcs))
+      PathCoverageResult(scene1, config, List(pcs))
     }
 
     val semanticType = (pFct :&: alpha =>: pFctResult :&: alpha) :&:

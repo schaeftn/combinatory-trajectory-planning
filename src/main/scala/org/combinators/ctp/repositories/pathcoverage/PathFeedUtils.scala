@@ -22,16 +22,17 @@ trait PathFeedUtils extends JtsUtils with PathRefinement {
     asd.toFloat
   }
 
+  def checkMinPathClearanceViolation(singlePath: List[List[Float]]) =
+    singlePath.reduce[List[Float]] { case (a, b) =>
+      if (asCoordinate(a).distance(asCoordinate(b)) < config.minPointClearanceOnPath)
+        logger.info(s"Min Point clearance violation. $a, $b")
+      a
+    }
+
   lazy val withMaxVfByAngle: List[List[List[Float]]] = {
     (pcr.pathList).filter(_.nonEmpty).map {
       case (singlePath: List[List[Float]]) =>
-        singlePath.reduce[List[Float]] { case (a, b) =>
-          if (asCoordinate(a).distance(asCoordinate(b)) < config.minPointClearanceOnPath)
-            logger.info("Min Point clearance violation")
-          else
-            ()
-          a
-        }
+        // checkMinPathClearanceViolation(singlePath)
         if (singlePath.length > 2) {
           val singlePathCoords = singlePath.map(asCoordinate)
           val constrPath = singlePathCoords.
@@ -329,3 +330,8 @@ trait PathFeedUtils extends JtsUtils with PathRefinement {
       override val pcr: PathCoverageResult = p_pcr
     }
   }
+
+/**
+ * GenericCompositionPcStep(*,GenericCompositionPcStep(*,*))
+ * GenericCompositionPcStep(GenericCompositionPcStep(SteelRadial,SteelRoughing),SteelRadial(*))
+ */

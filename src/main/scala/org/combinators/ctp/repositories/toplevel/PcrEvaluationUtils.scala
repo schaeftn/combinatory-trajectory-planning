@@ -61,11 +61,15 @@ trait PcrEvaluationUtils extends LazyLogging{
     inhabitants.interpretedTerms.index(i).asInstanceOf[PathCoverageResult]
 
   def evalInhabitants(range: Range) = {
+    logger.info(s"Evaluating inhabitants ${range.head} to ${range.last}")
     val evaluatedInhabitants = range.par.map(runInhabitant)
-    (range zip evaluatedInhabitants).par.map { case (i, pcr) => writeFilesForInhabitant(i, pcr) }
+    (range zip evaluatedInhabitants).par.map { case (i, pcr) =>
+      logger.info(s"Writing files for inhabitant $i")
+      writeFilesForInhabitant(i, pcr) }
   }
 
   def evalInhabitant(index: Int) = {
+    logger.info(s"Writing files for inhabitant $index")
     writeFilesForInhabitant(index, runInhabitant(index))
   }
 

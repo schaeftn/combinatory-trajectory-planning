@@ -132,6 +132,7 @@ object PathCoverageStepConfig {
     }
 
     def buildLookup(machineModelAccX: Double => Double): List[(Float, Float, Float)] = {
+      logger.warn("Building acc models from scratch.")
       val deltaT = 0.00005f // 50 ms
       (0 to 100000).foldLeft((List[(Float, Float, Float)]((0.0f, 0.0f, 0.0f)), (0.0f, 0.0f, 0.0f))) {
         case ((a, lastBufferedElement), newIndex) => {
@@ -149,7 +150,7 @@ object PathCoverageStepConfig {
 
     val xAccLookup: List[(Float, Float, Float)] = {
       val l = retrieveLookup(machineModelAccX, true)
-      println(s"Last Element full xList ${l.last}")
+      logger.debug(s"Last Element full xList ${l.last}")
       l
     }
 
@@ -162,7 +163,7 @@ object PathCoverageStepConfig {
         (-14.8311 / (Math.pow(nDegree.toDouble, 2)) + 28.4664 / nDegree.toDouble - 0.1496).toFloat
       }.map{_ * 1000.0f }
 
-      logger.info(s"vListByAngle: \r\n $vList")
+      logger.debug(s"vListByAngle: \r\n $vList")
       vList.toList
     }
 
