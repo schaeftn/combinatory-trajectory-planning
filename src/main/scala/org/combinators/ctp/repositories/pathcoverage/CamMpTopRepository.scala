@@ -215,6 +215,54 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
   }
 
 
+  @combinator object SpecimenContour {
+    def apply(t: CncTool): PathCoverageStep = {
+      val pcFunction: cncPathFct = {
+        case (model, config) =>
+          val holesMultiGeo = findHoles(model.targetGeometry)
+          pGeo(s"CHull Combinator holes:", holesMultiGeo.getOrElse(emptyGeometry))
+          val islesList = getGeoListFromGeo(holesMultiGeo.getOrElse(emptyGeometry))
+          val bufferedIsles = islesList.map { g => g.buffer(t.d).difference(model.machinedMultiPolygon.buffer(0)) }
+          val selectedIsleTuple = (islesList zip bufferedIsles).maxBy { case (g1, g2) => g2.difference(g1).getArea }
+          val selectedIsle = smartCastToPolygon(selectedIsleTuple._1)
+
+          val toolPath = selectedIsle.buffer(t.r).asInstanceOf[Polygon].getExteriorRing
+          val tpBuffer = toolPath.buffer(t.r)
+
+          pGeo("SpecimenContour tpBuffer", tpBuffer)
+          //Connect from machined area tool posis
+          //Update model
+          val updatedRestList: List[Geometry] =
+          model.rest.map {
+            _.difference(tpBuffer)
+          }.map(g => getGeoListFromGeo(g)).reduce(_ ++ _)
+          val updatedRestRemovedA = updatedRestList.partition { restGeo =>
+            restGeo.isWithinDistance(toolPath, t.r + 0.01d) && restGeo.getArea < 0.1d
+          }
+
+          val newMachinedMultiPolygon: Geometry = updatedRestRemovedA._1.foldLeft(
+            model.machinedMultiPolygon.union(tpBuffer)) { case (accGeo, newGeo) => accGeo.union(newGeo) }
+          val newMachinedList: List[Geometry] = (model.machined :+ tpBuffer) ++ updatedRestRemovedA._1
+
+          //        remove areas that are in vicinity of the workpiece and are under area theshhold
+          //        difference(toolPath.buffer(t.r))
+          val newModel = Cnc2DModel(boundaries = model.boundaries,
+            targetGeometry = model.targetGeometry,
+            rest = updatedRestRemovedA._2,
+            machined = newMachinedList,
+            machinedMultiPolygon = newMachinedMultiPolygon,
+            initialMachined = model.initialMachined,
+            transformStack = model.transformStack)
+
+          (List(asFloatList(toolPath.getCoordinates)), newModel)
+      }
+      PathCoverageStep(Some(pcFunction), Some(t), List.empty[PathCoverageStep], """Specimen Contour""")
+    }
+
+    val semanticType = alpha =>: pcFct :&: alpha
+  }
+
+
   //  //org.locationtech.jts.precision.MinimumClearance Decomposition
   @combinator object ZigZagStep {
     def apply(t: CncTool): PathCoverageStep = {
