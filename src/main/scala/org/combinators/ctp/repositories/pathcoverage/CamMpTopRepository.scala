@@ -240,8 +240,12 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
             restGeo.isWithinDistance(toolPath, t.r + 0.01d) && restGeo.getArea < 0.1d
           }
 
-          val newMachinedMultiPolygon: Geometry = updatedRestRemovedA._1.foldLeft(
-            model.machinedMultiPolygon.union(tpBuffer)) { case (accGeo, newGeo) => accGeo.union(newGeo) }
+          val geoCollection = gf.createGeometryCollection((List( model.machinedMultiPolygon,tpBuffer ) ++ updatedRestRemovedA._1).toArray)
+          val newMachinedMultiPolygon: Geometry =geoCollection.buffer(0)
+
+//            updatedRestRemovedA._1.foldLeft(
+//              model.machinedMultiPolygon.buffer(0).union(tpBuffer.buffer(0))) {
+//              case (accGeo, newGeo) => accGeo.buffer(0).union(newGeo.buffer(0)) }
           val newMachinedList: List[Geometry] = (model.machined :+ tpBuffer) ++ updatedRestRemovedA._1
 
           //        remove areas that are in vicinity of the workpiece and are under area theshhold

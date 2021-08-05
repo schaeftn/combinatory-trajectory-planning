@@ -36,10 +36,10 @@ trait CncEvaluationSetup extends LazyLogging with AkkaImplicits with JtsUtils {
 /*Reads User Input*/
 object RunCncEvaluation extends App with CncEvaluationSetup {
   override val aluUseCase = true
-  override val printKlartext = true
+  override val printKlartext = false
   override val pRefinement = false
   override val openPocket = true
-  override val acceptPercentage = 0.1f
+  override val acceptPercentage = 0.01f
 
   logger.debug((if (inhabitationResult.isEmpty) "inhabitant not found" else "inhabitant found") + "," +
     inhabitationResult.target.toString())

@@ -32,6 +32,7 @@ trait PcrEvaluationUtils extends LazyLogging with TreePrinting{
       } else {
         logger.info(s"evaluating inhabitant $i")
         //val filter = inhabitants.terms.index(i).toString.contains("ConvexHullDecomposition")
+        //val filter = inhabitants.terms.index(i).toString.contains("SpecimenContour")
         val filter = true
         if (filter) {
           val pcr = runInhabitant(i)

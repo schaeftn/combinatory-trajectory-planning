@@ -185,15 +185,13 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
 
     val resultMultiLines1 = asMultiLine(getGeoListFromGeo(multiLineGeometry.difference(invalidToolPositions.buffer(0))).
       sortBy(_.getEnvelopeInternal.getMinX).map(_.asInstanceOf[LineString]).map(ls =>
-      gf.createLineString(ls.getCoordinates.sortBy(_.y)))) // more rubust?
-//    val resultMultiLines1 = asMultiLine(getGeoListFromGeo(validStartingPoints.intersection(multiLineGeometry)).
-//      sortBy(_.getEnvelopeInternal.getMinX).map(_.asInstanceOf[LineString]).map(ls => gf.createLineString(ls.getCoordinates.sortBy(_.y)) )) // more rubust?
+      gf.createLineString(ls.getCoordinates.sortBy(_.y))))
 
     val resultMultiLines = LineDissolver.dissolve(resultMultiLines1)
     pGeo("resultMultiLines", resultMultiLines)
 
-    val rMultiLinesDirty = resultMultiLines.getCoordinates.groupBy(_.x).map{
-      case (xCoord, cArray) => getNewLineString(cArray.sortBy(_.y))
+    val rMultiLinesDirty = getGeoListFromGeo(resultMultiLines).filter(_.getGeometryType == "LineString").map {
+      l => getNewLineString(l.getCoordinates.sortBy(_.y))
     }
 
     //    val resultMultiLines: Geometry =
