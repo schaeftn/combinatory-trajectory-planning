@@ -49,7 +49,7 @@ object RunCncTestLinear extends App with JtsUtils {
     machinedMultiPolygon = emptyGeometry, initialMachined = emptyGeometry).withInitialMachinedGeo(machinedGeo)
   val config = PathCoverageStepConfig(false)
   val pcs = PathCoverageStep(Some(pFct), Some(tool), List.empty[PathCoverageStep], "testrun")
-  val pcr = PathCoverageResult(scene, config, List(pcs))
+  val pcr = PathCoverageResult(scene, config, pcs)
 
   printTable(config.xAccLookup)
   println("#########")

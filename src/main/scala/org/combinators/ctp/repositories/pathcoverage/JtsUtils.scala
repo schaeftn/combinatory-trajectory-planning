@@ -1,30 +1,98 @@
 package org.combinators.ctp.repositories.pathcoverage
 
-import java.io.File
-import java.util
-
 import com.typesafe.scalalogging.LazyLogging
 import org.combinators.ctp.repositories.toplevel.PathCoverageStepConfig
 import org.locationtech.jts.dissolve.LineDissolver
-import org.locationtech.jts.geom
-import org.locationtech.jts.geom.impl.CoordinateArraySequence
 import org.locationtech.jts.geom.util.AffineTransformation
-import org.locationtech.jts.geom.{Coordinate, Envelope, Geometry, GeometryFactory, LineSegment, LineString, LinearRing, MultiLineString, MultiPolygon, Point, Polygon, PrecisionModel}
+import org.locationtech.jts.geom.{Coordinate, Geometry, GeometryFactory, LineSegment, LineString, LinearRing,
+  MultiLineString, MultiPolygon, Point, Polygon}
 import org.locationtech.jts.io.WKTReader
 import org.locationtech.jts.util.GeometricShapeFactory
 
-import scala.io.Source
 
 trait JtsUtils extends LazyLogging with CircleUtils {
   val gf = new GeometryFactory()
   val emptyLs = gf.createLineString()
   val emptyGeometry = new Point(null, gf)
   val zIdleValue = 20.0f
+  val coverageErrorMargin = 0.1d
 
   def wktRead(s: String): Geometry = {
     val wktReader = new WKTReader()
     wktReader.read(s)
   }
+
+  def geosAreNear(g: Geometry, p: Point): Boolean = p.isWithinDistance(g, coverageErrorMargin)
+
+  def pointsInSamePolygon(p_startPoint: List[Float],
+                          p_endPoint: List[Float],
+                          machinedGeo: Geometry): Boolean = {
+    val (startPoint, endPoint) = (asPoint(p_startPoint), asPoint(p_endPoint))
+    val tempList = getGeoListFromGeo(machinedGeo).map(
+      g => (startPoint.isWithinDistance(g,coverageErrorMargin), endPoint.isWithinDistance(g, coverageErrorMargin)))
+    if(tempList.map(_._1).count(_ == true) > 1 || tempList.map(_._1).count(_ == true) > 1)
+      logger.warn("pointsInSamePolygon: Points are covered by multiple Elements of the machined Geo (check Code)")
+    tempList.map(t => t._1 == t._2).reduce(_ && _)
+  }
+
+
+
+  def rotateFloatList(l: List[List[List[Float]]], angle: Double): List[List[List[Float]]]= {
+    val lsList = l.map(singlePath => getNewLineString(singlePath.map(asCoordinate).toArray))
+    val transformMatrix = AffineTransformation.rotationInstance(angle)
+    val rotatedLsList = lsList.map(transformMatrix.transform)
+    rotatedLsList.map(ls => asFloatList(ls.getCoordinates))
+  }
+
+  def getLineStringFromBoundaries(l: List[Float]): LineString = {
+    val doubleList = l.map(_.toDouble)
+    val coords = List(
+      new Coordinate(doubleList(0), doubleList(2)),
+      new Coordinate(doubleList(1), doubleList(2)),
+      new Coordinate(doubleList(1), doubleList(3)),
+      new Coordinate(doubleList(0), doubleList(3)))
+    getNewLineString(coords.toArray)
+  }
+
+  def getBoundaryListFromGeo(g: Geometry): List[Float] = {
+    val env = g.getEnvelopeInternal
+    List(env.getMinX, env.getMaxX, env.getMinY, env.getMaxY).map(_.toFloat)
+  }
+
+  def findHoles(g: Geometry): Option[Geometry] = {
+    val resultGeo = g match {
+      case p: Polygon => findHoles(p.asInstanceOf[Polygon])
+      case mp: MultiPolygon => findHoles(mp.asInstanceOf[MultiPolygon])
+      case _ => None
+    }
+    pGeo("resultGeo, Finding isles", resultGeo.getOrElse(emptyGeometry))
+    resultGeo
+  }
+
+  def findHoles(g: Polygon): Option[Geometry] = {
+    val polygons = (0 until g.getNumInteriorRing).map { i => gf.createPolygon(g.getInteriorRingN(i)) }
+    val multiPolygon = gf.createMultiPolygon(polygons.toArray)
+    if (multiPolygon.isEmpty)
+      None
+    else
+      Some(multiPolygon)
+  }
+
+  def findHoles(g: MultiPolygon): Option[Geometry] = {
+    val polygons = (0 until g.getNumGeometries).map { i => g.getGeometryN(i) }
+    val geoOptions = polygons.map(findHoles)
+    val resultGeo = geoOptions.filter { i =>
+      i match {
+        case Some(_) => true
+        case None => false
+      }
+    }.map(_.get).reduceOption(
+      _ union _
+    )
+    resultGeo
+  }
+
+  def getGeoCollection(l: List[Geometry]) = gf.createGeometryCollection(l.toArray)
 
   def withIdleZ(c: List[Float]): List[Float] =
     if (c.length == 2) c :+ zIdleValue else if (c.length == 3) c.dropRight(1) :+ zIdleValue else List.empty[Float]
@@ -92,13 +160,16 @@ trait JtsUtils extends LazyLogging with CircleUtils {
   def safeCastToPolygon(g: Geometry): Polygon =
     if (g.getGeometryType == "Polygon") g.asInstanceOf[Polygon] else gf.createPolygon()
 
-  def smartCastToPolygon(g: Geometry): Polygon =
+  def smartCastToPolygon(g: Geometry, g2: Geometry = emptyGeometry): Polygon =
     if (g.getGeometryType == "Polygon")
       g.asInstanceOf[Polygon]
     else if (g.getGeometryType == "MultiPolygon" || g.getGeometryType == "GeometryCollection") {
-      val lGeoList = getGeoListFromGeo(g).filter(_.getGeometryType == "Polygon")
+      val lGeoList = getGeoListFromGeo(g).filter(_.getGeometryType == "Polygon").filter(_.getArea > 0.1)
       if (lGeoList.nonEmpty)
-        lGeoList.maxBy(_.getArea).asInstanceOf[Polygon]
+        if (g2.isEmpty)
+          lGeoList.maxBy(_.getArea).asInstanceOf[Polygon]
+        else
+          lGeoList.minBy(_.distance(g2)).asInstanceOf[Polygon]
       else
         gf.createPolygon()
     } else {
@@ -108,26 +179,29 @@ trait JtsUtils extends LazyLogging with CircleUtils {
 
   def paraBuffer(minPointClearance: Double)(g: Geometry, d: Double): Geometry = {
     val lengthNinetyArc = twoPi / 4 * d
-    val numberOfPointsOnArc = math.ceil(lengthNinetyArc / minPointClearance).toInt
+    val numberOfPointsOnArc = math.min(math.ceil(lengthNinetyArc / minPointClearance), 8.0d).toInt
     g.buffer(d, numberOfPointsOnArc)
+    //g.buffer(d)
   }
 
   def pGeo(s: String, g: Geometry): Unit = logger.debug(s"$s\r\n$g")
 
   def asFloatList(a: Array[Coordinate]): List[List[Float]] = a.map(c => List(c.x.toFloat, c.y.toFloat)).toList
+  def coordAsFloatList(a: Coordinate): List[Float] = List(a.x.toFloat, a.y.toFloat, a.z.toFloat)
 
-  def asFloatList3(a: Array[Coordinate]): List[List[Float]] = a.map(c => List(c.x.toFloat, c.y.toFloat, c.getZ.toFloat)).toList
+  def asFloatList3(a: Array[Coordinate]): List[List[Float]] =
+    a.map(c => List(c.x.toFloat, c.y.toFloat, c.getZ.toFloat)).toList
 
   def getBoundaryRectangle(l: List[Float]): Geometry = {
     if (l.length < 4) {
       logger.warn(s"getBoundaryRectangle. Argument list length should be 4 $l")
       return emptyGeometry
     }
-    val gsf: GeometricShapeFactory = new GeometricShapeFactory();
+    val gsf: GeometricShapeFactory = new GeometricShapeFactory()
     gsf.setBase(new Coordinate(l(0), l(2)))
-    gsf.setWidth(l(1) - l(0));
-    gsf.setHeight(l(3) - l(2));
-    gsf.createRectangle();
+    gsf.setWidth(l(1) - l(0))
+    gsf.setHeight(l(3) - l(2))
+    gsf.createRectangle()
   }
 
   def getNewLineString(a: Array[Coordinate]): LineString = gf.createLineString(a)
@@ -200,6 +274,22 @@ trait JtsUtils extends LazyLogging with CircleUtils {
           lsOnly.maxBy(_.getLength)
       }
   }
+
+  def getTopLineString(mls: Geometry, cfg: PathCoverageStepConfig): Geometry = {
+    if (mls.isEmpty)
+      emptyGeometry
+    else
+      mls.getGeometryType match {
+        case "LineString" => mls
+        case "MultiLineString" =>
+          val dis = LineDissolver.dissolve(mls)
+          getGeoListFromGeo(dis).maxBy(_.getEnvelopeInternal.getMaxY)
+        case "GeometryCollection" =>
+          val lsOnly = getGeoListFromGeo(mls).filter(_.getGeometryType == "LineString").
+            map(LineDissolver.dissolve).filter(_.getLength > cfg.pathIgnoreVal)
+          lsOnly.maxBy(_.getEnvelopeInternal.getMaxY)
+      }
+  }
   def asLineString(l: List[List[Float]]): Geometry = gf.createLineString(l.map(c => asCoordinate(c)).toArray)
 
   def asPoint(p: List[Float]) = gf.createPoint(asCoordinate(p))
@@ -222,14 +312,15 @@ trait JtsUtils extends LazyLogging with CircleUtils {
   else
     List.empty[LineString]
 
-  def reverseLs(ls: LineString): LineString = ls.reverse().asInstanceOf[LineString]
+  def reverseLs(ls: LineString): LineString = ls.reverse()
 
   def asLineString(g: Geometry): LineString =
-    g.getGeometryType match {
-      case "LineString" => g.asInstanceOf[LineString]
-        //Fix for ExRing intersection results
-      case "MultiLineString" => val ls = gf.createLineString(g.getCoordinates)
-        if (ls.getLength == g.getLength)
+    g match {
+      case ls: LineString => ls
+      //Fix for ExRing intersection results
+      case mls: MultiLineString =>
+        val ls = gf.createLineString(mls.getCoordinates)
+        if (ls.getLength == mls.getLength)
           ls
         else
           emptyLs

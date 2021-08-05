@@ -1,121 +1,140 @@
 package org.combinators.ctp.repositories.pathcoverage
 
-import java.io.File
-
-import org.combinators.ctp.repositories.cncPathFct
 import org.combinators.ctp.repositories.toplevel.{Cnc2DModel, PathCoverageStep, PathCoverageStepConfig}
-import org.locationtech.jts.algorithm.Angle
-import org.locationtech.jts.geom.Coordinate
+import org.locationtech.jts.geom.Geometry
 
-import scala.math.{max, min}
-
-
-import scala.annotation.tailrec
-import scala.math.min
 import scala.xml.Elem
 
 /**
  * @param s      scene applied to pc steps
  * @param config Config object that will be applied to all path coverage steps
- * @param l      unfolded pc step list
+ * @param pcs    Top Level Path Coverage Step
  */
-case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, l: List[PathCoverageStep])
+case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, pcs: PathCoverageStep)
   extends JtsUtils with PathRefinement {
-  def unfoldPathCoverageStepsDepthFirst(l: List[PathCoverageStep]): List[(cncPathFct, CncTool)] =
-    l match {
-      case Nil => Nil
-      case (a: PathCoverageStep) :: tail =>
-        val currentCncStep: Option[cncPathFct] = a.pcFct
-        val currentCncTool: Option[CncTool] = a.tool
-        val currentCncStepsSubtree: List[(cncPathFct, CncTool)] =
-          if (a.pcrList.nonEmpty)
-            unfoldPathCoverageStepsDepthFirst(a.pcrList)
-          else
-            List.empty[(cncPathFct, CncTool)]
-        val restCncSteps: List[(cncPathFct, CncTool)] = unfoldPathCoverageStepsDepthFirst(tail) // other part of decomposition
-        val list1: List[(cncPathFct, CncTool)] =
-          (currentCncStep, currentCncTool) match {
-            case (Some(a), Some(tool)) => (a, tool) +: currentCncStepsSubtree
-            case _ => currentCncStepsSubtree
+    def traverseTreePostOrder(pcs: PathCoverageStep,
+                            accResultList:List[(Cnc2DModel, List[List[Float]], Option[CncTool],String)],
+                            continueRun: Boolean):
+  (List[(Cnc2DModel, List[List[Float]], Option[CncTool], String)], Boolean) = {
+      // Run self
+      logger.info(s"evaluating pcs: ${pcs.description_param}")
+
+      logger.info(s"accResultList.empty ${accResultList.isEmpty}")
+      val thisResult: Option[(List[List[List[Float]]], Cnc2DModel)] =
+      pcs.pcFct.map(f => f.apply(accResultList.lastOption.map(_._1).getOrElse(s), config))
+      val thisResultAsListOption = thisResult.map(l => List(
+        (l._2, l._1.reduceOption(_ ++ _).getOrElse(List.empty[List[Float]]), pcs.tool, pcs.description_param)))
+      logger.info(s"thisResultAsListOption $thisResultAsListOption")
+      val lastCurrentResultEntry = thisResultAsListOption.getOrElse(accResultList.lastOption.map(List(_)).
+        getOrElse(List((s, List.empty[List[Float]], None,pcs.description_param))))
+
+      //Result was computed, but returned empty List
+      val continueAfterCurrent = continueRun && thisResult.forall(_._1.isEmpty)
+
+      // Run children for model
+      val (retransformedChildrenPaths,continueRunAfterChildren) = {
+        if (pcs.pcrList.nonEmpty) {
+          val (lastAccResultWithChildren, lastAccChildrenContinue) =
+            pcs.pcrList.foldLeft[(List[(Cnc2DModel, List[List[Float]], Option[CncTool], String)], Boolean)](
+              (lastCurrentResultEntry, continueRun)) {
+              case ((foldList, foldContinueRun), foldPcs) =>
+                val (newResultList, newContinue) = traverseTreePostOrder(foldPcs, foldList, foldContinueRun)
+                (newResultList, newContinue)
+            }
+
+          //TODO transform paths during current node evaluation
+          val retransformedChildrenPathOption = pcs.resultTransform.map(f => f.apply(
+            lastAccResultWithChildren.drop(accResultList.size).map(_._2)))
+
+          val rcp = retransformedChildrenPathOption match {
+            case None => lastAccResultWithChildren.drop(1)
+            case Some(transformedPathList) => lastAccResultWithChildren.drop(1).zip(transformedPathList).map {
+              case ((model, _, toolOpt, description), newPathList) => (model, newPathList, toolOpt, description)
+            }
           }
-        list1 ++ restCncSteps
-    }
 
+          (rcp,lastAccChildrenContinue)
+        } else {
+          (List.empty[(Cnc2DModel, List[List[Float]], Option[CncTool], String)], true)
+        }
+      }
 
-  lazy val unfoldedPcFunctionList: List[(cncPathFct, CncTool)] = unfoldPathCoverageStepsDepthFirst(l)
+      logger.debug(s"pcs: ${pcs.description_param}, accResultList.size ${accResultList.size}")
+      logger.debug(s"pcs: ${pcs.description_param}, thisResultAsListOption $thisResultAsListOption")
+      thisResultAsListOption match {
+        case Some(r) => r.foreach(t => {
+          pGeo(s"r", t._1.getMachinedMultiGeo)
+          pGeo("path", asLineString(t._2))
+        })
+        case None => ()
+      }
+      logger.debug(s"pcs: ${pcs.description_param}, retransformedChildrenPaths ${retransformedChildrenPaths.size}")
+
+      // Build result
+      val rList = if (continueAfterCurrent) {
+        thisResultAsListOption match {
+          case None =>
+            accResultList ++ retransformedChildrenPaths
+          case Some(l) =>
+            accResultList ++ l ++ retransformedChildrenPaths
+        }
+      } else {
+        thisResultAsListOption.map(resultList => accResultList ++ resultList).getOrElse(accResultList)
+      }
+
+      logger.debug(s"pcs: ${pcs.description_param}, rList.size: ${rList.size}")
+      (rList, continueRunAfterChildren)
+      }
 
   /**
    * quatruple: EndModel, Aux List Path Functions (empty when done),
    * model history (first element is initial model),
    * path history (first element is empty path)
    */
-  lazy val computeModelHistory: (List[Cnc2DModel], List[List[List[Float]]], List[CncTool], Boolean) = {
-    lazy val (modelList, pathList, compToolList, runSuccessful) =
-      unfoldedPcFunctionList.foldLeft(List(s), List.empty[List[List[Float]]], List.empty[CncTool], true: Boolean)({
-        case ((modelList: List[Cnc2DModel],
-        pathList: List[List[List[Float]]],
-        toolList: List[CncTool],
-        continueRun: Boolean),
-        (currentFct, currentFoldTool)) => {
-          logger.debug("starting fold step")
-          if (continueRun) {
-            logger.debug("continueRun: currentFct")
-            val (pathResult, modelResult) = currentFct(modelList.last, config)
-            logger.debug("continueRun: After fct")
-            val newModelList: List[Cnc2DModel] = modelList :+ modelResult
-            val newPathList: List[List[List[Float]]] = pathList ++ pathResult
-            val newToolList: List[CncTool] = toolList ++ List.fill(pathResult.size)(currentFoldTool)
-            val newContVal: Boolean = pathResult.nonEmpty
-
-            val res = (newModelList, newPathList, newToolList, newContVal)
-            logger.info(s"res: $res")
-            res
-          } else {
-            logger.info("dontContinueRun: returning")
-            (modelList, pathList, toolList, continueRun)
-          }
-        }
-        case (a, b) => logger.error("aaaa")
-          logger.info(s"$a")
-          logger.info(s"$b")
-          a
-      })
-
-    logger.debug("Starting path refinement.")
-    val refinedPathList = if (config.pathRefinement)
-      pathList.map(sPath => refine(sPath, config.minPointClearanceOnPath)).
-        map(sPath => refineMinClearance(sPath, config.maxPointClearanceOnPath))
-    else
-      pathList
-
-    logger.debug("Path refinement done.")
-
-    logger.debug(s"ModelList: ${modelList}")
-    (modelList, refinedPathList, compToolList, runSuccessful)
+  lazy val computeModelHistory: (List[(Cnc2DModel, List[List[Float]], Option[CncTool], String)], Boolean) = {
+    logger.info(s"traverseTreePostOrder: ${pcs.description_param}")
+    //traverseTreePostOrder(pcs, List.empty[(Cnc2DModel, List[List[Float]], Option[CncTool], String)], continueRun = true)
+    traverseTreePostOrder(pcs, List((s, List.empty[List[Float]], None, """Initial model state.""")), continueRun = true)
   }
 
-  lazy val (modelList, pathList, toolList, runSuccessful) = computeModelHistory
+  lazy val modelList = computeModelHistory._1.map{case (cModel, _, _,_) => cModel}
+  lazy val pathList = computeModelHistory._1.map{case (_, cPath, _,_) => cPath}
+  lazy val toolList = computeModelHistory._1.map{case (_, _, cToolOption,_) => cToolOption}
+  lazy val descrList = computeModelHistory._1.map{case (_, _, _,descr) => descr}
+  lazy val runSuccessful = computeModelHistory._2
+
   lazy val endScene = modelList.last
 
-  def writeXmlOut(fn: String) = {
+  def writeXmlOut(fn: String, inhabitantIndex: Int) = {
     import java.io._
     val pw = new PrintWriter(new File(fn))
-    pw.write(getXmlString(fn).mkString(s"\r\n"))
-    pw.close
+    pw.write(getXmlString(inhabitantIndex).mkString(s"\r\n"))
+    pw.close()
   }
 
-  def getXmlString(description: String): Elem = {
-    val info = modelList.map { m => m.getMachinedMultiGeo } zipAll(
-      pathList.map { p => asLineString(p) }, emptyGeometry, emptyGeometry)
+  def writeTreeOut(i: Int, fn: String) = {
+    import java.io._
+    val pw = new PrintWriter(new File(fn))
+    pw.write(getXmlString(i).mkString(s"\r\n"))
+    pw.close()
+  }
+
+  def getXmlString(inhabitantIndex: Int): Elem = {
+    val modelTuple = modelList.map { m => (m, m.getMachinedMultiGeo) }
+    val modelTupleWithPath: List[((Cnc2DModel, Geometry), Geometry)] = modelTuple.zip(
+      pathList.map { p => asLineString(p) })
 
     <run>
-      <precisionModel type="FLOATING"/>{info.map { case (a, b) => <case>
-      <desc>{description}</desc> <a>
-        {a}
+      <precisionModel type="FLOATING"/>{modelTupleWithPath.zipWithIndex.map { case (((m, machined), path), index ) =>
+      <case>
+        <desc>
+          {"inhabitant_" + "%03d".format(inhabitantIndex) + ", step " + descrList(index)}
+        </desc> <a>
+        {m.targetGeometry}
       </a> <b>
-        {b}
+        {getGeoCollection(List(machined,path))}
       </b>
-    </case>
+      </case>
     }}
     </run>
   }
@@ -124,6 +143,6 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, l: 
     import java.io._
     val pw = new PrintWriter(new File(s"out.xml"))
     pw.write(s"$s")
-    pw.close
+    pw.close()
   }
 }
