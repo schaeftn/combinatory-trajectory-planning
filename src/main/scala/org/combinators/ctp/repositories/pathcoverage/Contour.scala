@@ -2,18 +2,18 @@ package org.combinators.ctp.repositories.pathcoverage
 
 import com.typesafe.scalalogging.LazyLogging
 import org.combinators.ctp.repositories.cncPathFct
-import org.combinators.ctp.repositories.runinhabitation.RunCncTestLinear.{gf, logger}
 import org.combinators.ctp.repositories.toplevel.{Cnc2DModel, PathCoverageStep, PathCoverageStepConfig}
 import org.locationtech.jts.geom.impl.CoordinateArraySequence
-import org.locationtech.jts.geom.{Coordinate, CoordinateFilter, Geometry, GeometryFactory, LineString, MultiLineString, MultiPolygon, Polygon}
+import org.locationtech.jts.geom.{Coordinate, Geometry, LineString, MultiLineString, Point, Polygon}
 import org.locationtech.jts.io.WKTReader
-import org.locationtech.jts.util.CoordinateArrayFilter
+import org.locationtech.jts.operation.distance.DistanceOp
+import org.locationtech.jts.operation.overlay.snap.GeometrySnapper
 
 import scala.annotation.tailrec
 
 trait Contour extends LazyLogging with JtsUtils {
 
-  lazy val singleContourStep: CncTool => cncPathFct = { t => {
+  lazy val finishingContourStep: CncTool => cncPathFct = { t => {
     (initialScene: Cnc2DModel, pcConfig: PathCoverageStepConfig) =>
       initialScene.rest.foreach(a => pGeo("initialScene Rest", a))
       pGeo("targetWorkpiece", {
@@ -31,7 +31,7 @@ trait Contour extends LazyLogging with JtsUtils {
         pcConfig.bufferFct(machinableArea, -t.d / 2.0d))
       pGeo("validPosPoly", validPosPoly)
 
-      val restBuffered = pcConfig.bufferFct(initialScene.getRestMultiGeo, t.d / 2)
+      val restBuffered = pcConfig.bufferFct(initialScene.getRestMultiGeo, t.d / 2.0f)
       pGeo("restBuffered", restBuffered)
 
       val restfilterBuffer = pcConfig.bufferFct(pcConfig.bufferFct(initialScene.getRestMultiGeo, -t.ae), t.ae)
@@ -39,7 +39,7 @@ trait Contour extends LazyLogging with JtsUtils {
 
       val restBufferedTest = pcConfig.bufferFct(
         pcConfig.bufferFct(
-          pcConfig.bufferFct(initialScene.getRestMultiGeo, -t.ae), t.ae), t.d / 2 - t.ae)
+          pcConfig.bufferFct(initialScene.getRestMultiGeo, -t.ae), t.ae), t.d / 2.0f - t.ae)
       pGeo("restBufferedTest", restBufferedTest)
 
       val restBufferedInters = pcConfig.bufferFct(
@@ -51,7 +51,10 @@ trait Contour extends LazyLogging with JtsUtils {
       val filteredFull = filterLsAndReturnMultiPoly(fullStuff)
       pGeo("filteredFull", filteredFull)
 
-      val f1 = validPosPoly.difference(filteredFull) // mit difference noch holes benötigt?
+      val gs = new GeometrySnapper(validPosPoly)
+      val newValidPosPoly = gs.snapTo(filteredFull, 0.01d)
+
+      val f1 = newValidPosPoly.difference(filteredFull) // mit difference noch holes benötigt?
       pGeo("f1", f1)
 
       val toolPath = if (f1.isEmpty)
@@ -78,7 +81,7 @@ trait Contour extends LazyLogging with JtsUtils {
   }
   }
 
-  def singleContourStep2(poly: Geometry, t: CncTool, initialScene: Cnc2DModel, pcConfig: PathCoverageStepConfig): (List[List[Float]], Geometry) = {
+  def singleContourStep(poly: Geometry, t: CncTool, initialScene: Cnc2DModel, pcConfig: PathCoverageStepConfig, lastGeo: Geometry): (List[List[Float]], Geometry) = {
     initialScene.rest.foreach(a => pGeo("initialScene Rest", a))
     pGeo("targetWorkpiece", initialScene.targetWorkpiece)
     pGeo("initialScene.getMachinedMultiGeo", initialScene.getMachinedMultiGeo)
@@ -94,7 +97,7 @@ trait Contour extends LazyLogging with JtsUtils {
       pcConfig.bufferFct(machinableArea, -t.d / 2.0d))
     pGeo("validPosPoly", validPosPoly)
 
-    val polyBuffered = pcConfig.bufferFct(poly, t.d / 2)
+    val polyBuffered = pcConfig.bufferFct(poly, t.d / 2.0f)
     pGeo("polyBuffered", polyBuffered)
 
     val restBufferedInters = pcConfig.bufferFct(
@@ -104,13 +107,12 @@ trait Contour extends LazyLogging with JtsUtils {
     val filteredFull = polyBuffered.intersection(filterLsAndReturnMultiPoly(restBufferedInters))
     pGeo("filteredFull", filteredFull)
 
-    val f1 = smartCastToPolygon(filteredFull.intersection(validPosPoly)).getExteriorRing.
+    val f1 = smartCastToPolygon(filteredFull.intersection(validPosPoly), lastGeo).getExteriorRing.
       intersection(validPosPoly)
     pGeo("f1", f1)
 
     val toolPath = getLongestLineString(f1, pcConfig)
     pGeo("toolPath", toolPath)
-
 
     //TODO filter toolpath. must not be further away than ...
     val toolPath2 = toolPath // asLineString(asFloatList(toolPath.getCoordinates).filter(c => asPoint(c).distance(poly)<= t.d/2.0 + pcConfig.maxPointClearanceOnPath))
@@ -118,7 +120,7 @@ trait Contour extends LazyLogging with JtsUtils {
     // prio2 fix and test filter for repositioning path
     val path = toolPath2.getCoordinates
 
-    val toolpathBuffered = pcConfig.bufferFct(toolPath2, (t.d / 2.0)) //Rundungsfehler
+    val toolpathBuffered = pcConfig.bufferFct(toolPath2, t.d / 2.0) //Rundungsfehler
     pGeo("toolpathBuffered", toolpathBuffered)
 
     pGeo("path aggregated single", {
@@ -130,43 +132,212 @@ trait Contour extends LazyLogging with JtsUtils {
     (asFloatList(path), toolpathBuffered)
   }
 
+  def singleContourStep2(poly: Geometry, t: CncTool, initialScene: Cnc2DModel,
+                         pcConfig: PathCoverageStepConfig, lastGeo: Geometry): (List[List[Float]], Geometry, Geometry) = {
+    assert(poly.getGeometryType == "Polygon")
+    //initialScene.rest.foreach(a => pGeo("initialScene Rest", a))
+    pGeo("targetWorkpiece", initialScene.targetWorkpiece)
+    pGeo("initialScene.getMachinedMultiGeo", initialScene.getMachinedMultiGeo)
+    pGeo("poly", poly)
+    pGeo("lastGeo", lastGeo)
+
+    val invalidToolPositions = initialScene.targetWorkpiece.buffer(t.r)
+    pGeo("invalidToolPositions", invalidToolPositions)
+
+    val invalidToolPositionsBuffered = invalidToolPositions.buffer(-0.001)
+    pGeo("invalidToolPositionsBuffered", invalidToolPositionsBuffered)
+
+    val machinableArea = initialScene.getMachinedMultiGeo.buffer(t.ae)
+    pGeo("machinableArea", machinableArea)
+
+    val machinableAreaStrip = machinableArea.intersection(poly)
+    pGeo("machinableAreaStrip", machinableAreaStrip)
+
+    val machinableAreaStripPolygonsOnly = gf.createMultiPolygon(
+      getGeoListFromGeo(machinableAreaStrip).filter(g => g.getGeometryType == "Polygon").
+        map(_.asInstanceOf[Polygon]).toArray)
+    pGeo("machinableAreaStripPolygonsOnly", machinableAreaStripPolygonsOnly)
+
+    val machinableAreaStripMinusWorkpiece = machinableAreaStripPolygonsOnly.difference(initialScene.targetWorkpiece)
+    pGeo("machinableAreaStripMinusWorkpiece", machinableAreaStripMinusWorkpiece)
+
+    // Select polygon with largest area
+    val selectedPoly = smartCastToPolygon(machinableAreaStripMinusWorkpiece, lastGeo)
+    pGeo("selectedPoly", selectedPoly)
+
+    def getValidTpString(p_selectedPolygon: Polygon, model: Cnc2DModel): Geometry ={
+      val machinableLineString = p_selectedPolygon.getExteriorRing
+      pGeo("machinableLineString", machinableLineString)
+
+      val machinedGrown = pcConfig.bufferFct(model.getMachinedMultiGeo, 0.001)
+      pGeo("machinedGrown", machinedGrown)
+
+      val gsMachinableLineString = new GeometrySnapper(machinableLineString)
+      val machinableLineStringSnapped = gsMachinableLineString.snapTo(machinedGrown,0.01d)
+      pGeo("machinableLineStringSnapped", machinableLineStringSnapped)
+      val bclearedMachinableLineStringSnapped = machinableLineStringSnapped.buffer(0)
+      pGeo("bclearedMachinableLineStringSnapped", bclearedMachinableLineStringSnapped)
+
+      //TODO here
+      val onlyValidMs = machinableLineStringSnapped.buffer(0).difference(machinedGrown.buffer(0))
+      pGeo("onlyValidString", onlyValidMs)
+
+      val validTpString = getTopLineString(onlyValidMs, pcConfig)
+      pGeo("validTpString", validTpString)
+
+      val gs = new GeometrySnapper(validTpString)
+      val validTpStringClean = gs.snapToSelf(0.01, true)
+      pGeo("validTpStringClean", validTpStringClean)
+
+      val toolPath = validTpStringClean.buffer(t.d / 2.0f, 8, 2).
+        asInstanceOf[Polygon].getExteriorRing.difference(invalidToolPositionsBuffered)
+      pGeo("toolPath", toolPath)
+
+      toolPath
+    }
+
+    def getValidTpString2(p_selectedPolygon: Polygon, model: Cnc2DModel): Geometry ={
+      logger.debug(s"bufferVal: ${-(t.d / 2.0f - t.ae)}")
+      pGeo("machinedMultiGeo", model.getMachinedMultiGeo)
+      val toolPathsAe = model.getMachinedMultiGeo.buffer(-(t.d / 2.0f - t.ae))
+      pGeo("toolPathsAe", toolPathsAe)
+      val toolPathsAeDiffInvalid = toolPathsAe.difference(invalidToolPositions)
+      pGeo("toolPathsAeDiffInvalid", toolPathsAeDiffInvalid)
+      val toolPathsAeStrings = smartCastToPolygon(toolPathsAeDiffInvalid, p_selectedPolygon).getExteriorRing
+      pGeo("toolPathsAeStrings", toolPathsAeStrings)
+      toolPathsAeStrings.intersection(p_selectedPolygon.buffer(t.r))
+    }
+
+    val toolPath = getValidTpString2(selectedPoly, initialScene)
+    pGeo("getValidTp Result", toolPath)
+
+    val selectedToolPath = toolPath.getGeometryType match {
+      case "LineString" => toolPath
+      case "MultiLineString" => getGeoListFromGeo(toolPath).filter(_.getLength > pcConfig.pathIgnoreVal).
+        minBy(_.distance(lastGeo))
+      case "GeometryCollection" => getGeoListFromGeo(toolPath).filter(_.getGeometryType =="LineString").
+        filter(_.getLength > pcConfig.pathIgnoreVal).
+        minBy(_.distance(lastGeo))
+    }
+
+    val gSnap = new GeometrySnapper(selectedToolPath)
+    val tpSnapped = gSnap.snapToSelf(0.001, true)
+    pGeo("tpSnapped", tpSnapped)
+
+    val miniMalTp = tpSnapped.intersection(initialScene.getMachinedMultiGeo)
+
+    val path = miniMalTp.getCoordinates
+
+    val toolpathBuffered = miniMalTp.buffer(t.r)
+    pGeo("toolpathBuffered", toolpathBuffered)
+
+    pGeo("path aggregated single", {
+      new LineString(
+        new CoordinateArraySequence(
+          asFloatList(path).map(i => new Coordinate(i(0), i(1))).toArray), gf)})
+
+    val reservePoly = getGeoListFromGeo(poly.difference(toolpathBuffered)).filter {
+      g => g.getGeometryType == "Polygon"}.map(_.asInstanceOf[Polygon])
+
+    (asFloatList(path), toolpathBuffered, reservePoly.maxBy(_.getArea))
+  }
+
   def createFinishContourStep(t:CncTool) : PathCoverageStep = {
-    lazy val combinatorPcFunction: cncPathFct = singleContourStep(t)
+    lazy val combinatorPcFunction: cncPathFct = finishingContourStep(t)
 
     PathCoverageStep(Some(combinatorPcFunction), Some(t), List.empty[PathCoverageStep], "Aluminum Finishing")
+  }
+
+  def findConnectorPath(newModel: Cnc2DModel, aggregatedPath: List[List[List[Float]]], newPath: List[List[Float]], t: CncTool):
+  List[List[List[Float]]] = {
+    //find first point
+    val firstPointOption = aggregatedPath.lastOption.flatMap(_.lastOption)
+    val returnVal = firstPointOption match {
+      case None => List.empty[List[List[Float]]] // StartingPoint: Or: Go to machined area
+      case Some(startPoint) =>
+        // find second point. It should be inside of the machined area and close to the first path point
+        val endPoint = newPath.head
+        // find closest point in polygon
+        val machinedToolAreas = newModel.getMachinedMultiGeo.buffer(-t.r)
+        pGeo("aggregatedPath in findConnectorPath", getGeoCollection(aggregatedPath.map(asLineString)))
+        pGeo("machinedToolAreas", machinedToolAreas)
+        val selectedPoints = DistanceOp.nearestPoints(asPoint(endPoint), machinedToolAreas)
+        val selectedEndPoint = if (selectedPoints.size > 1) coordAsFloatList(selectedPoints(1)) else endPoint
+
+        val startP = asPoint(startPoint)
+        val endP = asPoint(selectedEndPoint)
+
+        if (asLineString(List(startPoint, selectedEndPoint)).coveredBy(machinedToolAreas)) {
+          // aggregated path and new path
+          //check if new selectedEndpoint is first point in path...
+          List.empty[List[List[Float]]]
+        }else{
+          // select current polygon start
+          if (pointsInSamePolygon(startPoint, selectedEndPoint, machinedToolAreas)) {
+            //select Polygon
+            val l = getGeoListFromGeo(machinedToolAreas).filter(g => geosAreNear(g,startP) && geosAreNear(g,endP))
+            val returnValue = if (l.nonEmpty) {
+              val exRing = l.maxBy(_.getArea).asInstanceOf[Polygon].getExteriorRing
+              val coordListWIndex = exRing.getCoordinates.zipWithIndex
+
+              def getNearestPointIndex(p: Point) =
+                coordListWIndex.map { case (a, index) => (a.distance(p.getCoordinate), index) }.minBy(_._1)._2
+
+              val endIndex = getNearestPointIndex(endP)
+              val startIndex = getNearestPointIndex(startP)
+
+              val firstList = (coordListWIndex ++ coordListWIndex.reverse).drop(startIndex).reverse.dropWhile(_._2 != endIndex).reverse.map(_._1)
+              val secondList = (coordListWIndex ++ coordListWIndex.reverse).drop(endIndex).reverse.dropWhile(_._2 != startIndex).reverse.map(_._1)
+
+              if(secondList.length == 1)
+                (coordListWIndex ++ coordListWIndex.reverse).foreach(println)
+
+              val ls1 = gf.createLineString(firstList)
+              val ls2 = gf.createLineString(secondList)
+              val asd = List(asFloatList(List(ls1, ls2).minBy(_.getLength).getCoordinates))
+              asd
+            }
+            else {
+              List.empty[List[List[Float]]]
+            }
+            returnValue
+          }else {
+            logger.error(s"ERROR Contour paths cannot be connected")
+            pGeo("machinedToolAreas",machinedToolAreas)
+            pGeo("StartPoint Endpoint", getGeoCollection(List(startPoint, selectedEndPoint).map(asPoint)))
+            pGeo("Aggregated path", getGeoCollection(aggregatedPath.map(asLineString)))
+            pGeo("new path", asLineString(newPath))
+            List.empty[List[List[Float]]]
+          }
+        }
+    }
+    returnVal
   }
 
   def createMultiContourStep(t: CncTool): PathCoverageStep = {
     lazy val combinatorPcFunction: cncPathFct = {
       (initialScene: Cnc2DModel, pcConfig: PathCoverageStepConfig) =>
-        initialScene.rest.foreach(a => pGeo("initialScene Rest", a))
+        pGeo("initialScene Rest", getGeoCollection(initialScene.rest))
         pGeo("targetWorkpiece", {
           initialScene.targetWorkpiece
         })
         pGeo("initialScene.getMachinedMultiGeo", initialScene.getMachinedMultiGeo)
 
-        val invalidToolPositions = initialScene.targetWorkpiece.buffer(t.d / 2.0d) // ???
+        val invalidToolPositions = initialScene.targetWorkpiece.buffer(t.d / 2.0d)
         pGeo("invalidToolPositions", invalidToolPositions)
 
-        val selectedRestGeo: Option[Geometry] = if (initialScene.rest.nonEmpty) Some(
-          initialScene.rest.maxBy(_.getArea))
-        else None
+       // val selectedRestGeo: Option[Geometry] = Option(initialScene.rest).filter(_.nonEmpty).map(_.maxBy(_.getArea))
 
-        /**
-         * extrahiert für die gewählte fräsfläche jene Grenze, welche an machined Bereich grenzt
-         * None, if initialscene.rest is empty
-         */
-        lazy val extractInitialMachinableFrontier: Option[LineString] = selectedRestGeo.flatMap(getLongestExteriorFromPolygon)
-
-        /**
-         * currentScene that will be
-         */
-
+//        /**
+//         * extrahiert für die gewählte fräsfläche jene Grenze, welche an machined Bereich grenzt
+//         * None, if initialscene.rest is empty
+//         */
+//        lazy val extractInitialMachinableFrontier: Option[LineString] =
+//          selectedRestGeo.flatMap(getLongestExteriorFromPolygon)
         @tailrec
-        def performAndEvaluateStep(
-                                    polyOption: Option[Geometry],
-                                    aggregatedPath: List[List[List[Float]]],
-                                    s: Cnc2DModel): (List[List[List[Float]]], Cnc2DModel) = {
+        def performAndEvaluateStep(polyOption: Option[Geometry],
+                                   aggregatedPath: List[List[List[Float]]],
+                                   s: Cnc2DModel): (List[List[List[Float]]], Cnc2DModel) = {
           logger.debug(s"saniPoly: \r\n${polyOption.get}")
           val poly = saniPoly(polyOption.get, pcConfig)
 
@@ -174,45 +345,56 @@ trait Contour extends LazyLogging with JtsUtils {
           if (polyOption.isEmpty || poly.isEmpty || poly.getArea < 0.01) {
             (aggregatedPath, s)
           } else {
-            val (path, bufferedToolPath) =   singleContourStep2(poly, t, s, pcConfig)
+            val lastPoint: Option[List[Float]] = aggregatedPath.lastOption.flatMap(_.lastOption)
+            val lastGeo = lastPoint.map(lp => gf.createPoint(asCoordinate(lp))).getOrElse(emptyGeometry)
+            val cleanedLastGeo = smartCastToPolygon(poly, lastGeo)
+            pGeo("cleanedLastGeo",cleanedLastGeo)
+            val (path, bufferedToolPath, sPoly) = singleContourStep2(cleanedLastGeo, t, s, pcConfig, lastGeo)
+            pGeo("outerLoop: reserved Polygon from singleStep",sPoly)
             logger.debug(s"path Ls: ${asLineString(path)}")
             pGeo("poly",poly)
             pGeo("bufferedToolPath",bufferedToolPath)
             val diff = poly.getArea - poly.difference(bufferedToolPath).getArea
-            if (diff < 0.5)
+            if (diff < 0.5) // Abbruchkrit
               (aggregatedPath, s)
             else {
-              val newPoly = poly.difference(bufferedToolPath)
+              pGeo("outer: sPoly", sPoly)
+              pGeo("outer: bufferedToolPath", bufferedToolPath)
+
+              val bufferedSPoly = sPoly.buffer(0)
+
+              val gs = new GeometrySnapper(bufferedToolPath)
+              val bufferedToolPathSnappedToPoly = gs.snapTo(bufferedSPoly, 0.001d)
+
+              val newPoly = bufferedSPoly.difference(bufferedToolPathSnappedToPoly.buffer(0))
               val (selectedPoly, newModel) = newPoly.getGeometryType match {
-                case "MultiPolygon" => {
-                  val selPoly = if (aggregatedPath.isEmpty)
+                case "MultiPolygon" =>
+                  val selPoly:Polygon = if (aggregatedPath.isEmpty)
                     getGeoListFromGeo(newPoly).
                       map(_.asInstanceOf[Polygon]).maxBy(_.getArea)
                   else
                     getGeoListFromGeo(newPoly).
                       map(_.asInstanceOf[Polygon]).maxBy(_.getArea)
-                  //minBy(i => distanceToPoint(i, aggregatedPath.last.last))
+                  //minBy(i => distanceTasd()0oPoint(i, aggregatedPath.last.last))
                   (selPoly,s.withMachinedGeo(bufferedToolPath))
-                }
                 case "Polygon" => (newPoly, s.withMachinedGeo(bufferedToolPath))
               }
-              if (aggregatedPath.nonEmpty && path.nonEmpty && path.head.nonEmpty)
-                performAndEvaluateStep(Some(selectedPoly),
-                  aggregatedPath :+ path,
-                  newModel)
-              else
-                performAndEvaluateStep(Some(selectedPoly), aggregatedPath :+ path, newModel)
+
+              val newAggregatedPath = aggregatedPath ++ findConnectorPath(newModel, aggregatedPath,path,t) ++ List(path)
+              performAndEvaluateStep(Some(selectedPoly),newAggregatedPath , newModel)
             }
           }
         }
 
-        val (path, endScene) = performAndEvaluateStep(initialScene.rest.headOption, List.empty[List[List[Float]]], initialScene)
+        val foo = initialScene.rest.headOption.map(g => smartCastToPolygon(g, emptyGeometry))
+        pGeo("outer: polygon foo", foo.getOrElse(emptyGeometry))
+        val (path, endScene) = performAndEvaluateStep(foo, List.empty[List[List[Float]]], initialScene)
 
-        path.foreach(p => pGeo("path aggregated Multi", {
+        pGeo("path aggregated Collection", getGeoCollection(path.map(p => {
           new LineString(
             new CoordinateArraySequence(
               p.map(i => new Coordinate(i(0), i(1))).toArray), gf)
-        }))
+        })))
 
         (path, endScene)
     }
@@ -232,9 +414,9 @@ object RunContourExample extends App with LazyLogging with JtsUtils {
   val cont = new Contour {}.createMultiContourStep(CncTool(8.0f, 4.0f, 4.0f, 1.4300f, 11935,
   "Alu finishing, 8mm, Stirnfraesen, radiale Zustellung 4mm, vf 1430mm/min, n 11935", "2 Z S2000"))
 
-  val res = PathCoverageResult(model, PathCoverageStepConfig(), List(cont))
+  val res = PathCoverageResult(model, PathCoverageStepConfig(), cont)
 
-  logger.info(s"res.computeModelHistory._1.last.getRestMultiGeo: \r\n ${res.computeModelHistory._1.last.getRestMultiGeo}")
+  logger.info(s"res.computeModelHistory._1.last.getRestMultiGeo: \r\n ${res.computeModelHistory._1.last._1.getRestMultiGeo}")
   val toPaths = res.pathList.map{ singleCompPathlist =>
     new LineString(
       new CoordinateArraySequence(
@@ -243,7 +425,7 @@ object RunContourExample extends App with LazyLogging with JtsUtils {
 
   val mlString = new MultiLineString(toPaths.toArray,gf)
 
-  logger.info(s"mlString: \r\n ${mlString}")
+  logger.info(s"mlString: \r\n $mlString")
 
   // s: Cnc2DModel, config: PathCoverageStepConfig, l: List[PathCoverageStep]
 }

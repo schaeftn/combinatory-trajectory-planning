@@ -1,33 +1,22 @@
 package org.combinators.ctp.repositories.toplevel
 
-import java.io.{BufferedInputStream, File, FileInputStream, FileOutputStream}
-import java.util
-import java.util.{Calendar, Properties}
+import java.io.FileInputStream
+import java.util.Properties
 
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.commons.math3.util.{FastMath, MathUtils}
 import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.geometry.{PpPolyhedronMesh, PpSurfaceMesh}
-import org.combinators.ctp.repositories.pathcoverage.{CncTool, JtsUtils, PathRefinement}
-import org.locationtech.jts.algorithm.Angle
-import org.locationtech.jts.dissolve.LineDissolver
-import org.locationtech.jts.geom.{Coordinate, Geometry, Polygon}
-import org.locationtech.jts.operation.overlay.snap.SnapIfNeededOverlayOp
-import org.locationtech.jts.operation.union.{CascadedPolygonUnion, UnaryUnionOp}
+import org.combinators.ctp.repositories.pathcoverage.{CncTool, JtsUtils}
+import org.locationtech.jts.geom.{ Geometry, Polygon}
 import org.locationtech.jts.simplify.DouglasPeuckerSimplifier
 import scalax.collection.Graph
 import scalax.collection.edge.WUnDiEdge
-import java.text.SimpleDateFormat
-import java.nio.file.{Files, Paths}
-
-import org.combinators.cls.interpreter.InhabitationResult
+import org.locationtech.jts.geom.util.AffineTransformation
 import org.locationtech.jts.io.WKTReader
-
-import scala.annotation.tailrec
 import scala.io.Source
 import scala.language.implicitConversions
 import scala.util.{Failure, Try}
-import scala.xml.Elem
 
 
 case class Scene(boundaries: List[Float], obstacles: List[MqttCubeData]) {
@@ -48,11 +37,11 @@ trait MachineAccelerationModel extends JtsUtils {
 
 trait PathCoverageStepConfig extends JtsUtils with MachineAccelerationModel {
   val pathRefinement: Boolean
-  val minPointClearanceOnPath: Double
-  val maxPointClearanceOnPath: Double
-  val pathIgnoreVal: Double
-  val min_ae: Double
-  val areaIgnoreVal: Double
+  val minPointClearanceOnPath: Float
+  val maxPointClearanceOnPath: Float
+  val pathIgnoreVal: Float
+  val min_ae: Float
+  val areaIgnoreVal: Float
   val xAccLookup: List[(Float, Float, Float)]
   val yAccLookup: List[(Float, Float, Float)]
 
@@ -62,19 +51,19 @@ trait PathCoverageStepConfig extends JtsUtils with MachineAccelerationModel {
 object PathCoverageStepConfig {
   def apply(pathRef: Boolean = false): PathCoverageStepConfig = new PathCoverageStepConfig {
     val pathRefinement = pathRef
-    val minPointClearanceOnPath: Double = 0.01
-    val maxPointClearanceOnPath: Double = 0.1
-    val min_ae: Double = 0.01
-    val areaIgnoreVal: Double = 0.01
-    val pathIgnoreVal: Double = 0.01
+    val minPointClearanceOnPath: Float = 0.01f
+    val maxPointClearanceOnPath: Float = 0.1f
+    val min_ae: Float = 0.01f
+    val areaIgnoreVal: Float = 0.01f
+    val pathIgnoreVal: Float = 0.01f
 
 
     @scala.annotation.tailrec
     override def machineModelAccX(velocity: Double): Double = {
       velocity match {
-        case v if (0.0 <= v && v < 1.0) => -0.0624 * Math.pow(v, 2) + 0.2603 * v + 0.0216
-        case v if (1.0 <= v && v <= 10.0) => -0.0027 * Math.pow(v, 2) + 0.0880 * v + 0.1536
-        case v if (v > 10.0) => machineModelAccX(10.0)
+        case v if 0.0 <= v && v < 1.0 => -0.0624 * Math.pow(v, 2) + 0.2603 * v + 0.0216
+        case v if 1.0 <= v && v <= 10.0 => -0.0027 * Math.pow(v, 2) + 0.0880 * v + 0.1536
+        case v if v > 10.0 => machineModelAccX(10.0)
         case _ => machineModelAccX(0.0)
       }
     }
@@ -82,9 +71,9 @@ object PathCoverageStepConfig {
     @scala.annotation.tailrec
     override def machineModelAccY(velocity: Double): Double = {
       velocity match {
-        case v if (0.0 <= v && v < 1.0) => -0.1979 * Math.pow(v, 2) + 0.3970 * v + 0.0184
-        case v if (1.0 <= v && v <= 10.0) => -0.0036 * Math.pow(v, 2) + 0.0967 * v + 0.1427
-        case v if (v > 10.0) => machineModelAccY(10.0)
+        case v if 0.0 <= v && v < 1.0 => -0.1979 * Math.pow(v, 2) + 0.3970 * v + 0.0184
+        case v if 1.0 <= v && v <= 10.0 => -0.0036 * Math.pow(v, 2) + 0.0967 * v + 0.1427
+        case v if v > 10.0 => machineModelAccY(10.0)
         case _ => machineModelAccY(0.0)
       }
     }
@@ -135,7 +124,7 @@ object PathCoverageStepConfig {
       logger.warn("Building acc models from scratch.")
       val deltaT = 0.00005f // 50 ms
       (0 to 100000).foldLeft((List[(Float, Float, Float)]((0.0f, 0.0f, 0.0f)), (0.0f, 0.0f, 0.0f))) {
-        case ((a, lastBufferedElement), newIndex) => {
+        case ((a, lastBufferedElement), newIndex) =>
           val vNew: Float = lastBufferedElement._1 +
             deltaT * machineModelAccX(lastBufferedElement._1).toFloat * 60.0f * 1000.0f
           val tNew: Float = lastBufferedElement._2 + deltaT
@@ -144,24 +133,23 @@ object PathCoverageStepConfig {
             (a, (vNew, tNew, sNew))
           else
             (a :+ (vNew, tNew, sNew), (vNew, tNew, sNew))
-        }
       }._1
     }
 
     val xAccLookup: List[(Float, Float, Float)] = {
-      val l = retrieveLookup(machineModelAccX, true)
+      val l = retrieveLookup(machineModelAccX, xDir = true)
       logger.debug(s"Last Element full xList ${l.last}")
       l
     }
 
     val yAccLookup: List[(Float, Float, Float)] = {
-      retrieveLookup(machineModelAccY, false)
+      retrieveLookup(machineModelAccY, xDir = false)
     }
 
     def setUpMaxByAngleNormalized(): List[Float] = {
-      val vList = Float.PositiveInfinity +: (1 to 180).map{nDegree =>
-        (-14.8311 / (Math.pow(nDegree.toDouble, 2)) + 28.4664 / nDegree.toDouble - 0.1496).toFloat
-      }.map{_ * 1000.0f }
+      val vList = Float.PositiveInfinity +: (1 to 180).map { nDegree =>
+        (-14.8311 / Math.pow(nDegree.toDouble, 2) + 28.4664 / nDegree.toDouble - 0.1496).toFloat
+      }.map { _ * 1000.0f }
 
       logger.debug(s"vListByAngle: \r\n $vList")
       vList.toList
@@ -170,7 +158,7 @@ object PathCoverageStepConfig {
 
     // v_0: Winkel, in richtige Richtung
     //v in angle direction
-    override def newVf(angle: Double, startV: Double): (Double) = {
+    override def newVf(angle: Double, startV: Double): Double = {
       // logger.info(s"newVf: angle: $angle")
       val angleModPi = Math.abs(MathUtils.normalizeAngle(angle, 0.0))
 
@@ -212,31 +200,34 @@ object PathCoverageStepConfig {
 case class PathCoverageStep(pcFct: Option[cncPathFct],
                             tool: Option[CncTool],
                             pcrList: List[PathCoverageStep],
-                            description_param: String = "no description"
-                           ) {
-  def getResultPathAndModel(cncModel: Cnc2DModel, config: PathCoverageStepConfig):
-  (List[List[List[Float]]], Cnc2DModel) = {
-    pcFct match {
-      case Some(a) => a(cncModel, config)
-      case None => (List.empty[List[List[Float]]], cncModel)
-    }
-  }
+                            description_param: String = "no description",
+                            resultTransform : Option[List[List[List[Float]]] => List[List[List[Float]]]] = None) {self =>
+  def withPathTransformFunction(t: List[List[List[Float]]] => List[List[List[Float]]]): PathCoverageStep =
+    PathCoverageStep(self.pcFct, self.tool, self.pcrList, self.description_param, Some(t))
 
-  lazy val getDescription = description_param + tool.map(i => s" using tool ${i.description}").getOrElse("")
-
-  def getSubResults(cncModel: Cnc2DModel, config: PathCoverageStepConfig):
-  List[(List[List[List[Float]]], Cnc2DModel)] =
-    pcrList.map(i => i.getCompleteResultPathAndModel(cncModel, config))
-
-  def getCompleteResultPathAndModel(cncModel: Cnc2DModel, config: PathCoverageStepConfig):
-  (List[List[List[Float]]], Cnc2DModel) = {
-    val currentResult = getResultPathAndModel(cncModel, config)
-    if (pcrList.isEmpty) {
-      currentResult
-    } else {
-      getSubResults(currentResult._2, config).foldLeft(currentResult)((t, m) => (t._1 ++ m._1, m._2))
-    }
-  }
+//  def getResultPathAndModel(cncModel: Cnc2DModel, config: PathCoverageStepConfig):
+//  (List[List[List[Float]]], List[CncTool], Cnc2DModel) = {
+//    pcFct match {
+//      case Some(a) => a(cncModel, config)
+//      case None => (List.empty[List[List[Float]]], cncModel)
+//    }
+//  }
+//
+//  lazy val getDescription = description_param + tool.map(i => s" using tool ${i.description}").getOrElse("")
+//
+//  def getSubResults(cncModel: Cnc2DModel, config: PathCoverageStepConfig):
+//  List[(List[List[List[Float]]], List[CncTool], Cnc2DModel)] =
+//    pcrList.map(i => i.getCompleteResultPathAndModel(cncModel, config))
+//
+//  def getCompleteResultPathAndModel(cncModel: Cnc2DModel, config: PathCoverageStepConfig):
+//  (List[List[List[Float]]], List[CncTool], Cnc2DModel) = {
+//    val currentResult = getResultPathAndModel(cncModel, config)
+//    if (pcrList.isEmpty) {
+//      currentResult
+//    } else {
+//      getSubResults(currentResult._2, tool, config).foldLeft(currentResult)((t, m) => (t._1 ++ m._1, m._2))
+//    }
+//  }
 }
 
 /**
@@ -251,9 +242,25 @@ case class Cnc2DModel(boundaries: List[Float],
                       rest: List[Geometry],
                       machined: List[Geometry],
                       machinedMultiPolygon: Geometry,
-                      initialMachined: Geometry) extends LazyLogging with JtsUtils {
+                      initialMachined: Geometry,
+                      transformStack: List[(Cnc2DModel, Geometry)] = List.empty[(Cnc2DModel, Geometry)])
+  extends LazyLogging with JtsUtils {
   self =>
   def empty = Scene(List.empty, List.empty)
+
+  def rotateModel(angle: Double): Cnc2DModel = {
+    val transformMatrix = AffineTransformation.rotationInstance(angle)
+    val boundaryLineString = getLineStringFromBoundaries(boundaries)
+    val transFormedBoundaryLineString = transformMatrix.transform(boundaryLineString)
+    val newBoundaryList = getBoundaryListFromGeo(transFormedBoundaryLineString)
+
+    Cnc2DModel(boundaries = newBoundaryList,
+      targetGeometry = transformMatrix.transform(targetGeometry), rest = rest.map(transformMatrix.transform),
+      machined = machined.map(transformMatrix.transform),
+      machinedMultiPolygon = transformMatrix.transform(machinedMultiPolygon),
+      initialMachined = transformMatrix.transform(initialMachined),
+      transformStack = self.transformStack)
+  }
 
   /**
    * Boundary rectangle - targetGeometry, area that must not be machined
@@ -296,15 +303,34 @@ case class Cnc2DModel(boundaries: List[Float],
   lazy val getRestMultiGeo: Geometry = {
     //val cpu = new CascadedPolygonUnion(rest.asJava)
     //cpu.union()
-    lazy val multiPoly = gf.createMultiPolygon(rest.map(_.asInstanceOf[Polygon]).toArray)
+    lazy val multiPoly = gf.createMultiPolygon(rest.filter(isPolygon).map(_.asInstanceOf[Polygon]).toArray)
     multiPoly
   }
   //rest.reduce(_.union(_))
 
+  def withTargetGeo(g:Geometry): Cnc2DModel = {
+    Cnc2DModel(self.boundaries, g, self.rest,
+      self.machined, self.machinedMultiPolygon, self.initialMachined, self.transformStack)
+  }
+
+  def blockGeometry(g:Geometry): Cnc2DModel = {
+    val newTargetGeometry = self.targetGeometry.difference(g)
+    val newRest = self.rest.map(_.difference(g))
+    Cnc2DModel(self.boundaries, newTargetGeometry, newRest,
+      self.machined, self.machinedMultiPolygon, self.initialMachined, List((self, g)) ++ self.transformStack)
+  }
+
+  def releaseGeometry(): Cnc2DModel = {
+    val (initialModel: Cnc2DModel, g: Geometry) = self.transformStack.head
+    val updatedModel = initialModel.withMachinedGeo(self.machinedMultiPolygon)
+
+    Cnc2DModel(updatedModel.boundaries, updatedModel.targetGeometry, updatedModel.rest,
+      updatedModel.machined, updatedModel.machinedMultiPolygon, updatedModel.initialMachined, updatedModel.transformStack) // pop
+  }
 
   def withInitialMachinedGeo(g: Geometry): Cnc2DModel = {
     val nModel = self.withMachinedGeo(g)
-    Cnc2DModel(nModel.boundaries, nModel.targetGeometry, nModel.rest, nModel.machined, nModel.machinedMultiPolygon, g)
+    Cnc2DModel(nModel.boundaries, nModel.targetGeometry, nModel.rest, nModel.machined, nModel.machinedMultiPolygon, g, nModel.transformStack)
   }
 
   def withMachinedGeo(g0: Geometry): Cnc2DModel = {
@@ -332,7 +358,7 @@ case class Cnc2DModel(boundaries: List[Float],
       val newMachGeo = machinedMultiPolygon.union(g)
       logger.debug("gotMultiPoly")
       pGeo("newMachGeo", newMachGeo)
-      Cnc2DModel(self.boundaries, self.targetGeometry, restGeos, self.machined :+ g, newMachGeo, self.initialMachined)
+      Cnc2DModel(self.boundaries, self.targetGeometry, restGeos, self.machined :+ g, newMachGeo, self.initialMachined, self.transformStack)
     }
     )
     t match {

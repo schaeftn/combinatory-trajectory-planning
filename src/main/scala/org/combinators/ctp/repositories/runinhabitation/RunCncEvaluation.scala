@@ -18,11 +18,11 @@ import scala.io.Source
 
 trait CncEvaluationSetup extends LazyLogging with AkkaImplicits with JtsUtils {
   lazy val repository = new CamMpTopRepository {}
-  val aluUseCase: Boolean = true
-  val printKlartext: Boolean = true
-  val pRefinement: Boolean = false
-  val openPocket: Boolean = true
-  val acceptPercentage: Float = 0.005f // vorher: 0.005
+  val aluUseCase: Boolean
+  val printKlartext: Boolean
+  val pRefinement: Boolean
+  val openPocket: Boolean
+  val acceptPercentage: Float
 
   lazy val kinding = if (aluUseCase) repository.aluKinding else repository.steelKinding
   lazy val tgtType =
@@ -30,32 +30,31 @@ trait CncEvaluationSetup extends LazyLogging with AkkaImplicits with JtsUtils {
       (if (aluUseCase) repository.alu else repository.steel)
   lazy val Gamma = ReflectedRepository(repository, Taxonomy.empty, kinding)
 
-  logger.debug("kinding: " + Gamma.substitutionSpace.toString)
-  logger.debug("Reflected Repository built, starting inhabitation")
-
-  logger.debug(s"# of combinators: ${Gamma.combinators.size}")
-
-  val watch: Stopwatch = new Stopwatch
-  watch.start()
-
-  val inhabitationResult = Gamma.inhabit[PathCoverageResult](tgtType)
-
-  watch.stop()
-  logger.debug(s"elapsed time ${watch.getTimeString}")
-
-  logger.debug((if (inhabitationResult.isEmpty) "inhabitant not found" else "inhabitant found") + "," +
-    inhabitationResult.target.toString())
-
-  logger.debug(s"Repository is ${if (inhabitationResult.isInfinite) "" else "not "}infinite.")
+  lazy val inhabitationResult = Gamma.inhabit[PathCoverageResult](tgtType)
 }
 
 /*Reads User Input*/
 object RunCncEvaluation extends App with CncEvaluationSetup {
-  val dUtils = PcrEvaluationUtils(inhabitationResult, true, acceptPercentage)
+  override val aluUseCase = true
+  override val printKlartext = true
+  override val pRefinement = false
+  override val openPocket = true
+  override val acceptPercentage = 0.1f
+
+  logger.debug((if (inhabitationResult.isEmpty) "inhabitant not found" else "inhabitant found") + "," +
+    inhabitationResult.target.toString())
+  logger.debug(s"Repository is ${if (inhabitationResult.isInfinite) "" else "not "}infinite.")
+  logger.info(s"test: ${(if (aluUseCase) repository.alu else repository.steel)}")
+  logger.info(s"targetType in object: $tgtType")
+
+  val dUtils = PcrEvaluationUtils(inhabitationResult, withKlarText = printKlartext, acceptPercentage)
 
   logger.info(
-    """Start evaluation by entering a number to run the corresponding inhabitant,
-      | "x-y" to run multiple inhabitants (Range) or "bf" (brute-force) """.stripMargin)
+    """
+      |Start evaluation by entering one of the following:
+      | - a number to run the corresponding inhabitant (e.g. "10")
+      | - a range to run multiple inhabitants (format: "x-y", e.g. "0-100")
+      | - "bf" (brute-force) """.stripMargin)
 
   def toInt(s: String): Option[Int] = {
     try {
@@ -88,4 +87,5 @@ object RunCncEvaluation extends App with CncEvaluationSetup {
 
     }
   }
+
 }

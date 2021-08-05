@@ -6,7 +6,7 @@ import org.locationtech.jts.algorithm.ConvexHull
 import org.locationtech.jts.dissolve.LineDissolver
 import org.locationtech.jts.geom.impl.CoordinateArraySequence
 import org.locationtech.jts.geom.util.AffineTransformation
-import org.locationtech.jts.geom.{Coordinate, Geometry, LineString, LinearRing, MultiLineString, MultiPolygon, Point, Polygon}
+import org.locationtech.jts.geom.{Coordinate, Geometry, LineSegment, LineString, LinearRing, MultiLineString, MultiPolygon, Point, Polygon}
 import org.locationtech.jts.io.WKTReader
 import org.locationtech.jts.math.Vector2D
 import org.locationtech.jts.simplify.{DouglasPeuckerSimplifier, TaggedLineStringSimplifier, TaggedLinesSimplifier, VWLineSimplifier, VWSimplifier}
@@ -54,6 +54,8 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
 
   lazy val polyAndBoundaryAreasIntersectionUnionSmol = polyAndBoundaryAreasIntersectionUnion.buffer(-0.001)
 
+  lazy val invalidToolPositions = targetWorkpiece.buffer(toolDia / 2.0d)
+
   lazy val normalizedArea = normalizeRotMat.transform(polyAndBoundaryAreasIntersectionUnionSmol)
 
   lazy val multiLines: Geometry = {
@@ -67,6 +69,11 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
     logger.debug(s"polyAndBoundaryAreasIntersectionUnion: $polyAndBoundaryAreasIntersectionUnion")
     logger.debug(s"polyAndBoundaryAreasIntersectionSmol: $polyAndBoundaryAreasIntersectionUnionSmol")
     logger.debug(s"normalizedArea: $normalizedArea")
+    pGeo("invalidToolPositions", invalidToolPositions)
+
+
+    val validToolPositions = restGeo.buffer(0).difference(targetWorkpiece.buffer(toolDia / 2.0d))
+    pGeo("validStartingPoints", validToolPositions)
 
     //    val at = new AffineTransformation().setToTranslation(feedDirection.normalize().multiply(toolDia).getX.toFloat,
     //      feedDirection.normalize().multiply(toolDia).getY.toFloat)
@@ -78,17 +85,17 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
 
     // take 3 points Seq with x<x1<x2, take convex hull, intersect with poly if linestring then all good
 
-    val c = normalizedArea.getGeometryType match {
+    val c = validToolPositions.getGeometryType match {
       case "Polygon" => {
         logger.debug(s"zipzag coord extraction Polygon")
-        val a = normalizedArea.asInstanceOf[Polygon]
+        val a = validToolPositions.asInstanceOf[Polygon]
         val exRing = a.getExteriorRing
         logger.debug(s"zipzag coord extraction Exring: $exRing")
         a.getExteriorRing.getCoordinates
       }
       case "MultiPolygon" => {
         logger.debug(s"zipzag coord extraction MultiPolygon")
-        val a = normalizedArea.asInstanceOf[MultiPolygon]
+        val a = validToolPositions.asInstanceOf[MultiPolygon]
         a.getCoordinates
       }
     }
@@ -120,7 +127,7 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
 
     val env = restGeo.getEnvelopeInternal
     val (envelopegetMaxX, envelopeMinX) = (env.getMaxX, env.getMinX)
-    val envelopeNormalized = normalizedArea.getEnvelopeInternal
+    val envelopeNormalized = validToolPositions.getEnvelopeInternal
     val (envelopeNMaxX, envelopeNMinX) = (envelopeNormalized.getMaxX, envelopeNormalized.getMinX)
 
     val xIntervalLength =
@@ -138,33 +145,49 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
       new LineString(new CoordinateArraySequence(Array(new Coordinate(xVal, minY), new Coordinate(xVal, maxY))), gf)
     })
 
-    lines.foreach(pGeo("ls: ", _))
+    pGeo("ls list to geoCollection: ", getGeoCollection(lines.toList))
 
-    val lsIntersect = lines.map(i =>
-      i.intersection(normalizedArea)).map(i => asLineString(i))
-    lsIntersect.foreach(pGeo("lsIntersection: ", _))
+
+//    val lsIntersect = lines.map(i =>
+//      i.intersection(normalizedArea)).map(i => asLineString(i))
+
+// Line list might contain artefacts that cause the intersection to fail
+    val lsIntersect = lines.takeWhile(_.getLength > 0.1).drop(1).map(i =>
+        i.difference(invalidToolPositions.buffer(0))).foldLeft(List.empty[LineString]){
+      case (lsList, newGeo) => newGeo match {
+        case ls:LineString => lsList :+ ls
+        case mls: MultiLineString => lsList :+ getGeoListFromGeo(mls).map(_.asInstanceOf[LineString]).minBy(
+          geo => lsList.lastOption.map(geo.distance(_)).getOrElse(geo.getCoordinates.map(_.y).min))
+        case p: Point => lsList
+      }
+    }
+
+    pGeo("lsIntersections list to geoCollection: ", getGeoCollection(lsIntersect.toList))
 
     val multiLinesList = lsIntersect.takeWhile(ls => !ls.isEmpty).toArray
-    multiLinesList.foreach(pGeo("Ml: ", _))
+    pGeo("MultiLinesList: ", getGeoCollection(multiLinesList.toList))
 
     val multiLineGeometryA = gf.createMultiLineString(multiLinesList)
-    logger.debug(s"multiLineGeometry: ${multiLineGeometryA}")
+    pGeo("multiLineGeometry", multiLineGeometryA)
 
     val multiLineGeometry = VWSimplifier.simplify(multiLineGeometryA, 0.01)
-    logger.debug(s"multiLineGeometry simplified: ${multiLineGeometryA}")
+    pGeo(s"multiLineGeometry simplified", multiLineGeometryA)
 
     pGeo("targetWorkpiece", targetWorkpiece)
     pGeo("initialScene.getMachinedMultiGeo", machinedGeo)
-    val invalidToolPositions = targetWorkpiece.buffer(toolDia / 2.0d)
-    pGeo("invalidToolPositions", invalidToolPositions)
+
 
     val validStartingPoints = if (startOutside)
       restGeo.buffer(toolDia / 2.0)
-    else restGeo.difference(targetWorkpiece.buffer(toolDia/2))
+    else restGeo.buffer(0).difference(targetWorkpiece.buffer(toolDia / 2.0d))
 
     pGeo("validStartingPoints", validStartingPoints)
-    val resultMultiLines1 = asMultiLine(getGeoListFromGeo(validStartingPoints.intersection(multiLineGeometry)).
-      sortBy(_.getEnvelopeInternal.getMinX).map(_.asInstanceOf[LineString]).map(ls => gf.createLineString(ls.getCoordinates.sortBy(_.y)) )) // more rubust?
+
+    val resultMultiLines1 = asMultiLine(getGeoListFromGeo(multiLineGeometry.difference(invalidToolPositions.buffer(0))).
+      sortBy(_.getEnvelopeInternal.getMinX).map(_.asInstanceOf[LineString]).map(ls =>
+      gf.createLineString(ls.getCoordinates.sortBy(_.y)))) // more rubust?
+//    val resultMultiLines1 = asMultiLine(getGeoListFromGeo(validStartingPoints.intersection(multiLineGeometry)).
+//      sortBy(_.getEnvelopeInternal.getMinX).map(_.asInstanceOf[LineString]).map(ls => gf.createLineString(ls.getCoordinates.sortBy(_.y)) )) // more rubust?
 
     val resultMultiLines = LineDissolver.dissolve(resultMultiLines1)
     pGeo("resultMultiLines", resultMultiLines)
@@ -173,9 +196,9 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
       case (xCoord, cArray) => getNewLineString(cArray.sortBy(_.y))
     }
 
-//    val resultMultiLines: Geometry =
-//      new AffineTransformation().setToRotation(stepDirection.angle()).transform(resultMultiLines1)
-    logger.debug(s"resultMultiLines.buffer(toolDia): ${resultMultiLines.buffer(toolDia / 2.0)}")
+    //    val resultMultiLines: Geometry =
+    //      new AffineTransformation().setToRotation(stepDirection.angle()).transform(resultMultiLines1)
+    pGeo("resultMultiLines.buffer(toolDia)", resultMultiLines.buffer(toolDia / 2.0))
 
     val rawLineList = (0 until resultMultiLines.getNumGeometries).map { i =>
       val asd = resultMultiLines.getGeometryN(i)
@@ -211,12 +234,13 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
       (0 to filteredLineList).map(i => rawLineList(i)).reduceOption[Geometry](_ union _).getOrElse(emptyGeometry)
     }
 
+    pGeo("rMultiLinesDirty", asMultiLine(rMultiLinesDirty.toList))
     rMultiLinesDirty.toList.sortBy(_.getCoordinate.x).reduceOption[Geometry](_ union _).getOrElse(emptyGeometry)
   }
 
   lazy val findPoints: List[List[Float]] = {
-    val resultMultiLines = multiLines
-    logger.debug(s"resultMultiLines: ${resultMultiLines}")
+    val resultMultiLines:Geometry = multiLines
+    logger.debug(s"resultMultiLines val after eval: ${resultMultiLines}")
     val reversedMultiLines: List[Array[Coordinate]] =
       if (zagOnly) {
         (0 until resultMultiLines.getNumGeometries).map(i => {
@@ -238,13 +262,57 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
         // check connxLine
         val reduceFct: (Array[Coordinate], Array[Coordinate]) => Array[Coordinate] = {
           case (a: Array[Coordinate], b: Array[Coordinate]) =>
-            if (!getNewLineString(a.last, b.head).buffer(toolDia.toDouble/2.0d).coveredBy(normalizedArea)) {
-              if (getNewLineString(new Coordinate(a.last.x, b.head.y), b.head).buffer(toolDia.toDouble/2.0d).coveredBy(normalizedArea))
-                (a :+ new Coordinate(a.last.x, b.head.y)) ++ b
-              else if (getNewLineString(a.last, new Coordinate(b.head.x, a.last.y)).buffer(toolDia.toDouble/2.0d).coveredBy(normalizedArea))
-                (a :+ new Coordinate(b.head.x, a.last.y)) ++ b
-              else {
-                a ++ b // should not happen, unless floating error
+            val bufferedStraightConnector = getNewLineString(a.last, b.head).buffer(toolDia.toDouble / 2.0d)
+            pGeo("bufferedStraightConnector",bufferedStraightConnector)
+            val connectorInvalid = !bufferedStraightConnector.coveredBy(normalizedArea)
+            pGeo("normalizedArea",normalizedArea)
+            logger.debug(s"connectorInvalid: $connectorInvalid")
+
+            if (connectorInvalid) {
+              val connectTop:Boolean = b.head.y > b(1).y
+              val ls1 = new LineSegment(a.last, a.dropRight(1).last)
+              val ls2 = new LineSegment(b.head, b(1))
+              if(ls1.maxX() == ls2.maxX())
+                logger.warn("should not happen")
+              if(ls1.maxX() != ls1.minX())
+                logger.warn("should not happen")
+
+              pGeo("ls1", ls1.toGeometry(gf))
+              pGeo("ls2", ls2.toGeometry(gf))
+              val projectionOption  = Option(ls2.project(ls1))
+              projectionOption match {
+                case None =>
+                  logger.debug("empty projection")
+                  a
+                case Some(projection) =>
+                  pGeo("projection", projection.toGeometry(gf))
+
+                  val yValsTopDown = (0 to 10).map { i => projection.pointAlong(i / 10.0) }
+                  val yVals = if(connectTop) yValsTopDown else yValsTopDown.reverse
+
+                  pGeo("yVals point list", getGeoCollection(yVals.map(gf.createPoint).toList))
+                  val horizontalSegments = yVals.map(newCoord =>
+                    new LineSegment(new Coordinate(ls1.maxX(), newCoord.y), newCoord).
+                      toGeometry(gf))
+                  pGeo("horizontalLines", getGeoCollection(horizontalSegments.toList))
+                  horizontalSegments.foreach(ls =>
+                    assert(ls.getLength>0.01)
+                  )
+                  val selectedSegment = horizontalSegments.find(ls => ls.buffer(toolDia.toDouble / 2.0d).coveredBy(normalizedArea))
+                  selectedSegment.foreach(pGeo("selectedSegment",_))
+
+                  val selectedSegmentAsCoords = selectedSegment.map(_.getCoordinates)
+
+                  def buildCoordList(newLs: Array[Coordinate]): Array[Coordinate] = {
+                    val midCoords: Array[Coordinate] = (if (a.last == newLs.head)
+                      newLs.tail else if (b.head == newLs.last) Array(newLs.head) else newLs)
+                    (a ++ midCoords) ++ b
+                  }
+
+                  val resultCoordArrayOption: Option[Array[Coordinate]] = selectedSegmentAsCoords.map(buildCoordList)
+                  // Do not add b if no valid segment was found
+                  val resultCoordArray = resultCoordArrayOption.getOrElse(a)
+                  resultCoordArray
               }
             }
             else {
@@ -252,6 +320,9 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
             }
         }
 
+        val revLineString = getNewLineString(reversedMultiLines.reduce(reduceFct))
+        pGeo("reversedMultiLines", revLineString)
+        pGeo("reversedMultiLines buffered", revLineString.buffer(toolDia/2.0f))
         reversedMultiLines.reduce(reduceFct).map(c => List(c.x.toFloat, c.y.toFloat)).toList
       }
       else
