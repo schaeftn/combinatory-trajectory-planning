@@ -40,37 +40,32 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
    */
   val targetGeometry: Geometry // targetGeometry as defined in 2dModel
   val stepDirection: Vector2D
-  lazy val feedDirection: Vector2D = stepDirection.rotateByQuarterCircle(1) //perpendicular to stepdir
 
   // frage: Anfang ende nur in free oder auch ohne? wahrscheinlich beides. Prio nur in free
 
-  lazy val normalizeRotMat = new AffineTransformation().setToRotation(-stepDirection.angle())
   lazy val polyAndBoundaryAreas = restGeo.buffer(toolDia)
-  lazy val polyAndBoundaryAreasIntersectionOhneBuffer = polyAndBoundaryAreas.intersection(machinedGeo)
-  lazy val polyAndBoundaryAreasIntersection = polyAndBoundaryAreas.
-    intersection(machinedGeo).buffer(-0.001).buffer(0.001)
+  lazy val polyAndBoundaryAreasIntersectionWithoutBuffer = polyAndBoundaryAreas.intersection(machinedGeo)
+  lazy val polyAndBoundaryAreasIntersection = polyAndBoundaryAreasIntersectionWithoutBuffer.buffer(-0.001).buffer(0.001)
   lazy val polyAndBoundaryAreasIntersectionUnion = restGeo.buffer(0.001).
     union(polyAndBoundaryAreasIntersection.buffer(0.001d))
-
   lazy val polyAndBoundaryAreasIntersectionUnionSmol = polyAndBoundaryAreasIntersectionUnion.buffer(-0.001)
 
   lazy val invalidToolPositions = targetWorkpiece.buffer(toolDia / 2.0d)
 
-  lazy val normalizedArea = normalizeRotMat.transform(polyAndBoundaryAreasIntersectionUnionSmol)
+  lazy val normalizedArea = polyAndBoundaryAreasIntersectionUnionSmol
 
   lazy val multiLines: Geometry = {
     logger.debug(s"ZigZag Restgeo: $restGeo")
     logger.debug(s"Target Geo: \r\n$targetGeometry")
     logger.debug(s"polyAndBoundaryAreas (restGeo.buffer(toolDia)): $polyAndBoundaryAreas")
     logger.debug(s"ZigZag machinedGeo: $machinedGeo")
-    logger.debug(s"polyAndBoundaryAreasIntersectionOhneBuffer: $polyAndBoundaryAreasIntersectionOhneBuffer")
+    logger.debug(s"polyAndBoundaryAreasIntersectionOhneBuffer: $polyAndBoundaryAreasIntersectionWithoutBuffer")
     logger.debug(s"polyAndBoundaryAreasIntersection (polyAndBoundaryAreas.intersection(machinedGeo)): " +
       s"$polyAndBoundaryAreasIntersection")
     logger.debug(s"polyAndBoundaryAreasIntersectionUnion: $polyAndBoundaryAreasIntersectionUnion")
     logger.debug(s"polyAndBoundaryAreasIntersectionSmol: $polyAndBoundaryAreasIntersectionUnionSmol")
     logger.debug(s"normalizedArea: $normalizedArea")
     pGeo("invalidToolPositions", invalidToolPositions)
-
 
     val validToolPositions = restGeo.buffer(0).difference(targetWorkpiece.buffer(toolDia / 2.0d))
     pGeo("validStartingPoints", validToolPositions)
