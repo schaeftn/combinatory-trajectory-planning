@@ -75,8 +75,8 @@ trait PcrEvaluationUtils extends LazyLogging with TreePrinting{
 
   def evalInhabitants(range: Range) = {
     logger.info(s"Evaluating inhabitants ${range.head} to ${range.last}")
-    val evaluatedInhabitants = range.par.map(runInhabitant)
-    (range zip evaluatedInhabitants).par.map { case (i, pcr) =>
+    val evaluatedInhabitants = range.map(runInhabitant)
+    (range zip evaluatedInhabitants).map { case (i, pcr) =>
       logger.info(s"Writing files for inhabitant $i")
       writeFilesForInhabitant(i, pcr) }
   }

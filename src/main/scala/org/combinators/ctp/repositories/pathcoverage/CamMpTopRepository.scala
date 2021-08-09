@@ -40,14 +40,14 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
     def apply(t: CncTool,
               restMp: PathCoverageStep): PathCoverageStep = {
       val pcFct: cncPathFct = { (initialScene, pcConfig) =>
-        logger.info(s"spiral roughing: ${initialScene.rest.head}")
+        logger.debug(s"spiral roughing: ${initialScene.rest.head}")
         val largestEmptyCircle = new MaximumInscribedCircle(initialScene.rest.head, 1.0)
         val c1 = largestEmptyCircle.getCenter.getCoordinate
         val c11 = new Coordinate(c1.x, c1.y, 20.0f)
         val c2 = largestEmptyCircle.getCenter.getCoordinate
         val c22 = new Coordinate(c2.x, c2.y, 0.0f)
 
-        logger.info(s"c11: $c11, c22: $c22")
+        logger.debug(s"c11: $c11, c22: $c22")
         val diveIn = new DiveIn {
           override val tool: CncTool = t
           override val config: PathCoverageStepConfig = pcConfig
@@ -234,7 +234,8 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
           //Update model
           val updatedRestList: List[Geometry] =
           model.rest.map {
-            _.difference(tpBuffer)
+            _.buffer(-0.00001).buffer(0.00001).
+              difference(tpBuffer.buffer(-0.00001).buffer(0.00001))
           }.map(g => getGeoListFromGeo(g)).reduce(_ ++ _)
           val updatedRestRemovedA = updatedRestList.partition { restGeo =>
             restGeo.isWithinDistance(toolPath, t.r + 0.01d) && restGeo.getArea < 0.1d
@@ -277,19 +278,19 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
           override val a_e: Float = t.ae
           override val restGeo: Geometry = initialScene.rest.head
           override val machinedGeo: Geometry = initialScene.machined.reduceOption[Geometry] {
-            case (a: Geometry, b: Geometry) => a.union(b)
+            case (a: Geometry, b: Geometry) => robustUnion(a,b)
           }.getOrElse(gf.toGeometry(new Envelope()))
           override val stepDirection: Vector2D = new Vector2D(1.0f, 0.0f)
           override val targetWorkpiece: Geometry = initialScene.targetWorkpiece
           override val targetGeometry: Geometry = initialScene.targetGeometry
         }
-        logger.info(s"ZiGZag after init")
-        logger.info(s"ZigZag starting for geometry: ${zigZag.restGeo}")
+        logger.debug(s"ZiGZag after init")
+        logger.debug(s"ZigZag starting for geometry: ${zigZag.restGeo}")
         val path = zigZag.findPoints
         val bufferedPoly = getNewLineString(path.map{l => asCoordinate(l)}.toArray).buffer(t.d.toDouble / 2.0d)
-        logger.info(s"zigzag bufferedPoly: $bufferedPoly")
+        logger.debug(s"zigzag bufferedPoly: $bufferedPoly")
         val newScene = initialScene.withMachinedGeo(bufferedPoly)
-        logger.info(s"zigzag after machinedGeo")
+        logger.debug(s"zigzag after machinedGeo")
 
         (List(path), newScene)
       }

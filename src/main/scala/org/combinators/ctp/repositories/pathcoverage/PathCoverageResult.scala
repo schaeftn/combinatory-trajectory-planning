@@ -19,12 +19,12 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, pcs
       // Run self
       logger.info(s"evaluating pcs: ${pcs.description_param}")
 
-      logger.info(s"accResultList.empty ${accResultList.isEmpty}")
+      logger.debug(s"accResultList.empty ${accResultList.isEmpty}")
       val thisResult: Option[(List[List[List[Float]]], Cnc2DModel)] =
       pcs.pcFct.map(f => f.apply(accResultList.lastOption.map(_._1).getOrElse(s), config))
       val thisResultAsListOption = thisResult.map(l => List(
         (l._2, l._1.reduceOption(_ ++ _).getOrElse(List.empty[List[Float]]), pcs.tool, pcs.description_param)))
-      logger.info(s"thisResultAsListOption $thisResultAsListOption")
+      logger.debug(s"thisResultAsListOption $thisResultAsListOption")
       val lastCurrentResultEntry = thisResultAsListOption.getOrElse(accResultList.lastOption.map(List(_)).
         getOrElse(List((s, List.empty[List[Float]], None,pcs.description_param))))
 

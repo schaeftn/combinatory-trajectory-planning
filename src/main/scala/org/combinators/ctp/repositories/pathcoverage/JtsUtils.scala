@@ -4,10 +4,11 @@ import com.typesafe.scalalogging.LazyLogging
 import org.combinators.ctp.repositories.toplevel.PathCoverageStepConfig
 import org.locationtech.jts.dissolve.LineDissolver
 import org.locationtech.jts.geom.util.AffineTransformation
-import org.locationtech.jts.geom.{Coordinate, Geometry, GeometryFactory, LineSegment, LineString, LinearRing,
-  MultiLineString, MultiPolygon, Point, Polygon}
+import org.locationtech.jts.geom.{Coordinate, Geometry, GeometryFactory, LineSegment, LineString, LinearRing, MultiLineString, MultiPolygon, Point, Polygon}
 import org.locationtech.jts.io.WKTReader
 import org.locationtech.jts.util.GeometricShapeFactory
+
+import scala.util.Try
 
 
 trait JtsUtils extends LazyLogging with CircleUtils {
@@ -21,6 +22,27 @@ trait JtsUtils extends LazyLogging with CircleUtils {
     val wktReader = new WKTReader()
     wktReader.read(s)
   }
+
+  def robustIntersection(g1: Geometry, g2: Geometry): Geometry = {
+    Try {
+      g1.buffer(0).intersection(g2.buffer(0))
+    }.getOrElse({
+      logger.info(s"Robustintersection failed for g1: \r\n$g1")
+      logger.info(s"Robustintersection failed for g2: \r\n$g2")
+      g1.buffer(-0.001).buffer(-0.001).intersection(g2.buffer(-0.001).buffer(-0.001))
+    })
+  }
+
+  def robustUnion(g1: Geometry, g2: Geometry): Geometry = {
+    Try {
+      g1.buffer(0).union(g2.buffer(0))
+    }.getOrElse({
+      logger.info(s"robustUnion failed for g1: \r\n$g1")
+      logger.info(s"robustUnion failed for g2: \r\n$g2")
+      g1.buffer(-0.001).buffer(-0.001).union(g2.buffer(-0.001).buffer(-0.001))
+    })
+  }
+
 
   def geosAreNear(g: Geometry, p: Point): Boolean = p.isWithinDistance(g, coverageErrorMargin)
 

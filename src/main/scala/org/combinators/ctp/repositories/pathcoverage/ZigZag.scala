@@ -41,11 +41,10 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
   val targetGeometry: Geometry // targetGeometry as defined in 2dModel
   val stepDirection: Vector2D
 
-  // frage: Anfang ende nur in free oder auch ohne? wahrscheinlich beides. Prio nur in free
-
   lazy val polyAndBoundaryAreas = restGeo.buffer(toolDia)
-  lazy val polyAndBoundaryAreasIntersectionWithoutBuffer = polyAndBoundaryAreas.intersection(machinedGeo)
-  lazy val polyAndBoundaryAreasIntersection = polyAndBoundaryAreasIntersectionWithoutBuffer.buffer(-0.001).buffer(0.001)
+  lazy val polyAndBoundaryAreasIntersectionWithoutBuffer = robustIntersection(polyAndBoundaryAreas,machinedGeo)
+  lazy val polyAndBoundaryAreasIntersection = polyAndBoundaryAreasIntersectionWithoutBuffer.
+    buffer(-0.001).buffer(0.001)
   lazy val polyAndBoundaryAreasIntersectionUnion = restGeo.buffer(0.001).
     union(polyAndBoundaryAreasIntersection.buffer(0.001d))
   lazy val polyAndBoundaryAreasIntersectionUnionSmol = polyAndBoundaryAreasIntersectionUnion.buffer(-0.001)
