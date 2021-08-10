@@ -223,8 +223,8 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
           val holesMultiGeo = findHoles(model.targetGeometry)
           pGeo(s"CHull Combinator holes:", holesMultiGeo.getOrElse(emptyGeometry))
           val islesList = getGeoListFromGeo(holesMultiGeo.getOrElse(emptyGeometry))
-          val bufferedIsles = islesList.map { g => g.buffer(t.d).difference(model.machinedMultiPolygon.buffer(0)) }
-          val selectedIsleTuple = (islesList zip bufferedIsles).maxBy { case (g1, g2) => g2.difference(g1).getArea }
+          val bufferedIsles = islesList.map { g => robustDifference(g.buffer(t.d), model.machinedMultiPolygon) }
+          val selectedIsleTuple = (islesList zip bufferedIsles).maxBy { case (g1, g2) => robustDifference(g2, g1).getArea }
           val selectedIsle = smartCastToPolygon(selectedIsleTuple._1)
 
           val toolPath = selectedIsle.buffer(t.r).asInstanceOf[Polygon].getExteriorRing
