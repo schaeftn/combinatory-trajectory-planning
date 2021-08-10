@@ -43,6 +43,18 @@ trait JtsUtils extends LazyLogging with CircleUtils {
     })
   }
 
+  def robustDifference(g1: Geometry, g2: Geometry): Geometry = {
+    Try {
+      g1.buffer(0).difference(g2.buffer(0))
+    }.getOrElse({
+      logger.info(s"robustDiff failed for g1: \r\n$g1")
+      logger.info(s"robustDiff failed for g2: \r\n$g2")
+      g1.buffer(-0.001).buffer(-0.001).difference(g2.buffer(-0.001).buffer(-0.001))
+    })
+  }
+
+
+
 
   def geosAreNear(g: Geometry, p: Point): Boolean = p.isWithinDistance(g, coverageErrorMargin)
 

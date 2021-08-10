@@ -287,10 +287,9 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
                     new LineSegment(new Coordinate(ls1.maxX(), newCoord.y), newCoord).
                       toGeometry(gf))
                   pGeo("horizontalLines", getGeoCollection(horizontalSegments.toList))
-                  horizontalSegments.foreach(ls =>
-                    assert(ls.getLength>0.01)
-                  )
-                  val selectedSegment = horizontalSegments.find(ls => ls.buffer(toolDia.toDouble / 2.0d).coveredBy(normalizedArea))
+
+                  val selectedSegment = horizontalSegments.filter(ls =>
+                    ls.getLength > 0.01).find(ls => ls.buffer(toolDia.toDouble / 2.0d).coveredBy(normalizedArea))
                   selectedSegment.foreach(pGeo("selectedSegment",_))
 
                   val selectedSegmentAsCoords = selectedSegment.map(_.getCoordinates)

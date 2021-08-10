@@ -55,7 +55,7 @@ trait Contour extends LazyLogging with JtsUtils {
       val gs = new GeometrySnapper(validPosPoly)
       val newValidPosPoly = gs.snapTo(filteredFull, 0.01d)
 
-      val f1 = newValidPosPoly.difference(filteredFull) // mit difference noch holes benötigt?
+      val f1 = robustDifference(newValidPosPoly, filteredFull) // mit difference noch holes benötigt?
       pGeo("f1", f1)
 
       val toolPath = if (f1.isEmpty)

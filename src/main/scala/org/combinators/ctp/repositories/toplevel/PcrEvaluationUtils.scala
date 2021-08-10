@@ -5,6 +5,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 
 import com.typesafe.scalalogging.LazyLogging
+import org.combinators.cls.inhabitation.Tree
 import org.combinators.cls.interpreter.InhabitationResult
 import org.combinators.ctp.repositories.pathcoverage.{PathCoverageResult, PathFeedUtils}
 
@@ -24,6 +25,51 @@ trait PcrEvaluationUtils extends LazyLogging with TreePrinting{
     new java.io.File(path).mkdirs
   }
 
+
+  def bruteForceBatchEval(filterFct: String => Boolean = { _ => true }) = {
+    @scala.annotation.tailrec
+    def getResults(accList: List[(Int, PathCoverageResult)], currentRange: Range): List[(Int, PathCoverageResult)] = {
+      if (accList.size > 10) {
+        accList
+      } else {
+        logger.info(s"evaluating inhabitant $currentRange")
+
+        val cpuCount = 14
+        @scala.annotation.tailrec
+        def batch(restList: IndexedSeq[(Tree, Int)], innerAccList: List[(Int, PathCoverageResult)]): List[(Int, PathCoverageResult)] = {
+          if (restList.nonEmpty) {
+            val newEntries = restList.take(cpuCount).par.map { case (str, index) =>
+              val pcr = runInhabitant(index)
+              val restarea = pcr.computeModelHistory._1.last._1.getRestMultiGeo.getArea
+              val initialRest = pcr.computeModelHistory._1.head._1.getRestMultiGeo.getArea
+              val percentage = restarea / initialRest
+              writeFilesForInhabitant(index, pcr)
+              (percentage, index, pcr)
+            }.filter(_._1 < acceptPercentage).map { case (_, b, c) =>
+              c.writeXmlOut(parentFolder + File.separator + s"candidates$timeString" + File.separator + getXmlFileName(b), b)
+              (b, c)
+            }
+            batch(restList.drop(cpuCount), innerAccList ++ newEntries)
+          } else {
+            innerAccList
+          }
+        }
+
+        val initialList = currentRange.map(index => (inhabitants.terms.index(index), index)).filter
+        { case (treeString, index) => filterFct(treeString.toString) }
+
+        val batchResults = batch(initialList, List.empty[(Int, PathCoverageResult)])
+        getResults(accList ++ batchResults, currentRange.last + 1 to currentRange.last + 1000)
+      }
+    }
+
+    new java.io.File(parentFolder + File.separator + "candidates").mkdirs
+    val selectedResults = getResults(List.empty, 0 to 1000)
+    logger.info(s"selected Indizes: ${selectedResults.map(_._1)}")
+    logger.info("Done")
+  }
+
+
   def bruteForceEval() = {
     @scala.annotation.tailrec
     def getResults(accList: List[(Int, PathCoverageResult)], i: Int): List[(Int, PathCoverageResult)] = {
@@ -33,7 +79,11 @@ trait PcrEvaluationUtils extends LazyLogging with TreePrinting{
         logger.info(s"evaluating inhabitant $i")
         //val filter = inhabitants.terms.index(i).toString.contains("ConvexHullDecomposition")
         //val filter = inhabitants.terms.index(i).toString.contains("SpecimenContour")
-        val filter = true
+        val str =  inhabitants.terms.index(i).toString
+        val filter = str.contains("SpecimenContour") &&
+          str.contains("ZigZagStep") && str.contains("ConvexHullDecomposition") &&
+          str.contains("MultiContourMultiTool")
+        //  val filter = true
         if (filter) {
           val pcr = runInhabitant(i)
           // Für das Filtern: nach Größe iterieren, über keys von l.last.interpretedTerms.values

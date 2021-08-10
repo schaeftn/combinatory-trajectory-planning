@@ -65,6 +65,9 @@ object RunCncEvaluation extends App with CncEvaluationSetup {
   }
 
   lazy val lines = Iterator.continually(scala.io.StdIn.readLine()).takeWhile(_ != "exit")
+  val filter = (str: String) => str.contains("SpecimenContour") &&
+    str.contains("ZigZagStep") && "ConvexHullDecomposition".r.findAllMatchIn(str).length == 1 &&
+    str.contains("MultiContourMultiTool") && !(str.contains("RotateModelPcs"))
 
   while (lines.hasNext) {
     lines.next() match {
@@ -79,6 +82,8 @@ object RunCncEvaluation extends App with CncEvaluationSetup {
           logger.info("""Wrong format. Please use "startIndex-endIndex", eg. "100-200"""")
       case inputString if inputString.equals("bf") =>
         dUtils.bruteForceEval()
+      case inputString if inputString.equals("bfb") =>
+        dUtils.bruteForceBatchEval(filter)
       case inputString =>
         toInt(inputString) match {
           case Some(i) => dUtils.evalInhabitant(i)
