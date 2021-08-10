@@ -55,7 +55,7 @@ object PathCoverageStepConfig {
     val maxPointClearanceOnPath: Float = 0.1f
     val min_ae: Float = 0.01f
     val areaIgnoreVal: Float = 0.01f
-    val pathIgnoreVal: Float = 0.01f
+    val pathIgnoreVal: Float = 0.5f
 
 
     @scala.annotation.tailrec

@@ -122,13 +122,25 @@ trait Contour extends LazyLogging with JtsUtils {
       pGeo("toolPathsAe", toolPathsAe)
       val toolPathsAeDiffInvalid = toolPathsAe.difference(invalidToolPositions)
       pGeo("toolPathsAeDiffInvalid", toolPathsAeDiffInvalid)
-      val toolPathsAeStrings = smartCastToPolygon(toolPathsAeDiffInvalid, p_selectedPolygon).getExteriorRing
+      val toolPathsAeStrings = smartCastToPolygon(toolPathsAeDiffInvalid, p_selectedPolygon)
       pGeo("toolPathsAeStrings", toolPathsAeStrings)
+
+      val toolPathsAeRings =
+        toolPathsAeStrings.getExteriorRing +:
+          (0 until toolPathsAeStrings.getNumInteriorRing).map(i => toolPathsAeStrings.getInteriorRingN(i)).toList
+      pGeo("toolPathsAeRings", getGeoCollection(toolPathsAeRings))
       logger.debug(s"tool radius: ${t.r}")
 
-      val toolPathsAeStringsNearPoly = toolPathsAeStrings.intersection(selectedPoly.buffer(t.r))
+      val toolPathsAeStringsNearPoly = toolPathsAeRings.map(_.intersection(selectedPoly.buffer(t.r))).map(g => getGeoListFromGeo(g))
 
-      gf.createMultiLineString(getGeoListFromGeo(toolPathsAeStringsNearPoly).filter(g => g.getGeometryType == "LineString" &&
+      val flattenedList = if (toolPathsAeStringsNearPoly.nonEmpty)
+        toolPathsAeStringsNearPoly.reduce(_ ++ _)
+      else
+        List.empty[Geometry]
+
+      pGeo("flattenedList", getGeoCollection(flattenedList))
+
+      gf.createMultiLineString(flattenedList.filter(g => g.getGeometryType == "LineString" &&
         g.isWithinDistance(p_selectedPolygon, t.r + t.ae)).map(_.asInstanceOf[LineString]).toArray)
     }
 
@@ -143,7 +155,7 @@ trait Contour extends LazyLogging with JtsUtils {
       case "MultiLineString" =>
         val filteredGeoListFromMls = getGeoListFromGeo(toolPathDissolved).filter(_.getLength > pcConfig.pathIgnoreVal)
         if (filteredGeoListFromMls.nonEmpty)
-          filteredGeoListFromMls.maxBy(_.getLength) // minBy(_.distance(lastGeo))
+          filteredGeoListFromMls.minBy(_.distance(lastGeo)) //maxBy(_.getLength) //
         else
           emptyGeometry
       case "GeometryCollection" => getGeoListFromGeo(toolPathDissolved).filter(_.getGeometryType == "LineString").
@@ -218,11 +230,16 @@ trait Contour extends LazyLogging with JtsUtils {
             //select Polygon
             val l = getGeoListFromGeo(machinedToolAreas).filter(g => geosAreNear(g, startP) && geosAreNear(g, endP))
             val returnValue = if (l.nonEmpty) {
-              val exRing = l.maxBy(_.getArea).asInstanceOf[Polygon].getExteriorRing
-              val coordListExring = exRing.getCoordinates
+              val selectedPolyConnector = l.maxBy(_.getArea).asInstanceOf[Polygon]
+              val exRings = selectedPolyConnector.getExteriorRing +:
+                (0 until selectedPolyConnector.getNumInteriorRing).map(
+                  i => selectedPolyConnector.getInteriorRingN(i)).toList
+
+              val selectedRing = exRings.minBy(_.distance(startP))
+              val coordListRing = selectedRing.getCoordinates
 
               def getNearestPointIndex(p: Point) =
-                coordListExring.zipWithIndex.map { case (a, index) => (a.distance(p.getCoordinate), index) }.minBy(_._1)._2
+                coordListRing.zipWithIndex.map { case (a, index) => (a.distance(p.getCoordinate), index) }.minBy(_._1)._2
 
               val endIndex = getNearestPointIndex(endP)
               val startIndex = getNearestPointIndex(startP)
@@ -230,9 +247,9 @@ trait Contour extends LazyLogging with JtsUtils {
               if (startIndex == endIndex) {
                 List.empty[List[List[Float]]]
               } else {
-                pGeo("exRing", exRing)
-                pGeo("Point1", gf.createPoint(coordListExring(startIndex)))
-                pGeo("Point2", gf.createPoint(coordListExring(endIndex)))
+                pGeo("selectedRing", selectedRing)
+                pGeo("Point1", gf.createPoint(coordListRing(startIndex)))
+                pGeo("Point2", gf.createPoint(coordListRing(endIndex)))
 
                 def lineStringsForRing(coordList: Array[Coordinate]) = {
                   val doubledList = (coordList ++ coordList.drop(1))
@@ -248,7 +265,7 @@ trait Contour extends LazyLogging with JtsUtils {
                     (forwardDirectionList, reverseDirectionList.reverse)
                 }
 
-                val (firstList, secondList) = lineStringsForRing(coordListExring)
+                val (firstList, secondList) = lineStringsForRing(coordListRing)
 
                 val ls1 = gf.createLineString(firstList)
                 pGeo("ls1", ls1)

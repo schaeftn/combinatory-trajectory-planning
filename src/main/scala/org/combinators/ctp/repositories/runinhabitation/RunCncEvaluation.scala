@@ -1,37 +1,8 @@
 package org.combinators.ctp.repositories.runinhabitation
 
-import java.io.{File, FileWriter}
 
-import com.typesafe.scalalogging.LazyLogging
-import org.combinators.cls.interpreter.ReflectedRepository
-import org.combinators.cls.types.Taxonomy
 import org.combinators.cls.types.syntax._
-import org.combinators.ctp.repositories._
-import org.combinators.ctp.repositories.pathcoverage.{CamMpTopRepository, JtsUtils, PathCoverageResult}
 import org.combinators.ctp.repositories.toplevel._
-import org.locationtech.jts.util.Stopwatch
-import io.circe.generic.auto._
-import io.circe.syntax._
-import io.circe.parser.decode
-
-import scala.io.Source
-
-trait CncEvaluationSetup extends LazyLogging with AkkaImplicits with JtsUtils {
-  lazy val repository = new CamMpTopRepository {}
-  val aluUseCase: Boolean
-  val printKlartext: Boolean
-  val pRefinement: Boolean
-  val openPocket: Boolean
-  val acceptPercentage: Float
-
-  lazy val kinding = if (aluUseCase) repository.aluKinding else repository.steelKinding
-  lazy val tgtType =
-    (if (openPocket) repository.pFctResult else repository.pFctResultRoot) :&:
-      (if (aluUseCase) repository.alu else repository.steel)
-  lazy val Gamma = ReflectedRepository(repository, Taxonomy.empty, kinding)
-
-  lazy val inhabitationResult = Gamma.inhabit[PathCoverageResult](tgtType)
-}
 
 /*Reads User Input*/
 object RunCncEvaluation extends App with CncEvaluationSetup {
@@ -65,9 +36,11 @@ object RunCncEvaluation extends App with CncEvaluationSetup {
   }
 
   lazy val lines = Iterator.continually(scala.io.StdIn.readLine()).takeWhile(_ != "exit")
-  val filter = (str: String) => str.contains("SpecimenContour") &&
+  val filter = (str: String) => true
+  /** str.contains("SpecimenContour") &&
     str.contains("ZigZagStep") && "ConvexHullDecomposition".r.findAllMatchIn(str).length == 1 &&
     str.contains("MultiContourMultiTool") && !(str.contains("RotateModelPcs"))
+**/
 
   while (lines.hasNext) {
     lines.next() match {
@@ -81,7 +54,7 @@ object RunCncEvaluation extends App with CncEvaluationSetup {
         else
           logger.info("""Wrong format. Please use "startIndex-endIndex", eg. "100-200"""")
       case inputString if inputString.equals("bf") =>
-        dUtils.bruteForceEval()
+        dUtils.bruteForceEval(filter)
       case inputString if inputString.equals("bfb") =>
         dUtils.bruteForceBatchEval(filter)
       case inputString =>

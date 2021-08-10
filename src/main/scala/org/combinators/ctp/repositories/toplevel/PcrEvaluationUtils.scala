@@ -18,6 +18,7 @@ trait PcrEvaluationUtils extends LazyLogging with TreePrinting{
   lazy val parentFolder = new File(".").getCanonicalPath + File.separator +
     "CAM_CLS_out" + File.separator + timeString
 
+  lazy val candidatesFolder = parentFolder + File.separator + "candidates" + timeString
   def getInhabitantFolder(i: Int) = parentFolder + File.separator + "%03d".format(i)
 
   def createFolder(path: String) = {
@@ -46,7 +47,7 @@ trait PcrEvaluationUtils extends LazyLogging with TreePrinting{
               writeFilesForInhabitant(index, pcr)
               (percentage, index, pcr)
             }.filter(_._1 < acceptPercentage).map { case (_, b, c) =>
-              c.writeXmlOut(parentFolder + File.separator + s"candidates$timeString" + File.separator + getXmlFileName(b), b)
+              c.writeXmlOut(candidatesFolder + File.separator + getXmlFileName(b), b)
               (b, c)
             }
             batch(restList.drop(cpuCount), innerAccList ++ newEntries)
@@ -63,28 +64,23 @@ trait PcrEvaluationUtils extends LazyLogging with TreePrinting{
       }
     }
 
-    new java.io.File(parentFolder + File.separator + "candidates").mkdirs
+    new java.io.File(candidatesFolder).mkdirs
     val selectedResults = getResults(List.empty, 0 to 1000)
     logger.info(s"selected Indizes: ${selectedResults.map(_._1)}")
     logger.info("Done")
   }
 
 
-  def bruteForceEval() = {
+  def bruteForceEval(filter: String => Boolean) = {
     @scala.annotation.tailrec
     def getResults(accList: List[(Int, PathCoverageResult)], i: Int): List[(Int, PathCoverageResult)] = {
       if (accList.size > 10) {
         accList
       } else {
-        logger.info(s"evaluating inhabitant $i")
-        //val filter = inhabitants.terms.index(i).toString.contains("ConvexHullDecomposition")
-        //val filter = inhabitants.terms.index(i).toString.contains("SpecimenContour")
         val str =  inhabitants.terms.index(i).toString
-        val filter = str.contains("SpecimenContour") &&
-          str.contains("ZigZagStep") && str.contains("ConvexHullDecomposition") &&
-          str.contains("MultiContourMultiTool")
-        //  val filter = true
-        if (filter) {
+
+        if (filter(str)) {
+          logger.info(s"evaluating inhabitant $i")
           val pcr = runInhabitant(i)
           // Für das Filtern: nach Größe iterieren, über keys von l.last.interpretedTerms.values
           // val fct = l.last.interpretedTerms.values.asInstanceOf[PathCoverageStep]
