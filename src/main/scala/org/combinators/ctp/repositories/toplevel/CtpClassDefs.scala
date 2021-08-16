@@ -36,11 +36,8 @@ trait MachineAccelerationModel extends JtsUtils {
 }
 
 trait PathCoverageStepConfig extends JtsUtils with MachineAccelerationModel {
-  val pathRefinement: Boolean
   val minPointClearanceOnPath: Float
-  val maxPointClearanceOnPath: Float
   val pathIgnoreVal: Float
-  val min_ae: Float
   val areaIgnoreVal: Float
   val xAccLookup: List[(Float, Float, Float)]
   val yAccLookup: List[(Float, Float, Float)]

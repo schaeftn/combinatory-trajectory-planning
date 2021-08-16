@@ -100,7 +100,7 @@ trait Contour extends LazyLogging with JtsUtils {
     val machinableArea = initialScene.getMachinedMultiGeo.buffer(t.ae)
     pGeo("machinableArea", machinableArea)
 
-    val machinableAreaStrip = machinableArea.intersection(poly)
+    val machinableAreaStrip = robustIntersection(machinableArea, poly)
     pGeo("machinableAreaStrip", machinableAreaStrip)
 
     val machinableAreaStripPolygonsOnly = gf.createMultiPolygon(
@@ -108,7 +108,7 @@ trait Contour extends LazyLogging with JtsUtils {
         map(_.asInstanceOf[Polygon]).toArray)
     pGeo("machinableAreaStripPolygonsOnly", machinableAreaStripPolygonsOnly)
 
-    val machinableAreaStripMinusWorkpiece = machinableAreaStripPolygonsOnly.difference(initialScene.targetWorkpiece)
+    val machinableAreaStripMinusWorkpiece = robustDifference(machinableAreaStripPolygonsOnly, initialScene.targetWorkpiece)
     pGeo("machinableAreaStripMinusWorkpiece", machinableAreaStripMinusWorkpiece)
 
     // Select polygon with largest area
@@ -168,7 +168,7 @@ trait Contour extends LazyLogging with JtsUtils {
     val tpSnapped = gSnap.snapToSelf(0.001, true)
     pGeo("tpSnapped", tpSnapped)
 
-    val miniMalTp = tpSnapped.intersection(initialScene.getMachinedMultiGeo)
+    val miniMalTp = robustIntersection(tpSnapped, initialScene.getMachinedMultiGeo)
 
     val path = miniMalTp.getCoordinates
 
@@ -239,7 +239,8 @@ trait Contour extends LazyLogging with JtsUtils {
               val coordListRing = selectedRing.getCoordinates
 
               def getNearestPointIndex(p: Point) =
-                coordListRing.zipWithIndex.map { case (a, index) => (a.distance(p.getCoordinate), index) }.minBy(_._1)._2
+                coordListRing.zipWithIndex.map {
+                  case (a, index) => (a.distance(p.getCoordinate), index) }.minBy(_._1)._2
 
               val endIndex = getNearestPointIndex(endP)
               val startIndex = getNearestPointIndex(startP)
@@ -312,7 +313,7 @@ trait Contour extends LazyLogging with JtsUtils {
         // val selectedRestGeo: Option[Geometry] = Option(initialScene.rest).filter(_.nonEmpty).map(_.maxBy(_.getArea))
 
         //        /**
-        //         * extrahiert für die gewählte fräsfläche jene Grenze, welche an machined Bereich grenzt
+        //         * Extrahiert für die gewählte fräsfläche jene Grenze, welche an machined Bereich grenzt
         //         * None, if initialscene.rest is empty
         //         */
         //        lazy val extractInitialMachinableFrontier: Option[LineString] =

@@ -100,14 +100,14 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
         filter {
           case ((a, b), c) => a.x > b.x && b.x <= c.x
         }.filter { case ((a, b), c) =>
-        restGeo.covers(new Point(new CoordinateArraySequence(Array(a)), gf)) &&
-          restGeo.covers(new Point(new CoordinateArraySequence(Array(b)), gf)) &&
-          restGeo.covers(new Point(new CoordinateArraySequence(Array(c)), gf))
+        gf.createPoint(a).isWithinDistance(restGeo.buffer(0),0.0001) &&
+        gf.createPoint(b).isWithinDistance(restGeo.buffer(0),0.0001) &&
+        gf.createPoint(c).isWithinDistance(restGeo.buffer(0),0.0001)
       }.
         filter {
           case ((a, b), c) => {
             val ch = new ConvexHull(Array(a, b, c), gf)
-            restGeo.contains(ch.getConvexHull)
+            restGeo.buffer(0).contains(ch.getConvexHull.buffer(0))
           }
         }
     }

@@ -14,6 +14,7 @@ trait PcrEvaluationUtils extends LazyLogging with TreePrinting{
   val timeString: String
   val printKlartext: Boolean
   val acceptPercentage: Float
+  val numberOfCandidates: Int = 50
 
   lazy val parentFolder = new File(".").getCanonicalPath + File.separator +
     "CAM_CLS_out" + File.separator + timeString
@@ -30,7 +31,7 @@ trait PcrEvaluationUtils extends LazyLogging with TreePrinting{
   def bruteForceBatchEval(filterFct: String => Boolean = { _ => true }) = {
     @scala.annotation.tailrec
     def getResults(accList: List[(Int, PathCoverageResult)], currentRange: Range): List[(Int, PathCoverageResult)] = {
-      if (accList.size > 10) {
+      if (accList.size > numberOfCandidates) {
         accList
       } else {
         logger.info(s"evaluating inhabitant $currentRange")
@@ -74,7 +75,7 @@ trait PcrEvaluationUtils extends LazyLogging with TreePrinting{
   def bruteForceEval(filter: String => Boolean) = {
     @scala.annotation.tailrec
     def getResults(accList: List[(Int, PathCoverageResult)], i: Int): List[(Int, PathCoverageResult)] = {
-      if (accList.size > 10) {
+      if (accList.size > numberOfCandidates) {
         accList
       } else {
         val str =  inhabitants.terms.index(i).toString

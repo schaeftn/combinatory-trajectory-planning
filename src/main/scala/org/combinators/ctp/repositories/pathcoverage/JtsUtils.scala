@@ -25,11 +25,15 @@ trait JtsUtils extends LazyLogging with CircleUtils {
 
   def robustIntersection(g1: Geometry, g2: Geometry): Geometry = {
     Try {
-      g1.buffer(0).intersection(g2.buffer(0))
+      val g1b = if (g1.getGeometryType == "LineString" || g1.getGeometryType == "MultiLineString")
+        g1 else g1.buffer(0)
+      g1b.intersection(g2.buffer(0))
     }.getOrElse({
       logger.info(s"Robustintersection failed for g1: \r\n$g1")
       logger.info(s"Robustintersection failed for g2: \r\n$g2")
-      g1.buffer(-0.001).buffer(-0.001).intersection(g2.buffer(-0.001).buffer(-0.001))
+      val g1b = if (g1.getGeometryType == "LineString" || g1.getGeometryType == "MultiLineString")
+        g1 else g1.buffer(-0.001).buffer(-0.001)
+      g1b.intersection(g2.buffer(-0.001).buffer(-0.001))
     })
   }
 
@@ -404,7 +408,7 @@ trait JtsUtils extends LazyLogging with CircleUtils {
   def getFirstInteriorFromPolygon(ls: Geometry): Geometry = {
     ls.getGeometryType match {
       case "Polygon" => if (ls.asInstanceOf[Polygon].getNumInteriorRing > 0)
-        gf.createPolygon(ls.asInstanceOf[Polygon].getInteriorRingN(0).getCoordinates)
+        gf.createPolygon(ls.asInstanceOf[Polygon].getInteriorRingN(1).getCoordinates) //TODO Change back
       else
         emptyGeometry
       case "MultiPolygon" =>

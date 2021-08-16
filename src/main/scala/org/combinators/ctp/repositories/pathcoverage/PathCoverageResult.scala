@@ -3,6 +3,7 @@ package org.combinators.ctp.repositories.pathcoverage
 import org.combinators.ctp.repositories.toplevel.{Cnc2DModel, PathCoverageStep, PathCoverageStepConfig}
 import org.locationtech.jts.geom.Geometry
 
+import scala.util.Try
 import scala.xml.Elem
 
 /**
@@ -21,7 +22,8 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, pcs
 
       logger.debug(s"accResultList.empty ${accResultList.isEmpty}")
       val thisResult: Option[(List[List[List[Float]]], Cnc2DModel)] =
-      pcs.pcFct.map(f => f.apply(accResultList.lastOption.map(_._1).getOrElse(s), config))
+      pcs.pcFct.map(f => Try{f.apply(accResultList.lastOption.map(_._1).getOrElse(s), config)}.getOrElse({
+        (List.empty[List[List[Float]]], accResultList.lastOption.map(_._1).getOrElse(s))}))
       val thisResultAsListOption = thisResult.map(l => List(
         (l._2, l._1.reduceOption(_ ++ _).getOrElse(List.empty[List[Float]]), pcs.tool, pcs.description_param)))
       logger.debug(s"thisResultAsListOption $thisResultAsListOption")
@@ -29,7 +31,7 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, pcs
         getOrElse(List((s, List.empty[List[Float]], None,pcs.description_param))))
 
       //Result was computed, but returned empty List
-      val continueAfterCurrent = continueRun && thisResult.forall(_._1.isEmpty)
+      val continueAfterCurrent = true // continueRun && thisResult.forall(_._1.isEmpty) //TODO Check combinator compositions
 
       // Run children for model
       val (retransformedChildrenPaths,continueRunAfterChildren) = {

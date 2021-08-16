@@ -29,6 +29,7 @@ trait DirectedRadial extends LazyLogging with JtsUtils {
           Some(multiGeoToGeoList(intersectionLineCandidate.asInstanceOf[MultiLineString]).
             maxBy(_.getLength).asInstanceOf[LineString])
         case "GeometryCollection" => filterGeoCollectionLsOnly(intersectionLineCandidate)
+        case _ => None
       }
   }
 

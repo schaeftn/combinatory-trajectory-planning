@@ -22,6 +22,8 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
 
   val pcFctRoot = Constructor("pcFctRoot")
   val pcFct = Constructor("pcFct")
+  val pcFctRootWithFinishing: Type = Constructor("pcFctRootWithFinishing")
+  val pcFctWithFinishing: Type = Constructor("pcFctWithFinishing")
 
   val roughing = Constructor("roughing")
   val finishing = Constructor("finishing")
@@ -126,7 +128,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
     }
     val semanticType = alpha =>: pcFct :&: alpha :&: atomicStep
   }
-**/
+
 
   // Moat first, rest later
   @combinator object MoatEntry {
@@ -136,7 +138,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
       val combinatorPcFct: cncPathFct = { (initialScene, pcConfig) =>
         val moatPrimitive = new Moat {
           val tool: CncTool = t
-          val restCoords = initialScene.rest.head.getCoordinates
+          val restCoords = initialScene.rest.head.asInstanceOf[Polygon].getExteriorRing.getCoordinates
           val pArray = if (restCoords.nonEmpty) restCoords :+ restCoords.head else Array.empty[Coordinate]
           val p1: Polygon = new Polygon(new LinearRing(new CoordinateArraySequence(pArray), gf), Array.empty[LinearRing], gf)
           override val config: PathCoverageStepConfig = pcConfig
@@ -165,8 +167,46 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
       PathCoverageStep(Some(combinatorPcFct), Some(t), List(restMp), "Moat Composition")
     }
 
-    val semanticType = alpha =>: pcFct :&: alpha  =>: pcFctRoot :&: alpha
+    val semanticType = alpha :&: roughing =>: pcFct :&: alpha  =>: pcFctRoot :&: alpha
   }
+ **/
+
+  def findSpecimenConnector(newModel: Cnc2DModel,
+                            aggregatedPath: List[List[List[Float]]],
+                            newPath: List[List[Float]], t: CncTool): List[List[List[Float]]] = {
+    //find first point
+    val lastRing = aggregatedPath.lastOption
+    logger.debug(s"aggregatedPathList in findSpecimenConnector ${aggregatedPath}")
+    pGeo("aggregatedPath in findSpecimenConnector", getGeoCollection(aggregatedPath.map(asLineString)))
+
+    val newRing = newPath
+    val returnVal = lastRing match {
+      case None => List(newPath)
+      case Some(ring) =>
+        pGeo("lastRing in findSpecimenConnector", getGeoCollection(aggregatedPath.map(asLineString)))
+
+        val ringLs = asLineString(ring)
+        val newRingLs = asLineString(newRing)
+        val dO = new DistanceOp(ringLs, newRingLs)
+        val nPoints = dO.nearestLocations()
+        val connxPointOnRing = nPoints(0).getCoordinate
+        val connxPointOnNew = nPoints(1).getCoordinate
+
+        pGeo("connector in findSpecimenConnector",gf.createLineString(nPoints.map(_.getCoordinate)))
+
+        val dO2 =  new DistanceOp(ringLs, gf.createPoint(connxPointOnRing))
+        val nPointsOnRing = dO2.nearestLocations()
+        val newConnectorPath = ringLs.getCoordinates.drop(nPointsOnRing(0).getSegmentIndex).reverse
+        val splitTuple = newPath.splitAt(nPoints(1).getSegmentIndex)
+        val modifiedNewPath = asFloatList(newConnectorPath) ++ asFloatList(Array(connxPointOnRing, connxPointOnNew)) ++ splitTuple._2 ++ splitTuple._1
+        pGeo("newPath in findSpecimenConnector", asLineString(modifiedNewPath))
+        pGeo("resultPath in findSpecimenConnector",
+          getGeoCollection((aggregatedPath :+ modifiedNewPath).map(asLineString)))
+        aggregatedPath :+ modifiedNewPath
+    }
+    returnVal
+  }
+
 
   @combinator object GenericCompositionPcStep {
     def apply(pcFct1: PathCoverageStep,
@@ -182,11 +222,12 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
       pcFct :&: alpha
   }
 
+
   @combinator object ConvexHullDecomposition {
     def apply(pcStep: PathCoverageStep): PathCoverageStep = {
       val pathCoverageFunctionBlock: (Cnc2DModel, PathCoverageStepConfig) => (List[List[List[Float]]], Cnc2DModel) = {
         case (model, config) =>
-          val holesMultiGeo = findHoles(model.getRestMultiGeo)
+          val holesMultiGeo = findHoles(model.targetGeometry)
           pGeo(s"CHull Combinator holes:", holesMultiGeo.getOrElse(emptyGeometry))
 
           val chulls: List[Geometry] = holesMultiGeo.map(g => getGeoListFromGeo(g).map {
@@ -220,12 +261,17 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
     def apply(t: CncTool): PathCoverageStep = {
       val pcFunction: cncPathFct = {
         case (model, config) =>
+          pGeo("targetGeo", model.targetGeometry)
           val holesMultiGeo = findHoles(model.targetGeometry)
           pGeo(s"CHull Combinator holes:", holesMultiGeo.getOrElse(emptyGeometry))
           val islesList = getGeoListFromGeo(holesMultiGeo.getOrElse(emptyGeometry))
+
           val bufferedIsles = islesList.map { g => robustDifference(g.buffer(t.d), model.machinedMultiPolygon) }
+          pGeo("bufferedIsles", getGeoCollection(bufferedIsles))
           val selectedIsleTuple = (islesList zip bufferedIsles).maxBy { case (g1, g2) => robustDifference(g2, g1).getArea }
+          pGeo(s"CHull Combinator holes:", holesMultiGeo.getOrElse(emptyGeometry))
           val selectedIsle = smartCastToPolygon(selectedIsleTuple._1)
+          pGeo(s"selectedIsle", selectedIsle)
 
           val toolPath = selectedIsle.buffer(t.r).asInstanceOf[Polygon].getExteriorRing
           val tpBuffer = toolPath.buffer(t.r)
@@ -233,11 +279,15 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
           pGeo("SpecimenContour tpBuffer", tpBuffer)
           //Connect from machined area tool posis
           //Update model
-          val updatedRestList: List[Geometry] =
-          model.rest.map {
-            _.buffer(-0.00001).buffer(0.00001).
-              difference(tpBuffer.buffer(-0.00001).buffer(0.00001))
-          }.map(g => getGeoListFromGeo(g)).reduce(_ ++ _)
+          val updatedRestList: List[Geometry] = {
+            val upList = model.rest.map { g => robustDifference(g, tpBuffer) }.map(
+              g => getGeoListFromGeo(g))
+            if (upList.nonEmpty)
+              upList.reduce(_ ++ _)
+            else
+              List.empty[Geometry]
+          }
+
           val updatedRestRemovedA = updatedRestList.partition { restGeo =>
             restGeo.isWithinDistance(toolPath, t.r + 0.01d) && restGeo.getArea < 0.1d
           }
@@ -268,6 +318,71 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
     val semanticType = alpha =>: pcFct :&: alpha :&: atomicStep
   }
 
+  /**
+   * Executed at the end of a path planning program. Finishes all specimen contours.
+   */
+  @combinator object SpecimenContourFinishing {
+    def apply(t: CncTool, pcs: PathCoverageStep): PathCoverageStep = {
+      val pcFunction: cncPathFct = {
+        case (model, config) =>
+          val holesMultiGeo = findHoles(model.targetGeometry)
+          val islesList = getGeoListFromGeo(holesMultiGeo.getOrElse(emptyGeometry))
+
+          if (model.targetGeometry.getGeometryType != "Polygon"){
+            logger.warn(s"Specimen Contour Finishing: targetGeometry is not a Polygon")
+            pGeo("model.targetGeometry", model.targetGeometry)
+          }
+          val toolPaths = islesList.map(_.buffer(t.r).asInstanceOf[Polygon].getExteriorRing) ++
+            getLongestExteriorFromPolygon(model.targetGeometry)
+          val tpBuffer = toolPaths.map(_.buffer(t.r))
+          pGeo("SpecimenContour tpBuffers", getGeoCollection(tpBuffer))
+
+          val tpBufferMultiGeo = gf.createMultiPolygon(tpBuffer.filter(_.getGeometryType == "Polygon").
+            map(_.asInstanceOf[Polygon]).toArray)
+          pGeo("BufferMultiPoly", tpBufferMultiGeo)
+          //Connect from machined area tool posis, update model
+          val updatedRestList: List[Geometry] = {
+            val upList = model.rest.map { g => robustDifference(g, tpBufferMultiGeo) }.map(
+              g => getGeoListFromGeo(g))
+            if (upList.nonEmpty)
+              upList.reduce(_ ++ _)
+            else
+              List.empty[Geometry]
+          }
+          val updatedRestRemovedA = updatedRestList.partition { restGeo =>
+            restGeo.isWithinDistance(tpBufferMultiGeo, 0.01d) && restGeo.getArea < 0.1d
+          }
+
+          val geoCollection = gf.createGeometryCollection((List(model.machinedMultiPolygon) ++
+            tpBuffer ++ updatedRestRemovedA._1).toArray)
+          val newMachinedMultiPolygon: Geometry = geoCollection.buffer(0)
+          val newMachinedList: List[Geometry] = (model.machined ++ tpBuffer) ++ updatedRestRemovedA._1
+
+          // remove areas that are in vicinity of the workpiece and are under area theshhold
+          // difference(toolPath.buffer(t.r))
+          val newModel = Cnc2DModel(boundaries = model.boundaries,
+            targetGeometry = model.targetGeometry,
+            rest = updatedRestRemovedA._2,
+            machined = newMachinedList,
+            machinedMultiPolygon = newMachinedMultiPolygon,
+            initialMachined = model.initialMachined,
+            transformStack = model.transformStack)
+
+          val tpFloatList = toolPaths.map(ls => asFloatList(ls.getCoordinates))
+          val connectPath = tpFloatList.foldLeft(List.empty[List[List[Float]]]) { case (accPath, newPath) =>
+            findSpecimenConnector(newModel, accPath, newPath, t)
+          }
+
+          (connectPath, newModel)
+      }
+      val pc2 = PathCoverageStep(Some(pcFunction), Some(t), List.empty[PathCoverageStep], """Specimen Contour Finishing""")
+      PathCoverageStep(None, None, List(pcs, pc2), "Finishing Combinator Composition")
+    }
+
+    val semanticType = (alpha :&: finishing =>: pcFct :&: alpha =>:
+      alpha :&: pcFctWithFinishing) :&:
+      (alpha :&: finishing =>: pcFctRoot :&: alpha =>: alpha :&: pcFctRootWithFinishing)
+  }
 
   //  //org.locationtech.jts.precision.MinimumClearance Decomposition
   @combinator object ZigZagStep {
@@ -425,16 +540,19 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
       val pathFct :cncPathFct =
         {
           case (m: Cnc2DModel, c: PathCoverageStepConfig) =>
-            val primitive = new DirectedRadial {
+            lazy val primitive = new DirectedRadial {
               override val model: Cnc2DModel = m
               override val tool: CncTool = t
               override val config: PathCoverageStepConfig = c
             }
 
             logger.debug("Combinator step")
-            val newModel = m.withMachinedGeo(primitive.machinedGeo)
+            lazy val newModel = m.withMachinedGeo(primitive.machinedGeo)
             logger.debug("after newModel")
-            (List(primitive.getSteps), newModel)
+            if(m.rest.nonEmpty)
+              (List(primitive.getSteps), newModel)
+            else
+              (List.empty, m)
       }
 
       PathCoverageStep(Some(pathFct), Some(t), List.empty, description_param = "Steel directed radial progression")
@@ -448,8 +566,8 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
   val scene1: Cnc2DModel = Cnc2DModel("models/machiningUc1.wkt", bounds1).withInitialMachinedGeo(machinedGeo1)
   val config = PathCoverageStepConfig()
 
-  val bounds6 = List[Float](-40.0f, 60.0f, -20.0f, 70.0f)
-  val scene6: Cnc2DModel = Cnc2DModel("models/machining6.wkt", bounds6)
+  val bounds6 = List[Float](-40.0f, 60.0f, -20.0f, 90.0f)
+  val scene6: Cnc2DModel = Cnc2DModel("models/machining7.wkt", bounds6)
 
   //  @combinator object ApplyScene1 extends JtsUtils {
   //    def apply(pcs: PathCoverageStep): PathCoverageResult = {
@@ -465,8 +583,8 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
       PathCoverageResult(scene6, config, pcs)
     }
 
-    val semanticType = (pcFct :&: alpha =>: pFctResult :&: alpha) :&:
-      (pcFctRoot :&: alpha =>: pFctResultRoot :&: alpha)
+    val semanticType = (pcFctRootWithFinishing :&: alpha  =>: pFctResult :&: alpha) :&:
+      (pcFctWithFinishing :&: alpha  =>: pFctResultRoot :&: alpha)
   }
 
   //  @combinator object SingleContourStep extends Contour {
@@ -488,8 +606,8 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
 
 
   @combinator object AluRoughing {
-    def apply: CncTool = CncTool(5.0f, 2.0f, 6.0f, 3990f, 13300,
-      "Alu Roughing, d 5mm, ae 2mm, vf 3990 mm/min, n 13300", "1 Z S13300")
+    def apply: CncTool = CncTool(12.0f, 3.0f, 6.0f, 3990f, 13300,
+      "Alu Roughing, d 12 mm, ae 3 mm, vf 3990 mm/min, n 13300", "1 Z S13300")
       // Orig "Alu Roughing, d 12mm, ae 3mm, vf 3990 mm/min, n 13300", "1 Z S13300")
 
     val semanticType = alu :&: roughing
