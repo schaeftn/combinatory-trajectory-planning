@@ -1,6 +1,7 @@
 package org.combinators.ctp.repositories.runinhabitation
 
 
+import org.combinators.cls.inhabitation.Tree
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories.toplevel._
 
@@ -36,7 +37,8 @@ object RunCncEvaluation extends App with CncEvaluationSetup {
   }
 
   lazy val lines = Iterator.continually(scala.io.StdIn.readLine()).takeWhile(_ != "exit")
-  val filter = (str: String) => true
+  val filter = (_: Tree) => true
+  val filterStr = (_: String) => true
   /** str.contains("SpecimenContour") &&
     str.contains("ZigZagStep") && "ConvexHullDecomposition".r.findAllMatchIn(str).length == 1 &&
     str.contains("MultiContourMultiTool") && !(str.contains("RotateModelPcs"))
@@ -56,7 +58,7 @@ object RunCncEvaluation extends App with CncEvaluationSetup {
       case inputString if inputString.equals("bf") =>
         dUtils.bruteForceEval(filter)
       case inputString if inputString.equals("bfb") =>
-        dUtils.bruteForceBatchEval(filter)
+        dUtils.bruteForceBatchEval(filterStr)
       case inputString =>
         toInt(inputString) match {
           case Some(i) => dUtils.evalInhabitant(i)

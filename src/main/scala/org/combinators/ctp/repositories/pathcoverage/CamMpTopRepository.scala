@@ -335,7 +335,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
             pGeo("model.targetGeometry", model.targetGeometry)
           }
           val toolPaths = islesList.map(_.buffer(t.r).asInstanceOf[Polygon].getExteriorRing) ++
-            getLongestExteriorFromPolygon(model.targetGeometry)
+            getLongestExteriorFromPolygon(model.targetGeometry.buffer(-t.r))
           val tpBuffer = toolPaths.map(_.buffer(t.r))
           pGeo("SpecimenContour tpBuffers", getGeoCollection(tpBuffer))
 
@@ -484,31 +484,27 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
     val semanticType = alu :&: roughing =>: alu :&: finishing =>: pcFct :&: alu :&: atomicStep
   }
 
-  /**
-  @combinator object MultiContourFinishing extends Contour {
+
+  @combinator object ContourRoughing extends Contour {
     def apply(t: CncTool): PathCoverageStep = {
       val pc1 = createMultiContourStep(t)
-      // val pcStepList = pc1.pcrList
-      /**
-       * mit Tool 1:
-       * Loop bis Abbruchbedingung erreicht
-       *   Selektion Restgeometrie
-       *   Bildung Konturpfad
-       *   Update Model
-       *
-       * mit Tool 2 und neuem Model:
-       * Loop bis Abbruchbedingung erreicht
-       *   Selektion Restgeometrie
-       *   Bildung Konturpfad
-       *   Update Model
-       */
-      // PathCoverageStep(pc1.pcFct, pc1.tool, pcStepList, description_param = pc1.description_param)
-      pc1
+      PathCoverageStep(pc1.pcFct, Some(t), List.empty[PathCoverageStep],
+        description_param = "Contour Roughing")
+    }
+
+    val semanticType = alu :&: roughing =>: pcFct :&: alu :&: atomicStep
+  }
+
+  @combinator object ContourFinishing extends Contour {
+    def apply(t: CncTool): PathCoverageStep = {
+      val pc1 = createFinishContourStep(t, "Contour Finishing")
+      PathCoverageStep(pc1.pcFct, Some(t), List.empty[PathCoverageStep],
+        description_param = pc1.description_param)
     }
 
     val semanticType = alu :&: finishing =>: pcFct :&: alu :&: atomicStep
   }
-**/
+
 
   //TODO Bugfix
   @combinator object MultiContourMultiToolSteel extends Contour {

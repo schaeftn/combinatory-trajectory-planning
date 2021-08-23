@@ -188,10 +188,10 @@ trait Contour extends LazyLogging with JtsUtils {
     (asFloatList(path), toolpathBuffered, reservePoly.maxBy(_.getArea))
   }
 
-  def createFinishContourStep(t: CncTool): PathCoverageStep = {
+  def createFinishContourStep(t: CncTool, str: String = "Aluminum Finishing"): PathCoverageStep = {
     lazy val combinatorPcFunction: cncPathFct = finishingContourStep(t)
 
-    PathCoverageStep(Some(combinatorPcFunction), Some(t), List.empty[PathCoverageStep], "Aluminum Finishing")
+    PathCoverageStep(Some(combinatorPcFunction), Some(t), List.empty[PathCoverageStep], str)
   }
 
   def findConnectorPath(newModel: Cnc2DModel,

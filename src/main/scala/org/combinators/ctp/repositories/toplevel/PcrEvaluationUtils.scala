@@ -8,8 +8,13 @@ import com.typesafe.scalalogging.LazyLogging
 import org.combinators.cls.inhabitation.Tree
 import org.combinators.cls.interpreter.InhabitationResult
 import org.combinators.ctp.repositories.pathcoverage.{PathCoverageResult, PathFeedUtils}
+import org.combinators.ctp.repositories.runinhabitation.RunCncEvaluationExperiment03a.treeIndex
+import org.combinators.ctp.repositories.runinhabitation.RunCncEvaluationExperiment03b.{dUtils, inhabitationResult, logger}
+
+import scala.annotation.tailrec
 
 trait PcrEvaluationUtils extends LazyLogging with TreePrinting{
+
   val inhabitants: InhabitationResult[_]
   val timeString: String
   val printKlartext: Boolean
@@ -71,16 +76,27 @@ trait PcrEvaluationUtils extends LazyLogging with TreePrinting{
     logger.info("Done")
   }
 
+  @scala.annotation.tailrec
+  final def runFirst(treeFilter: Tree => Boolean, i: Int = 0): Unit = {
+    if (treeFilter(inhabitants.terms.index(i))) {
+      val pcr = runInhabitant(i)
+      logger.info(s"pcr string: \r\n${stringForPcs(pcr.pcs)}")
+      logger.info(s"Str: ${stringForPcs(inhabitationResult.interpretedTerms.index(i).pcs)}")
+      writeFilesForInhabitant(i, pcr)
+    } else {
+      runFirst(treeFilter, i + 1)
+    }
+  }
 
-  def bruteForceEval(filter: String => Boolean) = {
+
+  def bruteForceEval(filter: Tree => Boolean) = {
     @scala.annotation.tailrec
     def getResults(accList: List[(Int, PathCoverageResult)], i: Int): List[(Int, PathCoverageResult)] = {
       if (accList.size > numberOfCandidates) {
         accList
       } else {
-        val str =  inhabitants.terms.index(i).toString
-
-        if (filter(str)) {
+        logger.info(s"evaluating inhabitant $i")
+        if (filter(inhabitants.terms.index(i))) {
           logger.info(s"evaluating inhabitant $i")
           val pcr = runInhabitant(i)
           // Für das Filtern: nach Größe iterieren, über keys von l.last.interpretedTerms.values
