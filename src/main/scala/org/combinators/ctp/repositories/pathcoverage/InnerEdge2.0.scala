@@ -5,8 +5,9 @@ import org.combinators.ctp.repositories.pathcoverage.RunTrochoidalPath.trochPrim
 import org.combinators.ctp.repositories.scene.SceneUtils
 import org.combinators.ctp.repositories.toplevel.{Cnc2DModel, PathCoverageStepConfig}
 import org.locationtech.jts.algorithm.MinimumBoundingCircle
+import org.locationtech.jts.dissolve.LineDissolver
 import org.locationtech.jts.geom.impl.CoordinateArraySequence
-import org.locationtech.jts.geom.{Coordinate, Geometry, LineString, MultiLineString}
+import org.locationtech.jts.geom.{Coordinate, Geometry, LineString, MultiLineString, Polygon}
 import org.locationtech.jts.io.WKTReader
 
 
@@ -15,12 +16,18 @@ trait DirectedRadial extends LazyLogging with JtsUtils {
   lazy val p1: Geometry = model.rest.head
   val tool: CncTool
   val config: PathCoverageStepConfig
-
+lazy val p1cleaned = smartCastToPolygon(p1.buffer(-0.2d).buffer(0.1d))
   lazy val selectBoundaryLine: Option[LineString] = {
-    val intersectionLineCandidate: Geometry = model.machinedMultiPolygon.intersection(p1)
     pGeo("p1", p1)
+    pGeo("p1cleaned", p1cleaned)
+
+    val intersectionLineCandidateInitial: Geometry =
+      getLongestExteriorFromPolygon(model.machinedMultiPolygon.buffer(tool.ae)).getOrElse(emptyGeometry).intersection(p1cleaned)
     pGeo("machMultiPoly", model.machinedMultiPolygon)
+    pGeo("il intersectionLineCandidateInitial", intersectionLineCandidateInitial)
+    val intersectionLineCandidate = asLineString(LineDissolver.dissolve(intersectionLineCandidateInitial))
     pGeo("il Candidate", intersectionLineCandidate)
+
     if (intersectionLineCandidate.isEmpty) None
     else
       intersectionLineCandidate.getGeometryType match {
@@ -42,30 +49,19 @@ trait DirectedRadial extends LazyLogging with JtsUtils {
 
     val numberOfSteps = Math.ceil(mbc.getRadius / tool.ae).toInt
     val stepSize = tool.ae
-    val firstCirc = translateGeo(mbc.getCircle, 0.0d, -mbc.getRadius * 2.0d)
-    val firstLs = firstCirc
+    val firstCirc = translateGeo(mbc.getCircle.buffer(-0.1d), 0.0d, -mbc.getRadius * 2.0d)
 
     val env = firstCirc.getBoundary.getEnvelopeInternal
 
     logger.debug(s"env: $env")
-    if (directionY)
-      env.expandBy(0.0f, 100.0f)
-    else
-      env.expandBy(100.0f, 0.0f)
+    env.expandBy(0.0f, 100.0f)
 
-    val coords = if (directionY)
-      Array(new Coordinate(env.getMinX, env.getMinY),
+    val coords =
+      Array(new Coordinate(env.getMinX, env.getMinY+ 25.0d),
         new Coordinate(env.getMinX, model.boundaries(3)),
         new Coordinate(env.getMaxX, model.boundaries(3)),
-        new Coordinate(env.getMaxX, env.getMinY),
-        new Coordinate(env.getMinX, env.getMinY)
-      )
-    else
-      Array(new Coordinate(env.getMinX, env.getMinY),
-        new Coordinate(env.getMinX, env.getMaxY),
-        new Coordinate(model.boundaries(1), env.getMaxY),
-        new Coordinate(model.boundaries(1), env.getMinY),
-        new Coordinate(env.getMinX, env.getMinY)
+        new Coordinate(env.getMaxX, env.getMinY + 25.0d),
+        new Coordinate(env.getMinX, env.getMinY + 25.0d)
       )
 
     val poly = gf.createPolygon(coords)
@@ -73,58 +69,69 @@ trait DirectedRadial extends LazyLogging with JtsUtils {
     val testWp = filterGeoCollectionPolyOnly(poly.intersection(model.targetWorkpiece))
     pGeo("testWp", testWp)
 
-    def geoHitsBounds(g: Geometry): Boolean = g.isWithinDistance(testWp, 0)
+    def circleInvalid(g: Geometry): Boolean = g.isWithinDistance(testWp, 0)
 
     def geoOutOfPoly(g: Geometry): Boolean = !g.isWithinDistance(p1, 0)
 
     @scala.annotation.tailrec
     def replaceLast(c: List[Geometry]): List[Geometry] = {
       val circ = c.last
-      if (geoHitsBounds(circ)) {
-        val xDisplacement = if (directionY) 0.0 else -0.01
-        val yDisplacement = if (directionY) -0.01 else 0.0
-        replaceLast(c.dropRight(1) :+ translateGeo(circ, xDisplacement, yDisplacement))
+      if (circleInvalid(circ.buffer(tool.r))) {
+        val yDisplacement = -0.01d
+        replaceLast(c.dropRight(1) :+ translateGeo(circ, 0.0d, yDisplacement))
       } else {
         c
-        }
-      }
-
-    @scala.annotation.tailrec
-    def spawnCircles(circles: List[Geometry]): List[Geometry] = {
-      if ((geoHitsBounds(circles.last)) ||
-        (circles.size > 1 && geoOutOfPoly(circles.last)) || circles.isEmpty || circles.head.isEmpty)
-        replaceLast(circles)
-      else {
-        val newTab = if (geoOutOfPoly(circles.last)) circles.dropRight(1) else circles
-        if (directionY)
-          spawnCircles(newTab :+ translateGeo(circles.last, 0.0d, tool.ae))
-        else
-          spawnCircles(circles :+ translateGeo(circles.last, tool.ae, 0.0d))
       }
     }
 
-    logger.debug(s"p1: $p1")
-    logger.debug(s"firstLs: $firstLs")
-    val circs = spawnCircles(List(firstLs))
-    logger.debug(s"circs: $circs")
+    def filterToolPathByAccGeo(ls: LineString, geo: Geometry): LineString =
+      gf.createLineString(ls.getCoordinates.filter(c => gf.createPoint(c).isWithinDistance(geo,tool.r)))
 
+    def toolPathInvalid(ls:LineString): Boolean = {
+      ls.isWithinDistance(model.targetWorkpiece, tool.r)
+    }
 
-    val tempDebug = circs.map(g => gf.createPolygon(g.getCoordinates))
-    logger.debug(s"tempDebug: $tempDebug")
+    def filterLastTp(ls:LineString): LineString = {
+      gf.createLineString(ls.getCoordinates.filter(c => !gf.createPoint(c).isWithinDistance(model.targetWorkpiece, tool.r)))
+    }
 
-    val unbufferedCircs = tempDebug.map(g => g.buffer(-tool.d.toDouble / 2.0d))
-    logger.debug(s"unbufferedCircs: $unbufferedCircs")
+    @scala.annotation.tailrec
+    def spawnCircles(toolPaths: List[Geometry], accGeo: Geometry, initialTp: Geometry, i: Int = 1): List[Geometry] = {
+      val unfilteredToolPath = translateGeo(initialTp, 0.0d, tool.ae * i).asInstanceOf[LineString]
 
-    val upper = unbufferedCircs.map(_.norm).map(circleUpperLineString)
-    logger.debug(s"upper: $upper")
+      val newCircle = unfilteredToolPath.buffer(tool.r).asInstanceOf[Polygon].getExteriorRing
 
-    val sortedCoords = if (directionY)
-      upper.map(geo => asFloatList(geo.getCoordinates.sortBy(_.x)))
-    else
-      upper.map(geo => asFloatList(geo.getCoordinates.sortBy(_.y)))
+      pGeo("spawnCircles AccGeo", accGeo)
+      pGeo("newCircle", newCircle)
+      pGeo("unfilteredToolPath", unfilteredToolPath)
 
-    logger.debug("getSteps done")
-    sortedCoords.map(i => i ++ i.headOption.toList).reduceOption(_ ++ _).getOrElse(List.empty[List[Float]])
+      val filteredToolPath = filterToolPathByAccGeo(unfilteredToolPath, accGeo)
+      pGeo("filteredToolPath", filteredToolPath)
+
+      if (filterToolPathByAccGeo(filteredToolPath, accGeo).isEmpty || toolPathInvalid(filteredToolPath))
+        {logger.debug(s"Replacing last filteredToolPath")
+        replaceLast(toolPaths:+filteredToolPath)}
+      else {
+        val filteredToolPathBuffered =filteredToolPath.buffer(tool.r)
+        pGeo("filteredToolPathBuffered",filteredToolPathBuffered)
+        val updatedGeo = robustDifference(accGeo, filteredToolPathBuffered)
+
+        spawnCircles(toolPaths :+ filteredToolPath, updatedGeo, initialTp, i+1)
+      }
+    }
+
+    pGeo("targetWorkpiece", model.targetWorkpiece)
+    pGeo("p1", p1)
+    pGeo("firstCirc", firstCirc)
+    val circs = spawnCircles(List.empty[Geometry], p1cleaned, firstCirc.buffer(-tool.r).asInstanceOf[Polygon].getExteriorRing)
+
+    pGeo("circles", getGeoCollection(circs))
+
+    val coordArray = circs.foldLeft(Array.empty[Coordinate])((a: Array[Coordinate], b: Geometry) => a ++ b.getCoordinates)
+    val toolPath = gf.createLineString(coordArray)
+    pGeo("toolPath", toolPath)
+
+    asFloatList(toolPath.getCoordinates)
   }
 
   lazy val machinedGeo = {

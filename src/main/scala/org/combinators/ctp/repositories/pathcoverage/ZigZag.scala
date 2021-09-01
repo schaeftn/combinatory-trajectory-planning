@@ -26,6 +26,7 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
   val toolDia: Float
   val a_e: Float
   val convexDetection: Boolean = false
+  val areaIgnoreVal: Float
   /**
    * Geo to be processed
    */
@@ -54,8 +55,8 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
   lazy val normalizedArea = polyAndBoundaryAreasIntersectionUnionSmol
 
   lazy val multiLines: Geometry = {
-    logger.debug(s"ZigZag Restgeo: $restGeo")
-    logger.debug(s"Target Geo: \r\n$targetGeometry")
+    pGeo("ZigZag Restgeo",restGeo)
+    pGeo("ZigZag Target Geo", targetGeometry)
     logger.debug(s"polyAndBoundaryAreas (restGeo.buffer(toolDia)): $polyAndBoundaryAreas")
     logger.debug(s"ZigZag machinedGeo: $machinedGeo")
     logger.debug(s"polyAndBoundaryAreasIntersectionOhneBuffer: $polyAndBoundaryAreasIntersectionWithoutBuffer")
@@ -170,64 +171,54 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
     pGeo("targetWorkpiece", targetWorkpiece)
     pGeo("initialScene.getMachinedMultiGeo", machinedGeo)
 
-
     val validStartingPoints = if (startOutside)
       restGeo.buffer(toolDia / 2.0)
     else restGeo.buffer(0).difference(targetWorkpiece.buffer(toolDia / 2.0d))
 
     pGeo("validStartingPoints", validStartingPoints)
 
-    val resultMultiLines1 = asMultiLine(getGeoListFromGeo(multiLineGeometry.difference(invalidToolPositions.buffer(0))).
+    val initialMultiLines = asMultiLine(getGeoListFromGeo(multiLineGeometry.difference(
+      invalidToolPositions.buffer(0))).
       sortBy(_.getEnvelopeInternal.getMinX).map(_.asInstanceOf[LineString]).map(ls =>
       gf.createLineString(ls.getCoordinates.sortBy(_.y))))
 
-    val resultMultiLines = LineDissolver.dissolve(resultMultiLines1)
-    pGeo("resultMultiLines", resultMultiLines)
+    val dissolvedMultiLines = LineDissolver.dissolve(initialMultiLines)
+    pGeo("resultMultiLines", dissolvedMultiLines)
 
-    val rMultiLinesDirty = getGeoListFromGeo(resultMultiLines).filter(_.getGeometryType == "LineString").map {
+    val multiLinesResult = getGeoListFromGeo(dissolvedMultiLines).filter(_.getGeometryType == "LineString").map {
       l => getNewLineString(l.getCoordinates.sortBy(_.y))
     }
 
-    //    val resultMultiLines: Geometry =
-    //      new AffineTransformation().setToRotation(stepDirection.angle()).transform(resultMultiLines1)
-    pGeo("resultMultiLines.buffer(toolDia)", resultMultiLines.buffer(toolDia / 2.0))
+    pGeo("dissolvedMultiLines.buffer(toolDia)", dissolvedMultiLines.buffer(toolDia / 2.0))
+    pGeo("multiLinesResult", asMultiLine(multiLinesResult))
+    // takewhile area - ...
+    val sortedMultiLines = multiLinesResult.sortBy(_.getCoordinate.x)
 
-    val rawLineList = (0 until resultMultiLines.getNumGeometries).map { i =>
-      val asd = resultMultiLines.getGeometryN(i)
-      //logger.debug(s"temp: $asd")
-      val asd2 = if (asd.getGeometryType == "Point") asd else LineDissolver.dissolve(asd)
-      // logger.debug(s"asd2: $asd2")
+    @scala.annotation.tailrec
+    def traverseMultiLines(accGeometry: Geometry, l: List[Geometry]): Geometry = {
+      def lineValid(accLines: Geometry, line: Geometry):Boolean = {
+        val tr = toolDia/2.0d
+        val newMachinedArea = robustDifference(line.buffer(tr),accLines.buffer(toolDia/2.0d))
+        pGeo("lineValid newMachinedArea", newMachinedArea)
+        val intersectionRestGeo = robustIntersection(newMachinedArea, restGeo)
+        pGeo("lineValid intersectionRestGeo", intersectionRestGeo)
+        intersectionRestGeo.getArea > areaIgnoreVal
+      }
 
-      DouglasPeuckerSimplifier.simplify(
-        asd2, 0.001)
-    }.filter(_.getGeometryType != "Point").sortBy(g => g.getEnvelopeInternal.getMinX)
+      pGeo("traverseMultilines accGeometry",accGeometry)
 
-    val filteredLineList =
-      if (rawLineList.length <= 1) -1
-      else
-        rawLineList.zip(rawLineList.tail).indexWhere {
-          case (g1, g2) => {
-            val ch = new ConvexHull((g1.getCoordinates ++ g2.getCoordinates).toArray, gf)
-            //logger.debug(s"ch: ${ch.getConvexHull}")
-            //logger.debug(s"intersection: ${ch.getConvexHull.buffer(-0.01).intersection(normalizedArea)}")
-            val notContains =
-            ch.getConvexHull.buffer(-0.01).getArea -
-              ch.getConvexHull.buffer(-0.01).intersection(normalizedArea).getArea > ch.getConvexHull.buffer(-0.01).getArea * 0.1
-            //logger.debug(s"notContains: ${notContains}")
-            notContains
-          }
-        }
-
-    logger.debug(s"filteredLineList $filteredLineList")
-    //TODO hack
-    val oldResult = if (filteredLineList == -1) {
-      rawLineList.reduceOption[Geometry](_ union _).getOrElse(emptyGeometry)
-    } else {
-      (0 to filteredLineList).map(i => rawLineList(i)).reduceOption[Geometry](_ union _).getOrElse(emptyGeometry)
+      if (l.nonEmpty && lineValid(accGeometry, l.head)) {
+        //logger.debug(s"lineValid(accGeometry, l.head): ${lineValid(accGeometry, l.head)}")
+        pGeo("line to check",l.head)
+        val newAccGeometry = accGeometry.union(l.head)
+        traverseMultiLines(newAccGeometry, l.drop(1))
+      } else {
+        logger.debug("traverseMl: line list is empty")
+        accGeometry
+      }
     }
 
-    pGeo("rMultiLinesDirty", asMultiLine(rMultiLinesDirty.toList))
-    rMultiLinesDirty.toList.sortBy(_.getCoordinate.x).reduceOption[Geometry](_ union _).getOrElse(emptyGeometry)
+    traverseMultiLines(emptyGeometry, sortedMultiLines)
   }
 
   lazy val findPoints: List[List[Float]] = {
@@ -320,9 +311,6 @@ trait ZigZag extends SceneUtils with LazyLogging with JtsUtils {
         List.empty[List[Float]]
     rPath
   }
-
-  val directionVector: List[Float] = List(1.0f, 0.0f) // in positive x direction
-
 }
 
 object runZigZag extends App with LazyLogging with JtsUtils {
@@ -350,6 +338,7 @@ object runZigZag extends App with LazyLogging with JtsUtils {
     override val stepDirection: Vector2D = new Vector2D(1.0f, 0.0f)
     override val targetWorkpiece: Geometry = tGeoStrictBounds
     override val targetGeometry: Geometry = tGeo
+    override val areaIgnoreVal: Float = 0.5f
   }
 
   val p = zz.findPoints.map(i => i :+ 0.0f) // z-Coord

@@ -51,7 +51,7 @@ object PathCoverageStepConfig {
     val minPointClearanceOnPath: Float = 0.01f
     val maxPointClearanceOnPath: Float = 0.1f
     val min_ae: Float = 0.01f
-    val areaIgnoreVal: Float = 0.01f
+    val areaIgnoreVal: Float = 5.0f
     val pathIgnoreVal: Float = 0.5f
 
 
@@ -341,7 +341,7 @@ case class Cnc2DModel(boundaries: List[Float],
       pGeo("g", g)
 
       val restGeos1 = self.rest.map(i => {
-        i.difference(g)
+        robustDifference(i, g)
       })
 
       val restGeos2 = restGeos1.map(g => multiGeoToGeoList(g)).reduceOption(_ ++ _).filter(_.nonEmpty)
@@ -352,7 +352,7 @@ case class Cnc2DModel(boundaries: List[Float],
       logger.debug("attempting to unionize")
       pGeo("machinedMultiPolygon", machinedMultiPolygon)
       pGeo("g", g)
-      val newMachGeo = machinedMultiPolygon.union(g)
+      val newMachGeo = robustUnion(machinedMultiPolygon,g)
       logger.debug("gotMultiPoly")
       pGeo("newMachGeo", newMachGeo)
       Cnc2DModel(self.boundaries, self.targetGeometry, restGeos, self.machined :+ g, newMachGeo, self.initialMachined, self.transformStack)

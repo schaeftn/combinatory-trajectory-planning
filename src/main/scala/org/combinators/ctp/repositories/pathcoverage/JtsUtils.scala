@@ -284,6 +284,7 @@ trait JtsUtils extends LazyLogging with CircleUtils {
       g
     }
   }
+
   def toAffMatrix(p1: Coordinate, a: Double): AffineTransformation = {
     val rotMat = new AffineTransformation().rotate(a - Math.PI * 0.5)
     val transMat = new AffineTransformation().translate(p1.getX, p1.getY)
@@ -353,12 +354,13 @@ trait JtsUtils extends LazyLogging with CircleUtils {
   def reverseLs(ls: LineString): LineString = ls.reverse()
 
   def asLineString(g: Geometry): LineString =
-    g match {
-      case ls: LineString => ls
+    g.getGeometryType match {
+      case "LineString" => g.asInstanceOf[LineString]
       //Fix for ExRing intersection results
-      case mls: MultiLineString =>
-        val ls = gf.createLineString(mls.getCoordinates)
-        if (ls.getLength == mls.getLength)
+      case "MultiLineString" =>
+        val ls = gf.createLineString(g.getCoordinates)
+        logger.debug(s"asLineString: ${ls.getLength}, ${g.getLength}")
+        if (ls.getLength == g.getLength)
           ls
         else
           emptyLs

@@ -89,7 +89,8 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
        * Erstellung maximal möglicher Spiralpfad um c.radius
        * Update des geometrischen Modells
        */
-      PathCoverageStep(Some(pcFct), Some(t), List(restMp), "SpiralRoughing")
+      val srPcs = PathCoverageStep(Some(pcFct), Some(t), List(), "SpiralRoughing")
+      PathCoverageStep(None, None, List(srPcs, restMp), "Spiral Roughing Sequence")
     }
 
     val semanticType = alpha :&: roughing =>: pcFct :&: alpha =>: pcFctRoot :&: alpha
@@ -184,12 +185,15 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
     val newRing = newPath
     val returnVal = lastRing match {
       case None => List(newPath)
+      case Some(g) if g.isEmpty => List(newPath)
       case Some(ring) =>
         pGeo("lastRing in findSpecimenConnector", getGeoCollection(aggregatedPath.map(asLineString)))
 
         val ringLs = asLineString(ring)
         val newRingLs = asLineString(newRing)
         val dO = new DistanceOp(ringLs, newRingLs)
+        pGeo("ringLs", ringLs)
+        pGeo("newRingLs", newRingLs)
         val nPoints = dO.nearestLocations()
         val connxPointOnRing = nPoints(0).getCoordinate
         val connxPointOnNew = nPoints(1).getCoordinate
@@ -255,8 +259,8 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
       val pc3 = PathCoverageStep(Some(pathCoverageFunctionRelease), None, List(), "Convex Hull Release Operation")
       PathCoverageStep(None, None, List(pc1, pcStep, pc3), "Convex Hull Wrapper")
     }
-    val semanticType = pcFct :&: alpha =>:
-      pcFct :&: alpha
+    val semanticType = Constructor("disabled") // pcFct :&: alpha =>:
+      //pcFct :&: alpha
   }
 
   @combinator object SpecimenContour {
@@ -401,6 +405,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
           override val stepDirection: Vector2D = new Vector2D(1.0f, 0.0f)
           override val targetWorkpiece: Geometry = initialScene.targetWorkpiece
           override val targetGeometry: Geometry = initialScene.targetGeometry
+          override val areaIgnoreVal: Float = config.areaIgnoreVal
         }
         logger.debug(s"ZiGZag after init")
         logger.debug(s"ZigZag starting for geometry: ${zigZag.restGeo}")
@@ -506,13 +511,12 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
   }
 
 
-  //TODO Bugfix
   @combinator object MultiContourMultiToolSteel extends Contour {
     def apply(t: CncTool, t2: CncTool): PathCoverageStep = {
-      val newTool = CncTool(t.d, t.ae / 2.0f, t.ap, t.vf, t.n, t.description + ". Steel ae/2.0", t.shortDesc, t.idString)
+      //val newTool = CncTool(t.d, t.ae / 2.0f, t.ap, t.vf, t.n, t.description + ". Steel ae/2.0", t.shortDesc, t.idString)
       //case class CncTool(d: Float, ae: Float, ap: Float, vf: Float, n: Int, description: String, idString: String)
-      val pc1 = createMultiContourStep(newTool)
-      val pcStepList = pc1.pcrList :+ createFinishContourStep(t2)
+      val pc1 = createMultiContourStep(t)
+      val pcStepList = pc1.pcrList :+ createFinishContourStep(t2, "Steel Finishing")
       /**
        * mit Tool 1:
        * Loop bis Abbruchbedingung erreicht
@@ -529,7 +533,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
       PathCoverageStep(pc1.pcFct, pc1.tool, pcStepList, description_param = pc1.description_param)
     }
 
-    val semanticType = steel :&: roughing =>: steel :&: finishing =>: pcFct :&: steel
+    val semanticType = steel :&: roughing =>: steel :&: finishing =>: pcFct :&: steel :&: atomicStep
   }
 
 
@@ -560,30 +564,42 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
   }
 
   val bounds1 = List[Float](0.0f, 50.0f, -15.0f, 40.0f)
+  val bounds2 = List[Float](-40.0f, 120.0f, -20.0f, 75.0f)
   val machinedGeo1: Geometry = wktRead("""POLYGON ((0 -15, 0 0, 50 0, 50 -15, 0 -15))""")
   val scene1: Cnc2DModel = Cnc2DModel("models/machiningUc1.wkt", bounds1).withInitialMachinedGeo(machinedGeo1)
+  val scene2: Cnc2DModel = Cnc2DModel("models/machiningUc2.wkt", bounds2)
   val config = PathCoverageStepConfig()
 
   val bounds6 = List[Float](-40.0f, 60.0f, -20.0f, 90.0f)
   val scene6: Cnc2DModel = Cnc2DModel("models/machining7.wkt", bounds6)
 
-  //  @combinator object ApplyScene1 extends JtsUtils {
-  //    def apply(pcs: PathCoverageStep): PathCoverageResult = {
-  //      PathCoverageResult(scene1, config, List(pcs))
-  //    }
-  //
-  //    val semanticType = (pFct :&: alpha =>: pFctResult :&: alpha) :&:
-  //      (pathCoverageFctRoot :&: alpha =>: pFctResultRoot :&: alpha)
-  //  }
+    @combinator object ApplyScene1 extends JtsUtils {
+      def apply(pcs: PathCoverageStep): PathCoverageResult = {
+        PathCoverageResult(scene1, config, pcs)
+      }
 
-  @combinator object ApplyScene6 extends JtsUtils {
-    def apply(pcs: PathCoverageStep): PathCoverageResult = {
-      PathCoverageResult(scene6, config, pcs)
+      val semanticType = (pcFct :&: alpha =>: pFctResult :&: alpha) :&:
+        (pcFctRoot :&: alpha =>: pFctResultRoot :&: alpha)
     }
 
-    val semanticType = (pcFctWithFinishing :&: alpha =>: pFctResult :&: alpha) :&:
-      (pcFctRootWithFinishing :&: alpha =>: pFctResultRoot :&: alpha)
-  }
+//  @combinator object ApplyScene6 extends JtsUtils {
+//    def apply(pcs: PathCoverageStep): PathCoverageResult = {
+//      PathCoverageResult(scene6, config, pcs)
+//    }
+//
+//    val semanticType = (pcFctWithFinishing :&: alpha =>: pFctResult :&: alpha) :&:
+//      (pcFctRootWithFinishing :&: alpha =>: pFctResultRoot :&: alpha)
+//  }
+//
+
+//  @combinator object ApplyScene4 extends JtsUtils {
+//    def apply(pcs: PathCoverageStep): PathCoverageResult = {
+//      PathCoverageResult(scene2, config, pcs)
+//    }
+//
+//    val semanticType = (pcFctWithFinishing :&: alpha =>: pFctResult :&: alpha) :&:
+//      (pcFctRootWithFinishing :&: alpha =>: pFctResultRoot :&: alpha)
+//  }
 
   //  @combinator object SingleContourStep extends Contour {
   //    def apply(t: CncTool): PathCoverageStep = {

@@ -6,12 +6,12 @@ import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories.toplevel._
 
 /*Reads User Input*/
-object RunCncEvaluation extends App with CncEvaluationSetup {
-  override val aluUseCase = true
+object RunCncEvaluation extends App with CncEvaluationSetup with TreePrinting {
+  override val aluUseCase = false
   override val printKlartext = false
   override val pRefinement = false
-  override val openPocket = false
-  override val acceptPercentage = 0.005f
+  override val openPocket = true
+  override val acceptPercentage = 0.0005f
 
   logger.debug((if (inhabitationResult.isEmpty) "inhabitant not found" else "inhabitant found") + "," +
     inhabitationResult.target.toString())
@@ -37,7 +37,7 @@ object RunCncEvaluation extends App with CncEvaluationSetup {
   }
 
   lazy val lines = Iterator.continually(scala.io.StdIn.readLine()).takeWhile(_ != "exit")
-  val filter = (_: Tree) => true
+  val filter = (t: Tree) => getStringForTree(t).contains("SteelRadial") && getStringForTree(t).contains("Rotate")
   val filterStr = (_: String) => true
   /** str.contains("SpecimenContour") &&
     str.contains("ZigZagStep") && "ConvexHullDecomposition".r.findAllMatchIn(str).length == 1 &&
@@ -64,8 +64,6 @@ object RunCncEvaluation extends App with CncEvaluationSetup {
           case Some(i) => dUtils.evalInhabitant(i)
           case None => logger.info("""Wrong format. Please use inhabitant index, eg. "10"""")
         }
-
     }
   }
-
 }

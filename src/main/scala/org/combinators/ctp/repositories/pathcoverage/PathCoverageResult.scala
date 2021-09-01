@@ -3,7 +3,7 @@ package org.combinators.ctp.repositories.pathcoverage
 import org.combinators.ctp.repositories.toplevel.{Cnc2DModel, PathCoverageStep, PathCoverageStepConfig}
 import org.locationtech.jts.geom.Geometry
 
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 import scala.xml.Elem
 
 /**
@@ -22,8 +22,18 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, pcs
 
       logger.debug(s"accResultList.empty ${accResultList.isEmpty}")
       val thisResult: Option[(List[List[List[Float]]], Cnc2DModel)] =
-      pcs.pcFct.map(f => Try{f.apply(accResultList.lastOption.map(_._1).getOrElse(s), config)}.getOrElse({
-        (List.empty[List[List[Float]]], accResultList.lastOption.map(_._1).getOrElse(s))}))
+        pcs.pcFct.map(f =>
+          Try {
+            f.apply(accResultList.lastOption.map(_._1).getOrElse(s), config)
+          }
+          match {
+            case Success(v) => v
+            case Failure(exception) =>
+              logger.error(s"pcs: ${pcs.description_param}: Failure!")
+              exception.printStackTrace()
+              (List.empty[List[List[Float]]], accResultList.lastOption.map(_._1).getOrElse(s))
+          })
+
       val thisResultAsListOption = thisResult.map(l => List(
         (l._2, l._1.reduceOption(_ ++ _).getOrElse(List.empty[List[Float]]), pcs.tool, pcs.description_param)))
       logger.debug(s"thisResultAsListOption $thisResultAsListOption")
@@ -65,7 +75,7 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, pcs
       logger.debug(s"pcs: ${pcs.description_param}, thisResultAsListOption $thisResultAsListOption")
       thisResultAsListOption match {
         case Some(r) => r.foreach(t => {
-          pGeo(s"r", t._1.getMachinedMultiGeo)
+          pGeo(s"pcs: ${pcs.description_param} machinedGeo", t._1.getMachinedMultiGeo)
           pGeo("path", asLineString(t._2))
         })
         case None => ()
@@ -81,6 +91,7 @@ case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, pcs
             accResultList ++ l ++ retransformedChildrenPaths
         }
       } else {
+        logger.warn(s"pcs: ${pcs.description_param}: Dropping children results")
         thisResultAsListOption.map(resultList => accResultList ++ resultList).getOrElse(accResultList)
       }
 

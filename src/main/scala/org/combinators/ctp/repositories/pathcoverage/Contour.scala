@@ -22,13 +22,14 @@ trait Contour extends LazyLogging with JtsUtils {
       })
 
       pGeo("initialScene.getMachinedMultiGeo", initialScene.getMachinedMultiGeo)
-      val invalidToolPositions = pcConfig.bufferFct(initialScene.targetWorkpiece, t.d / 2.0d) // ???
+      val invalidToolPositions = pcConfig.bufferFct(initialScene.targetWorkpiece, t.d / 2.0d)
       pGeo("invalidToolPositions", invalidToolPositions)
 
       val machinableArea = pcConfig.bufferFct(initialScene.getMachinedMultiGeo, t.ae)
       pGeo("machinableArea", machinableArea)
 
-      val validPosPoly = pcConfig.bufferFct(initialScene.targetGeometry, -t.d / 2.0d).intersection(
+      val validPosPoly =
+        robustUnion(initialScene.targetGeometry, initialScene.initialMachined).buffer(-t.r).intersection(
         pcConfig.bufferFct(machinableArea, -t.d / 2.0d))
       pGeo("validPosPoly", validPosPoly)
 
@@ -55,8 +56,11 @@ trait Contour extends LazyLogging with JtsUtils {
       val gs = new GeometrySnapper(validPosPoly)
       val newValidPosPoly = gs.snapTo(filteredFull, 0.01d)
 
-      val f1 = robustDifference(newValidPosPoly, filteredFull) // mit difference noch holes benötigt?
+      val f1 = robustIntersection(
+        robustUnion(robustDifference(newValidPosPoly, filteredFull), initialScene.initialMachined), validPosPoly)
       pGeo("f1", f1)
+
+      //TODo union initialmachined?
 
       val toolPath = if (f1.isEmpty)
         emptyGeometry
@@ -66,8 +70,14 @@ trait Contour extends LazyLogging with JtsUtils {
 
       pGeo("toolPath", toolPath)
 
-      val path = toolPath.getCoordinates
-      val toolpathBuffered = pcConfig.bufferFct(toolPath, t.d / 2.0)
+
+      val path = toolPath.getCoordinates.filter(c => gf.createPoint(c).isWithinDistance(initialScene.targetGeometry, t.r))
+val pathLs = gf.createLineString(path)
+      pGeo("pathLs", pathLs)
+
+
+      val toolpathBuffered = pcConfig.bufferFct(pathLs, t.r)
+
       pGeo("toolpathBuffered", toolpathBuffered)
       val newScene = initialScene.withMachinedGeo(toolpathBuffered)
       logger.debug(s"Contour after machinedGeo")
