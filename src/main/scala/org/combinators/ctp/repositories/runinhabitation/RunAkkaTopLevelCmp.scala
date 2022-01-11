@@ -29,19 +29,82 @@ object RunAkkaTopLevelCmp extends App with LazyLogging with AkkaImplicits {
 
   lazy val cmpRepository = new CtpSemanticTypes {}
 
-  val kindingMap = repository.cmpDefaultKindingMap ++
-    Map(
-      rmc_connectorNodes_var -> Seq(rmc_cn_withConnectorNodes),
-      rmc_cellNodeAddFct_var -> Seq(rmc_cna_withoutCellNodes_type),
-      rmc_cellGraph_var -> Seq(rmc_cg_centroidCellVertices),
-      rmc_usingCentroids_var -> Seq(rm_withCentroids_type),
-      rmc_startGoalFct_var -> Seq(rmc_startGoal_nn_type),
-      cmp_graph_algorithm_var -> Seq(cmp_graph_dijkstra_type),
-      rmc_centroidFct_var -> Seq(cFct_centroids_naive_type),
-      dimensionality_var -> Seq(dimensionality_two_d_t),
-      sd_poly_scene_cell_segmentation_var -> Seq(sd_seg_triangles_para_type),
-      sd_cell_type_var -> Seq(sd_cell_triangle_type)
-    )
+  val kindingMap = repository.cmpFullKindingMap
+  // Tri Ex
+//  val kindingMap = repository.cmpDefaultKindingMap ++
+//    Map(
+//      rmc_connectorNodes_var -> Seq(rmc_cn_withConnectorNodes),
+//      rmc_cellNodeAddFct_var -> Seq(rmc_cna_withoutCellNodes_type),
+//      rmc_cellGraph_var -> Seq(rmc_cg_centroidCellVertices),
+//      rmc_usingCentroids_var -> Seq(rm_withCentroids_type),
+//      rmc_startGoalFct_var -> Seq(rmc_startGoal_nn_type),
+//      cmp_graph_algorithm_var -> Seq(cmp_graph_dijkstra_type),
+//      rmc_centroidFct_var -> Seq(cFct_centroids_naive_type),
+//      dimensionality_var -> Seq(dimensionality_two_d_t),
+//      sd_poly_scene_cell_segmentation_var -> Seq(sd_seg_triangles_para_type),
+//      sd_cell_type_var -> Seq(sd_cell_triangle_type)
+//    )
+
+  // Tri Ex Mst
+//  val kindingMap = repository.cmpDefaultKindingMap ++
+//    Map(
+//      rmc_connectorNodes_var -> Seq(rmc_cn_withoutConnectorNodes),
+//      rmc_cellNodeAddFct_var -> Seq(rmc_cna_withoutCellNodes_type),
+//      rmc_cellGraph_var -> Seq(rmc_cg_centroidsOnly),
+//      rmc_usingCentroids_var -> Seq(rm_withCentroids_type),
+//      rmc_startGoalFct_var -> Seq(rmc_startGoal_nn_type),
+//      cmp_graph_algorithm_var -> Seq(cmp_graph_mst_type),
+//      rmc_centroidFct_var -> Seq(cFct_jts_incentre_type),
+//      dimensionality_var -> Seq(dimensionality_two_d_t),
+//      sd_poly_scene_cell_segmentation_var -> Seq(sd_seg_triangles_para_type),
+//      sd_cell_type_var -> Seq(sd_cell_triangle_type)
+//    )
+
+// GridEx
+//  val kindingMap = repository.cmpDefaultKindingMap ++
+//    Map(
+//      rmc_connectorNodes_var -> Seq(rmc_cn_withoutConnectorNodes),
+//      rmc_cellNodeAddFct_var -> Seq(rmc_cna_withoutCellNodes_type),
+//      rmc_cellGraph_var -> Seq(rmc_cg_centroidsOnly),
+//      rmc_usingCentroids_var -> Seq(rm_withCentroids_type),
+//      rmc_startGoalFct_var -> Seq(rmc_startGoal_nn_type),
+//      cmp_graph_algorithm_var -> Seq(cmp_graph_dijkstra_type),
+//      rmc_centroidFct_var -> Seq(cFct_centroids_naive_type),
+//      dimensionality_var -> Seq(dimensionality_two_d_t),
+//      sd_poly_scene_cell_segmentation_var -> Seq(sd_seg_grid_type),
+//      sd_cell_type_var -> Seq(sd_cell_vertical_type)
+//    )
+
+  // Vcd Ex
+//  val kindingMap = repository.cmpDefaultKindingMap ++
+//    Map(
+//      rmc_connectorNodes_var -> Seq(rmc_cn_withConnectorNodes),
+//      rmc_cellNodeAddFct_var -> Seq(rmc_cna_withCellNodes_type),
+//      rmc_cellGraph_var -> Seq(rmc_cg_allVertices),
+//      rmc_usingCentroids_var -> Seq(rm_withCentroids_type),
+//      rmc_startGoalFct_var -> Seq(rmc_startGoal_nn_type),
+//      cmp_graph_algorithm_var -> Seq(cmp_graph_dijkstra_type),
+//      rmc_centroidFct_var -> Seq(cFct_centroids_naive_type),
+//      dimensionality_var -> Seq(dimensionality_two_d_t),
+//      sd_poly_scene_cell_segmentation_var -> Seq(sd_vertical_cell_decomposition_type),
+//      sd_cell_type_var -> Seq(sd_cell_vertical_type)
+//    )
+
+
+  // Tetra
+//  val kindingMap = repository.cmpDefaultKindingMap ++
+//    Map(
+//      rmc_connectorNodes_var -> Seq(rmc_cn_withoutConnectorNodes),
+//      rmc_cellNodeAddFct_var -> Seq(rmc_cna_withoutCellNodes_type),
+//      rmc_cellGraph_var -> Seq(rmc_cg_centroidsOnly),
+//      rmc_usingCentroids_var -> Seq(rm_withCentroids_type),
+//      rmc_startGoalFct_var -> Seq(rmc_startGoal_nn_type),
+//      cmp_graph_algorithm_var -> Seq(cmp_graph_dijkstra_type),
+//      rmc_centroidFct_var -> Seq(cFct_avg_type),
+//      dimensionality_var -> Seq(dimensionality_three_d_t),
+//      sd_poly_scene_cell_segmentation_var -> Seq(sd_seg_triangles_para_type),
+//      sd_cell_type_var -> Seq(sd_cell_triangle_type)
+//    )
 
   val cmpKinding = buildKinding(kindingMap)
 
@@ -62,7 +125,11 @@ object RunAkkaTopLevelCmp extends App with LazyLogging with AkkaImplicits {
   val watch1: Stopwatch = new Stopwatch
   watch1.start()
 
+  println(repository)
   lazy val Gamma = ReflectedRepository(repository, substitutionSpace = cmpKinding)
+
+  println(Gamma.combinators.foreach{ case ((a,b)) =>  println(s"Combinator: $a, type: $b")})
+  println(s"# of allowed substitutions: ${Gamma.substitutionSpace.allowedSubstitutions.values.size}")
 
   println("kinding: " + Gamma.substitutionSpace.toString)
   println("Reflected Repository built, starting inhabitation")
@@ -121,6 +188,8 @@ object RunAkkaTopLevelCmp extends App with LazyLogging with AkkaImplicits {
 
   l.map(i => println((if (i.isEmpty) "inhabitant not found" else "inhabitant found") + "," + i.target.toString()))
 
+  val tp = new TreePrinting {}
+  println(tp.getStringForTree( l.last.terms.index(0)))
   l.last.interpretedTerms.index(0)
 
   println("Done")

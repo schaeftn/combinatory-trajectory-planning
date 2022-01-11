@@ -42,10 +42,9 @@ object RunCncEvaluationExperiment12 extends App with CncEvaluationSetup with Tre
 
   @scala.annotation.tailrec
   def findTerm(index: Int): Int = {
-    if(index > 20) return 0
     if(index % 100000 == 0) println(s"$index")
     if (treeFilter(inhabitationResult.terms.index(index))) {
-      println(".")
+      println(s"Index: $index")
       index
     }
     else {
@@ -53,9 +52,5 @@ object RunCncEvaluationExperiment12 extends App with CncEvaluationSetup with Tre
     }
   }
 
-  val treeIndex = findTerm(0)
-  logger.info(s"Tree selected by Filter: $treeIndex ")
-  logger.info(s"Tree String: \r\n${getStringForTree(inhabitationResult.terms.index(treeIndex))}")
-  dUtils.writeFilesForInhabitant(treeIndex, inhabitationResult.interpretedTerms.index(treeIndex))
-  logger.info(s"Str: ${dUtils.stringForPcs(inhabitationResult.interpretedTerms.index(treeIndex).pcs)}")
+  dUtils.runFirst(treeFilter)
 }

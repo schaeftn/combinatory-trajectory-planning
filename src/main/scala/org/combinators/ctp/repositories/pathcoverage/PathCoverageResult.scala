@@ -14,25 +14,31 @@ import scala.xml.Elem
 case class PathCoverageResult(s: Cnc2DModel, config: PathCoverageStepConfig, pcs: PathCoverageStep)
   extends JtsUtils with PathRefinement {
     def traverseTreePostOrder(pcs: PathCoverageStep,
-                            accResultList:List[(Cnc2DModel, List[List[Float]], Option[CncTool],String)],
+                              accResultList_p:List[(Cnc2DModel, List[List[Float]], Option[CncTool],String)],
                             continueRun: Boolean):
   (List[(Cnc2DModel, List[List[Float]], Option[CncTool], String)], Boolean) = {
       // Run self
       logger.info(s"evaluating pcs: ${pcs.description_param}")
 
-      logger.debug(s"accResultList.empty ${accResultList.isEmpty}")
+      logger.debug(s"accResultList.empty ${accResultList_p.isEmpty}")
       val thisResult: Option[(List[List[List[Float]]], Cnc2DModel)] =
         pcs.pcFct.map(f =>
           Try {
-            f.apply(accResultList.lastOption.map(_._1).getOrElse(s), config)
+            f.apply(accResultList_p.lastOption.map(_._1).getOrElse(s), config)
           }
           match {
             case Success(v) => v
             case Failure(exception) =>
               logger.error(s"pcs: ${pcs.description_param}: Failure!")
               exception.printStackTrace()
-              (List.empty[List[List[Float]]], accResultList.lastOption.map(_._1).getOrElse(s))
+              (List.empty[List[List[Float]]], accResultList_p.lastOption.map(_._1).getOrElse(s))
           })
+
+      val accResultList = pcs.resultTransform match {
+        case Some(f) => val transformedPaths = f(accResultList_p.map{_._2})
+          accResultList_p.zip(transformedPaths).map { case ((a, b, c, d), n) => (a, n, c, d) }
+        case None => accResultList_p
+      }
 
       val thisResultAsListOption = thisResult.map(l => List(
         (l._2, l._1.reduceOption(_ ++ _).getOrElse(List.empty[List[Float]]), pcs.tool, pcs.description_param)))

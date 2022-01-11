@@ -131,8 +131,10 @@ trait PcrEvaluationUtils extends LazyLogging with TreePrinting{
 
   def runInhabitant(i: Int): PathCoverageResult = {
     logger.info(s"Evaluating Inhabitant: $i")
+    val treeStr:String = inhabitants.terms.index(i).toString
+    logger.info(s"Cls tree string: $treeStr")
     val str: String = getStringForTree(inhabitants.terms.index(i))
-    logger.info(s"Tree for inhabitant $i:\r\n $str")
+    logger.info(s"Formatted tree for inhabitant $i:\r\n $str")
     inhabitants.interpretedTerms.index(i).asInstanceOf[PathCoverageResult]
   }
 
@@ -161,6 +163,7 @@ trait PcrEvaluationUtils extends LazyLogging with TreePrinting{
 
   def writeFilesForInhabitant(i: Int, pcr: PathCoverageResult): Unit = {
     pcr.writeXmlOut(getXmlFilePath(i), i)
+    writeJsonOut(i, pcr)
     writeTreeFile(i)
     if (printKlartext) {
       createFolder(getInhabitantFolder(i))
@@ -178,6 +181,10 @@ trait PcrEvaluationUtils extends LazyLogging with TreePrinting{
 
   def getKlarTextZipPath(i: Int) = getInhabitantFolder(i) + File.separator + s"klartext.zip"
 
+  def writeJsonOut(i:Int,pcr: PathCoverageResult):Unit = {
+    PathFeedUtils(pcr).writeJsonFile(getJsonFilePath(i), getJsonFileName(i))
+  }
+
   def writeKlarTextFiles(i: Int, pcr: PathCoverageResult) = {
     PathFeedUtils(pcr).writeKlartextFiles(getInhabitantFolder(i))
     PathFeedUtils(pcr).buildZip(getInhabitantFolder(i), getKlarTextZipPath(i))
@@ -187,9 +194,13 @@ trait PcrEvaluationUtils extends LazyLogging with TreePrinting{
 
   def getTreeFileName(i: Int): String = "tree_" + "%03d".format(i) + ".txt"
 
+  def getJsonFileName(i: Int): String = "inhab" + "%03d".format(i) + ".tp.json"
+
   def getXmlFilePath(i: Int): String = parentFolder + File.separator + getXmlFileName(i)
 
   def getTreeFilePath(i: Int): String = parentFolder + File.separator + getTreeFileName(i)
+
+  def getJsonFilePath(i: Int): String = parentFolder + File.separator
 
   def getXmlFileObj(i: Int): File = new File(getXmlFilePath(i))
 

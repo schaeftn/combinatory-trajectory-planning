@@ -52,7 +52,7 @@ object RunCncEvaluationExperiment11 extends App with CncEvaluationSetup with Tre
   def findTerm(index: Int): Int = {
     if(index % 100000 == 0) println(s"$index")
     if (treeFilter(inhabitationResult.terms.index(index))) {
-      println(".")
+      println(s"Found index: $index")
       index
     }
     else {

@@ -6,8 +6,8 @@ import org.apache.commons.math3.util.FastMath
 import org.locationtech.jts.algorithm.Angle
 import org.locationtech.jts.geom.Coordinate
 
-import scala.annotation.tailrec
 import scala.math.min
+import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 
 trait PathFeedUtils extends JtsUtils with PathRefinement {
   val pcr: PathCoverageResult
@@ -73,6 +73,8 @@ trait PathFeedUtils extends JtsUtils with PathRefinement {
 
     def buildAccSegments(currentCoord: List[Float],
                          nextCoord: List[Float], tool: CncTool): List[(Float, Float, Float)] = {
+      if(currentCoord.head == 30.0f && currentCoord(1) == -2.5f)
+        print("fpp")
       val vf_start = currentCoord.last
       val vf_end = nextCoord.last
       val distanceBetweenPoints = asCoordinate(currentCoord).distance(asCoordinate(nextCoord))
@@ -83,18 +85,25 @@ trait PathFeedUtils extends JtsUtils with PathRefinement {
       val angle = Angle.angle(asCoordinate(currentCoord), asCoordinate(nextCoord))
 
       def getAccSequence(lookupTable: List[(Float, Float, Float)], distanceForDimension: Float) = {
+        if(currentCoord.head == 30.0f && currentCoord(1) == -2.5f)
+          print("fpp")
         val splitIndex = lookupTable.lastIndexWhere { case (velocity, time, position) => velocity < vf_start }
-        val (_, second) = lookupTable.splitAt(splitIndex)
+        val (first, second) = lookupTable.splitAt(splitIndex + 1)
         // Element at lastIndex
-        val (_, f_t, f_s) = second.head
+        val (_, f_t, f_s) = first.headOption.getOrElse((0.0f,0.0f,0.0f))
         // Remove offset, drop lastIndex element
-        val valuesWithoutOffset = second.map { case (v, t, s) => (v, t - f_t, s - f_s) }.drop(1)
-        val accEntries = valuesWithoutOffset.takeWhile { i => i._2 < distanceForDimension.toFloat }
-        val headEntry = accEntries.headOption.map { case (v, t, s) => (min(v, tool.vf), t, s) }
-        val tailAccList = accEntries.drop(1).takeWhile { case (v, t, s) => v < tool.vf }
-        val accList = headEntry.map {
-          _ +: tailAccList
-        }.getOrElse(List.empty[(Float, Float, Float)])
+        val valuesWithoutOffset = second.map { case (v, t, s) => (v, t - f_t, s - f_s) }
+ //       val accEntries = valuesWithoutOffset.takeWhile { i => i._2 < distanceForDimension.toFloat }
+        val splitIndex2 = valuesWithoutOffset.lastIndexWhere { i => i._3 < distanceForDimension.toFloat && i._1 < tool.vf}
+        val (accEntries, restEntries) = valuesWithoutOffset.splitAt(splitIndex2+1)
+        val accWithVmaxElement = if (restEntries.nonEmpty && restEntries.head._1 >= tool.vf)
+          accEntries :+ (tool.vf, restEntries.head._2, restEntries.head._3)
+        else
+          accEntries
+        //val headEntry = accEntries.headOption.map { case (v, t, s) => (min(v, tool.vf), t, s) }
+
+        val accList = accWithVmaxElement
+
 
         // if first entry v > tool.vf: use tool.vf to reach max admissible vf // or append vf at end of acclist
         accList
@@ -184,7 +193,7 @@ trait PathFeedUtils extends JtsUtils with PathRefinement {
               _._3
             }.getOrElse(0.0f)
         }
-
+//TODO Check p1 dec update? p1 entsteht durch accBerechnung, ggf unzulässiger v Wert?
         p1 +: (accPoints ++ decPoints).map { case (v, t, s) => pointAlongByDistance(p1, p2, s) :+ v } :+ p2
       }
     }
@@ -229,46 +238,6 @@ trait PathFeedUtils extends JtsUtils with PathRefinement {
     }
   }
 
-  lazy val withMaxVfByAcc2: List[List[List[Float]]] = {
-    def buildList(lastCoord: List[Float], nextCoord: List[Float]): List[Float] = {
-      @tailrec
-      def calcVend(angle: Double, targetDistance: Double, accumulatedDistance: Double,
-                   currentVelocity: Double): Double = {
-        if (accumulatedDistance < targetDistance) {
-          // logger.debug(s"currentVelocity: $currentVelocity, accumulatedDistance: $accumulatedDistance")
-          val newVelocity = config.newVf(angle, currentVelocity)
-          val newDistance = accumulatedDistance + newVelocity * 1000 / 60 * config.deltaT
-          //logger.debug(s"currentVelocity: $currentVelocity, accumulatedDistance: $accumulatedDistance, newVelocity: $newVelocity,newDistance:$newDistance")
-          calcVend(angle, targetDistance, newDistance, newVelocity)
-        }
-        else {
-          //  logger.info(s"targetVelocity: $currentVelocity")
-          currentVelocity
-        }
-      }
-
-      val startV = lastCoord.last
-      val angle = Angle.angle(asCoordinate(lastCoord), asCoordinate(nextCoord))
-      val distanceBetweenPoits = asCoordinate(lastCoord).distance(asCoordinate(nextCoord))
-      //logger.info(s"startPoint: $lastCoord, nextCooord: $nextCoord, distance: $distanceBetweenPoits")
-      //logger.info(s"startV $startV")
-      //logger.info(s"comparing velocities for $nextCoord vs ${calcVend(angle, distanceBetweenPoits, 0.0d, startV).toFloat}")
-
-      lazy val nextCoordWithVelocity: List[Float] =
-        nextCoord.dropRight(1) :+
-          min(nextCoord.last, calcVend(angle, distanceBetweenPoits, 0.0d, startV).toFloat)
-      nextCoordWithVelocity
-    }
-
-
-    maxVfByToolAndAngle.map {
-      case (singlePath: List[List[Float]], tool: CncTool) =>
-        if (singlePath.size > 2) {
-          singlePath.tail.foldLeft(List(singlePath.head.take(3) :+ 0.0f)) { case (a, b) => a :+ buildList(a.last, b) }
-        } else List.empty[List[Float]]
-    }
-  }
-
   def getKlartextLineString(l: List[List[Float]], withFMAX: Boolean = false): List[String] =
     l.filter(_.nonEmpty).map(singleCoord => {
       val zCoordString = if (!singleCoord(2).isNaN) s" Z${singleCoord(2)}" else ""
@@ -308,6 +277,13 @@ trait PathFeedUtils extends JtsUtils with PathRefinement {
          |""".stripMargin
     // logger.info(s"Teilpfad: \r\n$outStr")
   }}
+
+  def writeJsonFile(path: String = ".", fn: String = "default.json"):Unit = {
+    import java.io._
+    val pw = new PrintWriter(new File(new File(path), fn))
+    pw.write(s"${withMaxVfByAcc.asJson.noSpaces}")
+    pw.close()
+  }
 
   def writeKlartextFiles(path: String = "."): Unit = {
     klartextFileContents.zipWithIndex.foreach {

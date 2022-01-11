@@ -22,7 +22,7 @@ trait Spiral {
   lazy val linearRadiusGrowFactor = (maxRadius - minRadius) + ae // divided by Parameter interval 1.0f
   lazy val omega: Double = ((linearRadiusGrowFactor / ae)) * math.Pi * 2 // rad per parameter 1.0f 100*pi = 50 circles
   lazy val linearRadiusGrowFactorOh = maxRadius * math.Pi * 2
-  lazy val resolution = 800
+  lazy val resolution = 360
 
   def direction(t: Double): List[Double] = List(math.cos(omega * t), math.sin(omega * t), 0.0) //TODO
   def radius(t: Double) = List(maxRadius, minRadius + (linearRadiusGrowFactor) * t * morphingFunction(omega*t) ).min

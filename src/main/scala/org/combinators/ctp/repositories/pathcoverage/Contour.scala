@@ -30,7 +30,7 @@ trait Contour extends LazyLogging with JtsUtils {
 
       val validPosPoly =
         robustUnion(initialScene.targetGeometry, initialScene.initialMachined).buffer(-t.r).intersection(
-        pcConfig.bufferFct(machinableArea, -t.d / 2.0d))
+          machinableArea.buffer(-t.r))
       pGeo("validPosPoly", validPosPoly)
 
       val restBuffered = pcConfig.bufferFct(initialScene.getRestMultiGeo, t.d / 2.0f)
@@ -58,9 +58,8 @@ trait Contour extends LazyLogging with JtsUtils {
 
       val f1 = robustIntersection(
         robustUnion(robustDifference(newValidPosPoly, filteredFull), initialScene.initialMachined), validPosPoly)
-      pGeo("f1", f1)
 
-      //TODo union initialmachined?
+      pGeo("f1", f1)
 
       val toolPath = if (f1.isEmpty)
         emptyGeometry
@@ -70,11 +69,9 @@ trait Contour extends LazyLogging with JtsUtils {
 
       pGeo("toolPath", toolPath)
 
-
       val path = toolPath.getCoordinates.filter(c => gf.createPoint(c).isWithinDistance(initialScene.targetGeometry, t.r))
-val pathLs = gf.createLineString(path)
+      val pathLs = gf.createLineString(path)
       pGeo("pathLs", pathLs)
-
 
       val toolpathBuffered = pcConfig.bufferFct(pathLs, t.r)
 

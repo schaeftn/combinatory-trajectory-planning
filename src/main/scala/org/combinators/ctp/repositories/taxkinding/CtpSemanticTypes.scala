@@ -40,7 +40,7 @@ trait CtpSemanticTypes {
 
   val rmc_neighbourFct_type = Constructor("rmc_neighbourFct_type")
 
-  val cmd_centroidFct_type = Constructor("cmd_centroidFct_type")
+  val rmc_centroidFct_type = Constructor("rmc_centroidFct_type")
   val rmc_any_centroidFct_type = Constructor("rmc_any_centroidFct_type")
   val rmc_centroidFct_var = Variable("cell_centroidFct_var")
   val cFct_centroids_naive_type = Constructor("cFct_centroids_naive_type")

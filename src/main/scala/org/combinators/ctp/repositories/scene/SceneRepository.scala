@@ -51,7 +51,8 @@ trait SceneRepository extends GeometricRepository with LazyLogging {
       }
       PolygonScene(globalVertices, objects, s.boundaries)
     }
-    val semanticType :Type
+
+    val semanticType: Type
   }
 
   @combinator object SceneToScenePoly extends SceneToScenePolyTrait {
@@ -74,25 +75,18 @@ trait SceneRepository extends GeometricRepository with LazyLogging {
       (ppVertexLists, scene) =>
         val gf = new GeometryFactory()
         val pointList = List(
-          new Coordinate(-scene.boundaries.head / 2, -scene.boundaries(1) / 2),
-          new Coordinate(-scene.boundaries.head / 2, scene.boundaries(1) / 2),
-          new Coordinate(scene.boundaries.head / 2, scene.boundaries(1) / 2),
-          new Coordinate(scene.boundaries.head / 2, -scene.boundaries(1) / 2),
-          new Coordinate(-scene.boundaries.head / 2, -scene.boundaries(1) / 2))
+          new Coordinate(-scene.boundaries.head / 2.0f, -scene.boundaries(1) / 2.0f),
+          new Coordinate(-scene.boundaries.head / 2.0f, scene.boundaries(1) / 2.0f),
+          new Coordinate(scene.boundaries.head / 2.0f, scene.boundaries(1) / 2.0f),
+          new Coordinate(scene.boundaries.head / 2.0f, -scene.boundaries(1) / 2.0f))
 
-        val lString = new LineString(CoordinateArraySequenceFactory.instance.create(pointList.toArray), gf)
-        val box = new ConvexHull(pointList.toArray, gf)
+        val sceneBox = new ConvexHull(pointList.toArray, gf)
         ppVertexLists.map { i =>
           val coords = i.vertices.map(c => new Coordinate(c.head, c(1)))
           val currentObstacle = new ConvexHull(coords.toArray, gf)
-          if (lString.intersects(currentObstacle.getConvexHull)) { //check to avoid unnecessary precision loss
-            PpVertexList(
-              box.getConvexHull.intersection(currentObstacle.getConvexHull).
-                getCoordinates.map(i => List(i.x.toFloat, i.y.toFloat)).toList)
-          }
-          else {
-            i
-          }
+          PpVertexList(
+            sceneBox.getConvexHull.intersection(currentObstacle.getConvexHull).
+              getCoordinates.map(i => List(i.x.toFloat, i.y.toFloat)).toList)
         }
     }
 
@@ -107,7 +101,7 @@ trait SceneRepository extends GeometricRepository with LazyLogging {
       (ppVertexLists, _) => ppVertexLists
     }
 
-    val semanticType = dimensionality_two_d_t :&: cmd_obstacleSceneBoundingCutFct_type
+    val semanticType = Constructor("disabled") //dimensionality_two_d_t :&: cmd_obstacleSceneBoundingCutFct_type
   }
 
   //Placeholder, not yet implemented

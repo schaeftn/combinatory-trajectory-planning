@@ -131,7 +131,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
     }
     val semanticType = alpha =>: pcFct :&: alpha :&: atomicStep
   }
-
+**/
 
   // Moat first, rest later
   @combinator object MoatEntry {
@@ -172,7 +172,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
 
     val semanticType = alpha :&: roughing =>: pcFct :&: alpha  =>: pcFctRoot :&: alpha
   }
- **/
+
 
   def findSpecimenConnector(newModel: Cnc2DModel,
                             aggregatedPath: List[List[List[Float]]],
@@ -259,8 +259,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
       val pc3 = PathCoverageStep(Some(pathCoverageFunctionRelease), None, List(), "Convex Hull Release Operation")
       PathCoverageStep(None, None, List(pc1, pcStep, pc3), "Convex Hull Wrapper")
     }
-    val semanticType = Constructor("disabled") // pcFct :&: alpha =>:
-      //pcFct :&: alpha
+    val semanticType =  pcFct :&: alpha =>: pcFct :&: alpha
   }
 
   @combinator object SpecimenContour {
@@ -560,7 +559,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
       PathCoverageStep(Some(pathFct), Some(t), List.empty, description_param = "Steel directed radial progression")
     }
 
-    val semanticType = steel =>: pcFct :&: steel
+    val semanticType = steel =>: pcFct :&: steel :&: atomicStep
   }
 
   val bounds1 = List[Float](0.0f, 50.0f, -15.0f, 40.0f)
@@ -573,14 +572,14 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
   val bounds6 = List[Float](-40.0f, 60.0f, -20.0f, 90.0f)
   val scene6: Cnc2DModel = Cnc2DModel("models/machining7.wkt", bounds6)
 
-    @combinator object ApplyScene1 extends JtsUtils {
-      def apply(pcs: PathCoverageStep): PathCoverageResult = {
-        PathCoverageResult(scene1, config, pcs)
-      }
-
-      val semanticType = (pcFct :&: alpha =>: pFctResult :&: alpha) :&:
-        (pcFctRoot :&: alpha =>: pFctResultRoot :&: alpha)
+  @combinator object ApplyScene1 extends JtsUtils {
+    def apply(pcs: PathCoverageStep): PathCoverageResult = {
+      PathCoverageResult(scene1, config, pcs)
     }
+
+    val semanticType = (pcFct :&: alpha =>: pFctResult :&: alpha) :&:
+      (pcFctRoot :&: alpha =>: pFctResultRoot :&: alpha)
+  }
 
 //  @combinator object ApplyScene6 extends JtsUtils {
 //    def apply(pcs: PathCoverageStep): PathCoverageResult = {
@@ -591,7 +590,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
 //      (pcFctRootWithFinishing :&: alpha =>: pFctResultRoot :&: alpha)
 //  }
 //
-
+//
 //  @combinator object ApplyScene4 extends JtsUtils {
 //    def apply(pcs: PathCoverageStep): PathCoverageResult = {
 //      PathCoverageResult(scene2, config, pcs)
@@ -645,7 +644,7 @@ trait CamMpTopRepository extends LazyLogging with JtsUtils {
   @combinator object SteelRoughing {
     def apply: CncTool = CncTool(d = 10.0f, ae = 6.0f, ap = 10.0f,
       vf = 1948.0f, n = 4775, "Steel Roughing, d: 10mm, radiale Zustellung 6mm, vf 1948mm/min, n 4775",  "Steel Roughing Tool", "3 Z S2000")
-// korrekt wäre 1625
+
     val semanticType = steel :&: roughing
   }
 

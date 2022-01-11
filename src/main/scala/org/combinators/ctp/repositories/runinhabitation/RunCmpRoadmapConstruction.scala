@@ -27,7 +27,7 @@ object RunCmpRoadmapConstruction extends App {
   val ihBatch = Gamma.
     InhabitationBatchJob[(PolySceneCellSegmentation, MpTaskStartGoal) => PolySceneSegmentationRoadmap](cmp_cell_graph_fct_type).
     addJob[(PolySceneCellSegmentation, neighbourCellsNativeType) => List[List[List[Float]]]](
-      cmd_centroidFct_type :&: rm_withCentroids_type :&: dimensionality_three_d_t).
+      rmc_centroidFct_type :&: rm_withCentroids_type :&: dimensionality_three_d_t).
     addJob[(PolySceneCellSegmentation, neighbourCellsNativeType) => List[List[List[Float]]]](rmc_cellNodeAddFct_type :&: rmc_cna_withCellNodes_type).
     addJob[(PolySceneCellSegmentation, neighbourCellsNativeType) => List[List[List[Float]]]](rmc_connectorNodeFct_type :&: rmc_cn_withConnectorNodes).
     addJob[(neighbourCellsNativeType, IndexedSeq[RmAuxDataNodes]) => IndexedSeq[WUnDiEdge[List[Float]]]](rmc_edgeAdd_type :&: rmc_cg_centroidsOnly).
