@@ -148,6 +148,7 @@ case class SbmpAlg(planner: SbmpPlanners.EnumType,
     r =>
       stateValidator match {
         case SbmpStateValidators.sbmp_fcl_validator => r.addCombinator(sbmpRepository.StateValidatorFcl)
+        case SbmpStateValidators.sbmp_fcl_wafr_validator => r.addCombinator(sbmpRepository.WafrStateValidatorFcl)
         case SbmpStateValidators.not_specified => r.addCombinator(sbmpRepository.StateValidatorFcl)
         case _ => logger.warn(s"Unhandled case for stateValidator $stateValidator")
           r
@@ -182,7 +183,10 @@ case class SbmpAlg(planner: SbmpPlanners.EnumType,
 
         case (Dimensionality.dimensionality_three_d_t, SceneInput.`scene_input_data_file`) =>
           if (configurableAlg)
-            r.addCombinator(sbmpRepository.FileBasedWithConfigInputData)
+            stateValidator match {
+              case SbmpStateValidators.sbmp_fcl_validator => r.addCombinator(sbmpRepository.FileBasedWithConfigInputData)
+              case SbmpStateValidators.sbmp_fcl_wafr_validator => r.addCombinator(sbmpRepository.WafrPlanningDataTemplating)
+            }
           else
             r.addCombinator(sbmpRepository.SceneFileImportSceneData)
         case (Dimensionality.dimensionality_three_d_t, SceneInput.`scene_input_mqtt`) =>

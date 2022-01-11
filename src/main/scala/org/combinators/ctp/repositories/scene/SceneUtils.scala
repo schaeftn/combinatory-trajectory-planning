@@ -2,8 +2,8 @@ package org.combinators.ctp.repositories.scene
 
 import java.util.Properties
 
-import org.apache.commons.geometry.euclidean.threed.rotation.QuaternionRotation
 import org.apache.commons.geometry.euclidean.threed.Vector3D
+import org.apache.commons.geometry.euclidean.threed.rotation.QuaternionRotation
 import org.combinators.ctp.repositories.python_interop.PythonTemplateUtils
 import org.combinators.ctp.repositories.toplevel.{MpTaskStartGoal, MqttObstacleSRT, PolySceneSegmentationRoadmapPath, ProblemDefinitionFiles, SceneSRT}
 
@@ -81,7 +81,7 @@ trait SceneUtils extends PythonTemplateUtils {
         }
         val q = QuaternionRotation.of(t.srt.localRot.head, t.srt.localRot(1), t.srt.localRot(2), t.srt.localRot(3)) // w, x, y ,z
         val afterQ = cubeV.map(_.map(_.toDouble)).map(a => Vector3D.of(a.head, a(1), a(2))).map(v => q.apply(v))
-        val translateVector: Vector3D = Vector3D.of(t.srt.localTranslate.head, t.srt.localTranslate(1), t.srt.localTranslate(2))
+        val translateVector: Vector3D =  Vector3D.of(t.srt.localTranslate.head, t.srt.localTranslate(1), t.srt.localTranslate(2))
         val vertexVectors = afterQ.map { a =>
           Vector3D.of(a.getX + translateVector.getX,
             a.getY + translateVector.getY, a.getZ + translateVector.getZ)
@@ -234,6 +234,25 @@ ${scene.obstacles.indices.map(id => s"    mesh.addSubModel(verts$id, tris$id)").
        |        """.stripMargin
   }
 
+  def readStartStopFromWafrCfg(p: Properties): String = {
+    s"""        # create a start state
+       |        start = ob.State(space)
+       |        startRef = start()
+       |        startRef.values = ${p.getProperty("startState")}
+       |
+       |        # create a goal state
+       |        goal = ob.State(space)
+       |        goalRef = goal()
+       |        goalRef.values = ${p.getProperty("goalState")}
+       |        """.stripMargin
+  }
+
+  def readStateValidatorArgsFromWafrCfg(p: Properties): String = {
+    s"""        # State Validator Arguments
+       |        env = ${p.getProperty("env")}
+       |        package = ${p.getProperty("package")}
+       |        """.stripMargin
+  }
 
   def readMpStartGoalFromProperties(p: Properties) = {
     val startPos: List[Float] = List(

@@ -98,11 +98,11 @@ trait SbmpTopLevelRepository extends SceneUtils with PythonTemplateUtils with Sb
 
   trait VarSemanticType {
     val semanticType =
-      sbmp_planner_var :&: sbmp_sampler_var :&: sbmp_optimization_objective_var =>: //TODO Prio2 Test
+      sbmp_planner_var :&: sbmp_sampler_var :&: sbmp_optimization_objective_var =>:
         sbmp_state_validator_var =>:
         sbmp_motion_validator_var =>:
         sbmp_simplification_var =>:
-        sbmp_input_data :&: dimensionality_var =>: //ggf plus sampler, plus motion validator?
+        sbmp_input_data :&: dimensionality_var =>:
         sbmp_planning_algorithm :&: sbmp_planner_var :&: sbmp_sampler_var :&:
           sbmp_state_validator_var :&: sbmp_motion_validator_var :&: sbmp_optimization_objective_var :&:
           sbmp_cost_var :&: sbmp_simplification_var :&: dimensionality_var

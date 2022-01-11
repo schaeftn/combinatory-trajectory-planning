@@ -34,7 +34,6 @@ updateOptions := updateOptions.value.withLatestSnapshots(true)
 lazy val root = (Project(id = "combinatory-trajectory-planning", base = file(".")))
   .settings(commonSettings: _*)
   .enablePlugins(SbtTwirl)
-  .enablePlugins(PlayScala)
   .disablePlugins(PlayLayoutPlugin)
   .settings(
     moduleName := "cls-ctp",
@@ -43,7 +42,7 @@ lazy val root = (Project(id = "combinatory-trajectory-planning", base = file("."
       //"org.combinators" %% "cls-scala" % "2.1.0+8-cf2ab1a1+20200608-1714",
       "org.combinators" %% "cls-scala" % "2.1.0+22-fff1dbf4",
       //"org.combinators" %% "cls-scala-ide" % "eb29d53e+20210712-1523",
-      "org.combinators" %% "cls-scala-ide" % "eb29d53e+20210818-0717",
+      //"org.combinators" %% "cls-scala-ide" % "0e757e27+20210831-0941",
       "org.scalactic" %% "scalactic" % "3.1.2" % "test",
       "org.scalatest" %% "scalatest" % "3.1.2" % "test",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
@@ -66,9 +65,9 @@ lazy val root = (Project(id = "combinatory-trajectory-planning", base = file("."
       "com.dreizak" % "miniball" % "1.0.3",
       "org.scalaz" %% "scalaz-core" % "7.2.27",
       "org.apache.commons" % "commons-math3" % "3.6.1",
-      "org.apache.commons" % "commons-geometry-core" % "1.0-SNAPSHOT",
-      "org.apache.commons" % "commons-geometry-euclidean" % "1.0-SNAPSHOT",
-      guice) ++
+      "org.apache.commons" % "commons-geometry-core" % "1.0",
+      "org.apache.commons" % "commons-geometry-euclidean" % "1.0",
+        guice) ++
 
       //<module>commons-geometry-spherical</module>
       //<module>commons-geometry-hull</module>
@@ -83,9 +82,9 @@ lazy val root = (Project(id = "combinatory-trajectory-planning", base = file("."
       val pf = (baseDirectory.value / "src" ) ** ("temp") ** ("*.scala" || "*.package")
       (s => pf.get().contains(s))
     },
-    mainClass in (Compile, packageBin) := Some("org.combinators.ctp.repositories.benchmarks.RunBmClient"),
-      sources in (Test, play.sbt.routes.RoutesKeys.routes) ++= ((unmanagedResourceDirectories in Test).value * "routes").get
+    mainClass in (packageBin) := Some("org.combinators.ctp.repositories.benchmarks.RunBmClient")
   )
+
 lazy val noPublishSettings = Seq(
   publish := Seq.empty,
   publishLocal := Seq.empty,

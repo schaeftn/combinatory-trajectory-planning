@@ -27,7 +27,7 @@ trait CmpCellCentroidsRepository extends CmpUtils {
       centroids
     }
 
-    val semanticType = cmd_centroidFct_type :&: rm_withCentroids_type :&: cFct_centroids_naive_type :&: sd_cell_type_var :&: dimensionality_var
+    val semanticType = rmc_centroidFct_type :&: rm_withCentroids_type :&: cFct_centroids_naive_type :&: sd_cell_type_var :&: dimensionality_var
   }
 
   @combinator object CellToCentroidCellJTSCentroids {
@@ -43,7 +43,7 @@ trait CmpCellCentroidsRepository extends CmpUtils {
       centroids
     }
 
-    val semanticType = cmd_centroidFct_type :&: rm_withCentroids_type :&: cFct_jts_default_type :&: sd_cell_triangle_type :&: dimensionality_two_d_t
+    val semanticType = rmc_centroidFct_type :&: rm_withCentroids_type :&: cFct_jts_default_type :&: sd_cell_triangle_type :&: dimensionality_two_d_t
   }
 
   @combinator object CentroidFctJTSIncentre {
@@ -59,7 +59,7 @@ trait CmpCellCentroidsRepository extends CmpUtils {
       centroids
     }
 
-    val semanticType = cmd_centroidFct_type :&: rm_withCentroids_type :&: cFct_jts_incentre_type :&: sd_cell_triangle_type :&: dimensionality_two_d_t
+    val semanticType = rmc_centroidFct_type :&: rm_withCentroids_type :&: cFct_jts_incentre_type :&: sd_cell_triangle_type :&: dimensionality_two_d_t
   }
 
   @combinator object CellToCentroidND {
@@ -69,7 +69,7 @@ trait CmpCellCentroidsRepository extends CmpUtils {
       centroids
     }
 
-    val semanticType = cmd_centroidFct_type :&: rm_withCentroids_type :&: cFct_avg_type :&: sd_cell_type_var :&: dimensionality_var
+    val semanticType = rmc_centroidFct_type :&: rm_withCentroids_type :&: cFct_avg_type :&: sd_cell_type_var :&: dimensionality_var
   }
 
   //TODO combinator ball center nd

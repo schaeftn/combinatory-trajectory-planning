@@ -396,9 +396,33 @@ case class ProblemDefinitionFiles(cfgFileName: String,
                                   robotModelLocation: String,
                                   problemProperties: Properties)
 
+object WafrProblemDefinitionFiles extends LazyLogging{
+  def apply(cfgFile: String): Option[ProblemDefinitionFiles] = {
+     val probFolder = PropertyFiles.problemsProperties.getProperty("org.combinators.ctp.wafrProblemFolder")
+
+    val cfgProperties = new Properties()
+    try {
+      logger.debug(s"Loading cfg file: ${probFolder + cfgFile}")
+      cfgProperties.load(new FileInputStream(probFolder + cfgFile))
+
+      val packageLocation = probFolder + cfgProperties.getProperty("package")
+      val envLocation = probFolder + cfgProperties.getProperty("env")
+      Some(ProblemDefinitionFiles(cfgFile, envLocation, packageLocation, cfgProperties))
+    }
+    catch {
+      case e: Exception =>
+        e.printStackTrace()
+        None
+    }
+  }
+}
+
 object ProblemDefinitionFiles extends LazyLogging {
   def apply(cfgFile: String): Option[ProblemDefinitionFiles] = {
-    val probFolder = PropertyFiles.problemsProperties.getProperty("org.combinators.ctp.problemFolder")
+    val probFolder = if (cfgFile.contains("wafr"))
+      PropertyFiles.problemsProperties.getProperty("org.combinators.ctp.wafrProblemFolder")
+    else
+      PropertyFiles.problemsProperties.getProperty("org.combinators.ctp.problemFolder")
 
     val cfgProperties = new Properties()
     try {

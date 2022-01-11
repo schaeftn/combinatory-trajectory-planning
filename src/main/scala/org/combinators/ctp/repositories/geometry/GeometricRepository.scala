@@ -104,9 +104,6 @@ trait GeometricRepository extends GeometryUtils {
       gm_CubeToPoly
   }
 
-
-
-
   /*
   Function to apply affine 3D transformation to 2d structure
   */

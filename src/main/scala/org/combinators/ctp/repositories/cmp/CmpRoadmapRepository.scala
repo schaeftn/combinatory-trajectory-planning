@@ -64,7 +64,7 @@ trait CmpRoadmapRepository extends CmpUtils with CmpCellCentroidsRepository with
   @combinator object RoadmapCombinator extends RoadmapCombinatorTrait {
     val semanticType =
       rmc_neighbourFct_type :&: dimensionality_var =>:
-        cmd_centroidFct_type :&: rmc_usingCentroids_var :&: rmc_centroidFct_var :&: sd_cell_type_var :&: dimensionality_var =>:
+        rmc_centroidFct_type :&: rmc_usingCentroids_var :&: rmc_centroidFct_var :&: sd_cell_type_var :&: dimensionality_var =>:
         rmc_cellNodeAddFct_type :&: rmc_cellNodeAddFct_var =>:
         rmc_connectorNodeFct_type :&: rmc_connectorNodes_var =>:
         rmc_edgeAdd_type :&: rmc_cellGraph_var =>:
@@ -76,7 +76,7 @@ trait CmpRoadmapRepository extends CmpUtils with CmpCellCentroidsRepository with
   @combinator object RoadmapCombinatorTax extends RoadmapCombinatorTrait {
     val semanticType =
       rmc_neighbourFct_type =>:
-        cmd_centroidFct_type =>:
+        rmc_centroidFct_type =>:
         rmc_cellNodeAddFct_type =>:
         rmc_connectorNodeFct_type =>:
         rmc_edgeAdd_type =>:
@@ -130,7 +130,7 @@ trait CmpRoadmapRepository extends CmpUtils with CmpCellCentroidsRepository with
     def apply(): (PolySceneCellSegmentation, neighbourCellsNativeType) => List[List[List[Float]]] =
       (sSeg, _) => sSeg.freeCells.map(_ => List.empty[List[Float]])
 
-    val semanticType = cmd_centroidFct_type :&: rm_withoutCentroids_type :&:
+    val semanticType = rmc_centroidFct_type :&: rm_withoutCentroids_type :&:
       rmc_cellNodeAddFct_type :&: rmc_cna_withoutCellNodes_type :&:
       rmc_connectorNodeFct_type :&: rmc_cn_withoutConnectorNodes
   }

@@ -1,5 +1,7 @@
 package org.combinators.ctp.repositories.samplebased
 
+import java.util.Properties
+
 import org.combinators.cls.interpreter.combinator
 import org.combinators.cls.types.syntax._
 import org.combinators.ctp.repositories._
@@ -20,6 +22,7 @@ trait SbmpInputDataRepository extends SceneUtils with PythonTemplateUtils {
           Map("$fcl_scene_data.data$" -> sceneSRTtoFclPythonString(scene),
             "$sbmp_main.startstop$" -> taskGoalStartToPythonOMPLString(task),
             "$sbmp_main.r3bounds$" -> getOmplBoundsFromScene(scene),
+            "$sbmp_main.stateValidatorArgs$" -> "",
             "$path_data.path$" -> "path_list=np.array([])")
         }
         SubstitutionSchema(fileMapping, substituteMap)
@@ -57,6 +60,7 @@ trait SbmpInputDataRepository extends SceneUtils with PythonTemplateUtils {
           Map("$fcl_scene_data.data$" -> loadSceneFromProbDefinition(scene),
             "$sbmp_main.startstop$" -> readOmplStartStopFromCfg(scene.problemProperties),
             "$sbmp_main.r3bounds$" -> readOmplBoundsFromCfg(scene.problemProperties),
+            "$sbmp_main.stateValidatorArgs$" -> "",
             "$path_data.path$" -> "path_list=np.array([])")
         }
         SubstitutionSchema(fileMapping, substituteMap)
@@ -77,6 +81,7 @@ trait SbmpInputDataRepository extends SceneUtils with PythonTemplateUtils {
           Map("$fcl_scene_data.data$" -> loadSceneFromProbDefinition(scene),
             "$sbmp_main.startstop$" -> readOmplStartStopFromCfg(scene.problemProperties),
             "$sbmp_main.r3bounds$" -> readOmplBoundsFromCfg(scene.problemProperties),
+            "$sbmp_main.stateValidatorArgs$" -> "",
             "$path_data.path$" -> writePyPathData(pathNodes)
           )
         }
@@ -98,6 +103,27 @@ trait SbmpInputDataRepository extends SceneUtils with PythonTemplateUtils {
           Map("$fcl_scene_data.data$" -> loadSceneFromProbDefinition(scene),
             "$sbmp_main.startstop$" -> readOmplStartStopFromCfg(scene.problemProperties),
             "$sbmp_main.r3bounds$" -> readOmplBoundsFromCfg(scene.problemProperties),
+            "$sbmp_main.stateValidatorArgs$" -> "",
+            "$path_data.path$" -> "path_list=np.array([])")
+        }
+        SubstitutionSchema(fileMapping, substituteMap)
+    }
+
+    val semanticType = sbmp_input_data :&: dimensionality_three_d_t
+  }
+
+  @combinator object WafrPlanningDataTemplating {
+    def apply: ((ProblemDefinitionFiles, String)) => SubstitutionSchema = {
+      case (scene: ProblemDefinitionFiles, _: String) =>
+        val fileMapping: Map[String, String] = Map(sbmpStartTemplate -> sbmpMainStartFile,
+          fclSceneDataTemplate -> fclSceneDataFile,
+          pathDataTemplate -> pathDataFile)
+
+        val substituteMap: Map[String, String] = {
+          Map("$fcl_scene_data.data$" -> "",
+            "$sbmp_main.startstop$" -> readStartStopFromWafrCfg(scene.problemProperties),
+            "$sbmp_main.stateValidatorArgs$" -> readStateValidatorArgsFromWafrCfg(scene.problemProperties),
+            "$sbmp_main.r3bounds$" -> "",
             "$path_data.path$" -> "path_list=np.array([])")
         }
         SubstitutionSchema(fileMapping, substituteMap)

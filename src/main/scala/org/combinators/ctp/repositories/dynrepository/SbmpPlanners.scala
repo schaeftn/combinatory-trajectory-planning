@@ -37,20 +37,21 @@ object SbmpPlanners extends Enumeration {
   not_specified
   = Value
 
-  def printPlannerTypes():Unit =
-  {val sTypes = new SbmpSemanticTypes{}
-  plannerInfo.foreach {
-    case (pType, b) =>
-      val optType = if (b.usesOptObjective) Some(sTypes.any_sbmp_optimization_objective_type) else Some(sTypes.sbmp_opt_path_length)
-      val spaceType = if (b.usesSpaceSampling) Some(sTypes.sbmp_spaceSampler_type) else None
-      val validType = if (b.usesValidStateSampling) Some(sTypes.sbmp_validStateSampler_type) else None
-      val informedType = if (b.usesSpaceSampling) Some(sTypes.sbmp_informedSampler_type) else None
-      val asd: List[Option[Type]] = List(spaceType, validType, informedType)
-      val lst = asd.filter(_.isDefined).map(_.get).map(b => "(" +optType.get + "=>:" + b + "=>:" + pType + ")")
-      val lst2 = lst.reduce(_ + ":&: \n" + _)
-      println(lst2)
-    case _ => println("asd")
-  }}
+  def printPlannerTypes(): Unit = {
+    val sTypes = new SbmpSemanticTypes {}
+    plannerInfo.foreach {
+      case (pType, b) =>
+        val optType = if (b.usesOptObjective) Some(sTypes.any_sbmp_optimization_objective_type) else Some(sTypes.sbmp_opt_path_length)
+        val spaceType = if (b.usesSpaceSampling) Some(sTypes.sbmp_spaceSampler_type) else None
+        val validType = if (b.usesValidStateSampling) Some(sTypes.sbmp_validStateSampler_type) else None
+        val informedType = if (b.usesSpaceSampling) Some(sTypes.sbmp_informedSampler_type) else None
+        val asd: List[Option[Type]] = List(spaceType, validType, informedType)
+        val lst = asd.filter(_.isDefined).map(_.get).map(b => "(" + optType.get + "=>:" + b + "=>:" + pType + ")")
+        val lst2 = lst.reduce(_ + ":&: \n" + _)
+        println(lst2)
+      case _ => println("printPlannerTypes: planner info mismatch.")
+    }
+  }
 
 
   val plannerInfo: Map[Value, GeometricPlannerMetaData] = Map(

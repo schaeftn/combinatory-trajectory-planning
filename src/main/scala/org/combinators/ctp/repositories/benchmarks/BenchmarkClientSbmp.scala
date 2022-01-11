@@ -1,31 +1,28 @@
 package org.combinators.ctp.repositories.benchmarks
 
 
+import java.io.File
+
 import akka.stream.ClosedShape
 import akka.{Done, NotUsed}
-import akka.stream.alpakka.mqtt.scaladsl.{MqttSink, MqttSource}
-import akka.stream.alpakka.mqtt.{MqttConnectionSettings, MqttMessage, MqttQoS, MqttSubscriptions}
-import akka.stream.scaladsl.{Broadcast, GraphDSL, RunnableGraph, Sink, Source, Zip}
+import akka.stream.alpakka.mqtt.MqttMessage
+import akka.stream.scaladsl.{Broadcast, GraphDSL, RunnableGraph,  Source, Zip}
 import akka.util.ByteString
 import com.typesafe.scalalogging.LazyLogging
-import org.combinators.ctp.repositories._
 import org.combinators.ctp.repositories.toplevel._
-import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import io.circe.generic.auto._
 import io.circe.parser.decode
 import io.circe.syntax._
-import org.combinators.ctp.repositories.dynrepository.{CmpAlg, SbmpAlg, SceneInput}
+import org.combinators.ctp.repositories.dynrepository.{SbmpAlg, SbmpStateValidators, SceneInput}
 import GraphDSL.Implicits._
-import org.combinators.cls.interpreter.InhabitationResult
-import org.combinators.ctp.repositories.geometry.GeometryUtils
-import org.combinators.ctp.repositories.python_interop.{PythonTemplateUtils, PythonWrapper, SimplePythonWrapper, SubstitutionSchema}
+import org.combinators.ctp.repositories.python_interop.{PythonTemplateUtils, PythonWrapper, SubstitutionSchema}
 
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{Await, Future}
 import scala.util.{Failure, Success, Try}
 import scala.language.postfixOps
 
-case class BenchmarkRequest(iterations: Int, async: Boolean = false, maxTime: Int = 10, maxMem: Int = 1024) {}
+case class BenchmarkRequest(iterations: Int, async: Boolean = false, maxTime: Int = 10, maxMem: Int = 1024, writePathFiles: Boolean = false) {}
 
 case class StatesPathBmResults(states: List[List[List[Float]]], paths: List[List[List[Float]]],
                                pathLengths: List[Float], computationTimes: List[Float], failures: Int)
@@ -33,13 +30,16 @@ case class StatesPathBmResults(states: List[List[List[Float]]], paths: List[List
 case class PathBmResults(paths: List[List[List[Float]]], pathLengths: List[Float],
                          computationTimes: List[Float], failures: Int)
 
-case class BenchmarkClientSbmp[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) extends MpAkkaUtils with PythonTemplateUtils {
+case class BenchmarkClientSbmp[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) extends MpAkkaUtils with PythonTemplateUtils with PropertyFiles {
   val uuidString = sbmpAlg.id.toString
   val sourceGenericInput: Source[Any, Future[Done]] =
     sbmpAlg.sceneInput match {
       case SceneInput.scene_input_data_file if !sbmpAlg.configurableAlg =>
         buildListenerSource("cls/bmGenericInputListener" + "." + uuidString, bmGenericInputTopic, "GenericInput",
-          { s => ProblemDefinitionFiles(s) })
+          { s => sbmpAlg.stateValidator match {
+            case SbmpStateValidators.sbmp_fcl_validator => ProblemDefinitionFiles(s)
+            case SbmpStateValidators.sbmp_fcl_wafr_validator => WafrProblemDefinitionFiles(s)
+          }})
       case SceneInput.scene_input_data_file if sbmpAlg.configurableAlg =>
         buildListenerSource("cls/bmGenericInputListener" + "." + uuidString, bmGenericInputTopic, "GenericInput",
           {
@@ -50,8 +50,10 @@ case class BenchmarkClientSbmp[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) e
 
               decStr.map {
                 case Some(tuple) =>
-                  ProblemDefinitionFiles(tuple._1)
-                  match {
+                  (sbmpAlg.stateValidator match {
+                    case SbmpStateValidators.sbmp_fcl_wafr_validator => WafrProblemDefinitionFiles(tuple._1)
+                    case SbmpStateValidators.sbmp_fcl_validator => ProblemDefinitionFiles(tuple._1)
+                  }) match {
                     case Some(a) => (a, tuple._2)
                     case None =>
                       logger.info("Error while loading problem definition file")
@@ -63,6 +65,23 @@ case class BenchmarkClientSbmp[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) e
               }
           })
     }
+
+  def writeOutFile(uuidStr: String, resultPaths: List[List[List[Float]]]): Unit = {
+    val outFolder = PropertyFiles.problemsProperties.getProperty("org.combinators.ctp.pathOutputFolder").concat(uuidStr)
+
+    resultPaths.zipWithIndex.foreach { case (path, index) =>
+      printToFile(outFolder + File.separator + index, path)
+    }
+
+    def printToFile(str: String, outString: List[List[Float]]) {
+      val p = new java.io.PrintWriter(new File(str))
+      try {
+        p.println(outString)
+      } finally {
+        p.close()
+      }
+    }
+  }
 
   def validatePath(s: List[List[Float]]): Boolean = {
     val a = SubstitutionSchema.apply(Map(pathDataTemplate -> pathDataFile),
@@ -183,12 +202,7 @@ case class BenchmarkClientSbmp[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) e
                   })
 
                 logger.debug(s"temp info runList: $runList")
-                val resultsFutures =
-                  runList.toList.map { f =>
-                    val path = f._1
-                    val time = f._2
-                    buildSingleResult(path, time)
-                  }
+                val resultsFutures = runList.toList.map { case (path, time) => buildSingleResult(path, time) }
 
                 logger.debug(s"Results length: ${resultsFutures.size}")
                 logger.debug(s"Duration: ${b.maxTime * 3 seconds}")
@@ -219,13 +233,12 @@ case class BenchmarkClientSbmp[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) e
             logger.debug(s"cTimes: $cTimes")
 
             val msg = if (sbmpAlg.withStates) {
-              val fResultsParam: List[(List[List[Float]], List[List[Float]])] = if (filteredResults.isEmpty)
-                List((List.empty[List[Float]], List.empty[List[Float]]))
-              else {
-                val ff = filteredResults.asInstanceOf[List[((List[List[Float]], List[List[Float]]), Float, Float)]]
-                val asd = ff.map(_._1)
-                asd
-              }
+              val fResultsParam: List[(List[List[Float]], List[List[Float]])] =
+                if (filteredResults.isEmpty)
+                  List((List.empty[List[Float]], List.empty[List[Float]]))
+                else {
+                  filteredResults.asInstanceOf[List[((List[List[Float]], List[List[Float]]), Float, Float)]].map(_._1)
+                }
               toMqttMsgStates(fResultsParam,
                 pathLengths,
                 cTimes, b.iterations - filteredResults.length)
@@ -234,6 +247,8 @@ case class BenchmarkClientSbmp[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) e
                 List.empty[List[List[Float]]]
               else
                 filteredResults.asInstanceOf[List[(List[List[Float]], Float, Float)]].map(_._1)
+
+               if(b.writePathFiles) writeOutFile(sbmpAlg.id.toString, fResultsParam)
 
               logger.debug(f"fResultsParam: $fResultsParam")
               toMqttMsg2(fResultsParam,
