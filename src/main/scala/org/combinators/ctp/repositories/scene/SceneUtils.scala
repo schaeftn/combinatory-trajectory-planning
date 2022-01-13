@@ -238,19 +238,19 @@ ${scene.obstacles.indices.map(id => s"    mesh.addSubModel(verts$id, tris$id)").
     s"""        # create a start state
        |        start = ob.State(space)
        |        startRef = start()
-       |        startRef.values = ${p.getProperty("startState")}
+       |        startRef.values = ${p.getProperty("start")}
        |
        |        # create a goal state
        |        goal = ob.State(space)
        |        goalRef = goal()
-       |        goalRef.values = ${p.getProperty("goalState")}
+       |        goalRef.values = ${p.getProperty("goal")}
        |        """.stripMargin
   }
 
   def readStateValidatorArgsFromWafrCfg(p: Properties): String = {
     s"""        # State Validator Arguments
-       |        env = ${p.getProperty("env")}
-       |        package = ${p.getProperty("package")}
+       |        env = "${p.getProperty("env")}"
+       |        package = "${p.getProperty("package")}"
        |        """.stripMargin
   }
 
