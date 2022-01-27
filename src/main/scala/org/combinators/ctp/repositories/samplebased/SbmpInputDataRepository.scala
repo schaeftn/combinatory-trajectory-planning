@@ -57,7 +57,8 @@ trait SbmpInputDataRepository extends SceneUtils with PythonTemplateUtils {
           fclSceneDataTemplate -> fclSceneDataFile)
 
         val substituteMap: Map[String, String] = {
-          Map("$fcl_scene_data.data$" -> loadSceneFromProbDefinition(scene),
+          Map("$sbmp_main.space_def$" -> "space = ob.SE3StateSpace()",
+            "$fcl_scene_data.data$" -> loadSceneFromProbDefinition(scene),
             "$sbmp_main.startstop$" -> readOmplStartStopFromCfg(scene.problemProperties),
             "$sbmp_main.r3bounds$" -> readOmplBoundsFromCfg(scene.problemProperties),
             "$sbmp_main.stateValidatorArgs$" -> "",
@@ -78,7 +79,8 @@ trait SbmpInputDataRepository extends SceneUtils with PythonTemplateUtils {
           pathDataTemplate -> pathDataFile)
 
         val substituteMap: Map[String, String] = {
-          Map("$fcl_scene_data.data$" -> loadSceneFromProbDefinition(scene),
+          Map("$sbmp_main.space_def$" -> "space = ob.SE3StateSpace()",
+            "$fcl_scene_data.data$" -> loadSceneFromProbDefinition(scene),
             "$sbmp_main.startstop$" -> readOmplStartStopFromCfg(scene.problemProperties),
             "$sbmp_main.r3bounds$" -> readOmplBoundsFromCfg(scene.problemProperties),
             "$sbmp_main.stateValidatorArgs$" -> "",
@@ -100,7 +102,8 @@ trait SbmpInputDataRepository extends SceneUtils with PythonTemplateUtils {
           pathDataTemplate -> pathDataFile)
 
         val substituteMap: Map[String, String] = {
-          Map("$fcl_scene_data.data$" -> loadSceneFromProbDefinition(scene),
+          Map("$sbmp_main.space_def$" -> "space = ob.SE3StateSpace()",
+            "$fcl_scene_data.data$" -> loadSceneFromProbDefinition(scene),
             "$sbmp_main.startstop$" -> readOmplStartStopFromCfg(scene.problemProperties),
             "$sbmp_main.r3bounds$" -> readOmplBoundsFromCfg(scene.problemProperties),
             "$sbmp_main.stateValidatorArgs$" -> "",
@@ -120,7 +123,9 @@ trait SbmpInputDataRepository extends SceneUtils with PythonTemplateUtils {
           pathDataTemplate -> pathDataFile)
 
         val substituteMap: Map[String, String] = {
-          Map("$fcl_scene_data.data$" -> "",
+          Map("$sbmp_main.space_def$" -> """wafr_validator = WafrRobotStateValidator(package, env)
+                                           |        space = wafr_validator.getSamplingSpace()""".stripMargin,
+            "$fcl_scene_data.data$" -> "",
             "$sbmp_main.startstop$" -> readStartStopFromWafrCfg(scene.problemProperties),
             "$sbmp_main.stateValidatorArgs$" -> readStateValidatorArgsFromWafrCfg(scene.problemProperties),
             "$sbmp_main.r3bounds$" -> "",

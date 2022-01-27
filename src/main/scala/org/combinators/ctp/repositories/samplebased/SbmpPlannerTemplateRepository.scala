@@ -14,17 +14,23 @@ import io.circe.syntax._
 trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils {
 
   trait CombinatorPlannerTemplate[B] {
-    def apply(optObjectice: SubstitutionSchema, sampler: SubstitutionSchema) = new PlannerScheme[B](optObjectice.merge(sampler.merge(st)), pf, startFile)
+    def apply(optObjectice: SubstitutionSchema, sampler: SubstitutionSchema) =
+      new PlannerScheme[B](optObjectice.merge(sampler.merge(st)), pf, startFile)
 
     val pf: (String) => B
     val st: SubstitutionSchema
     val startFile: String
   }
 
+  val parseFctSe3: String => List[List[Float]] = {
+    plannerOut: String => parseDefaultOmplPath(plannerOut).toList
+  }
+  val parseFctRvs:String => List[List[Float]] = parseRvsOmplPath
+
+  val parseFct: String => List[List[Float]]
+
   trait CombinatorPlannerTemplateStdPath extends CombinatorPlannerTemplate[List[List[Float]]] {
-    override val pf = {
-      plannerOut: String => parseDefaultOmplPath(plannerOut).toList
-    }
+    override val pf = parseFct
   }
 
   trait ModifierCombinatorPlannerTemplate[A, B] {
@@ -36,9 +42,7 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
   }
 
   @combinator object PrmPlannerTemplate
-    extends CombinatorPlannerTemplate[List[List[Float]]] {
-    override val pf: (String) => List[List[Float]] =
-      (plannerOut: String) => parseDefaultOmplPath(plannerOut).toList
+    extends CombinatorPlannerTemplateStdPath {
     override val st: SubstitutionSchema = defaultPlannerSubstScheme("PRM")
     override val startFile: String = sbmpMainStartFile
 
@@ -236,16 +240,6 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     parseSE3OmplPath(str)
   }
 
-  /*
-  def parseDefaultOmplPath(str: String): Seq[List[Float]] = {
-    val index = str.indexOf("Found exact solution:")
-    if (index > -1)
-      str.substring(index).split("\r\n").
-        withFilter((s: String) => s.startsWith("RealVectorState")).
-        map(s => s.substring(s.indexOf("[") + 1, s.indexOf("]")).split(" ").map(_.toFloat).toList).toList
-    else Seq.empty
-  }*/
-
   def parseSE3OmplPath(str: String): Seq[List[Float]] = {
     val index = str.indexOf("Found exact solution:")
 
@@ -278,6 +272,20 @@ trait SbmpPlannerTemplateRepository extends SceneUtils with PythonTemplateUtils 
     if (index > -1)
       parseList(str.substring(index).split("\r\n").toList, List.empty[List[Float]]).tail
     else Seq.empty
+  }
+
+  def parseRvsOmplPath(str: String): List[List[Float]] = {
+    val index = str.indexOf("Found exact solution:")
+
+    if (index > -1) {
+      val lines = str.split("\r\n").toList
+
+      val rvStates: List[List[Float]] = lines.filter((s: String) => s.startsWith("RealVectorState")).
+        map(s => s.substring(s.indexOf("[") + 1, s.indexOf("]")).split(" ").map(_.toFloat).toList)
+
+      rvStates
+    } else
+      List.empty
   }
 
   @combinator object PrmPlannerTemplatePathSmoothing

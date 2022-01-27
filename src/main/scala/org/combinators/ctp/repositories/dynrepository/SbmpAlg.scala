@@ -34,8 +34,21 @@ case class SbmpAlg(planner: SbmpPlanners.EnumType,
   self =>
   val sbmpRepository = new SbmpTopLevelRepository {}
   val akkaTopLevelSbmp = new AkkaMqttTopLevelSbmp {}
-  val plannerRepository = new SbmpPlannerTemplateRepository {}
-  val plannerRepositoryWithStates = new SbmpPlannerTemplateRepositoryWithStates {}
+  val plannerRepository = new SbmpPlannerTemplateRepository {
+    override val parseFct: String => List[List[sphereRadius]] = stateValidator match {
+      case SbmpStateValidators.sbmp_fcl_wafr_validator => parseFctRvs
+      case SbmpStateValidators.sbmp_fcl_validator => parseFctSe3
+      case _ => parseFctRvs
+    }
+  }
+
+  val plannerRepositoryWithStates = new SbmpPlannerTemplateRepositoryWithStates {
+    override val parseFct: String => List[List[sphereRadius]] = stateValidator match {
+      case SbmpStateValidators.sbmp_fcl_wafr_validator => parseFctRvs
+      case SbmpStateValidators.sbmp_fcl_validator => parseFctSe3
+      case _ => parseFctRvs
+    }
+  }
 
   def addPlannerTemplateCombinator[R]: ReflectedRepository[R] => ReflectedRepository[R] = {
     r =>
@@ -131,13 +144,20 @@ case class SbmpAlg(planner: SbmpPlanners.EnumType,
         r.addCombinator(sbmpRepository.SamplerGaussSpace)*/
       case r =>
         sampler match {
-          case SbmpSamplers.sbmp_uniform_valid_state_sampler => r.addCombinator(sbmpRepository.SamplerUniform)
-          case SbmpSamplers.sbmp_obstacle_valid_state_sampler => r.addCombinator(sbmpRepository.SamplerObstacleBased)
-          case SbmpSamplers.sbmp_gaussian_valid_state_sampler => r.addCombinator(sbmpRepository.SamplerGaussian)
+          case SbmpSamplers.sbmp_uniform_valid_state_sampler => r.addCombinator(sbmpRepository.ValidStateSamplerUniform)
+          case SbmpSamplers.sbmp_obstacle_valid_state_sampler => r.addCombinator(sbmpRepository.ValidStateSamplerObstacleBased)
+          case SbmpSamplers.sbmp_gaussian_valid_state_sampler => r.addCombinator(sbmpRepository.ValidStateSamplerGaussian)
           case SbmpSamplers.sbmp_max_clearance_valid_state_sampler =>
-            r.addCombinator(sbmpRepository.SamplerMaxClearance)
-          case SbmpSamplers.sbmp_uniform_space_sampler => r.addCombinator(sbmpRepository.SamplerUniformSpace)
-          case SbmpSamplers.sbmp_gaussian_space_sampler => r.addCombinator(sbmpRepository.SamplerGaussSpace)
+            r.addCombinator(sbmpRepository.ValidStateSamplerMaxClearance)
+          case SbmpSamplers.sbmp_uniform_space_sampler => stateValidator match {
+            case SbmpStateValidators.sbmp_fcl_validator => r.addCombinator(sbmpRepository.SamplerUniformSpace)
+            case SbmpStateValidators.sbmp_fcl_wafr_validator => r.addCombinator(sbmpRepository.SamplerUniformSpaceRv)
+          }
+          case SbmpSamplers.sbmp_gaussian_space_sampler =>
+            stateValidator match {
+              case SbmpStateValidators.sbmp_fcl_validator => r.addCombinator(sbmpRepository.SamplerGaussSpace)
+              case SbmpStateValidators.sbmp_fcl_wafr_validator => r.addCombinator(sbmpRepository.SamplerGaussSpaceRv)
+            }
           case _ => logger.warn(s"Unhandled case for sampler $sampler")
             r
         }

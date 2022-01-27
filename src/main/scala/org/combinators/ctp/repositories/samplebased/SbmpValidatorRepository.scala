@@ -20,8 +20,8 @@ trait SbmpValidatorRepository extends PythonTemplateUtils {
   @combinator object WafrStateValidatorFcl {
     def apply: SubstitutionSchema = {
       val fileMapping: Map[String, String] = Map(sbmpStartTemplate->sbmpMainStartFile)
-      val substMap = Map("$sbmp_main.stateValidator$" -> "self.si.setStateValidityChecker(WAFRRobotStateValidator(self.si, package, env))",
-        "$sbmp_main.stateValidatorResolution$" -> "self.si.setStateValidityCheckingResolution(0.01)") //1%
+      val substMap = Map("$sbmp_main.stateValidator$" -> "self.si.setStateValidityChecker(ob.StateValidityCheckerFn(partial(wafr_validator.isValid, self.si)))",
+        "$sbmp_main.stateValidatorResolution$" -> "")
       SubstitutionSchema(fileMapping, substMap)
     }
     val semanticType = sbmp_fcl_validator

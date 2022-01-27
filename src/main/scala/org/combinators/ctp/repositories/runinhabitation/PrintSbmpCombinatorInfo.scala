@@ -7,7 +7,9 @@ import org.combinators.ctp.repositories.taxkinding.CtpSemanticTypes
 import org.combinators.ctp.repositories.toplevel.FileBasedTopLevelSbmp
 
 object PrintSbmpCombinatorInfo extends App {
-  lazy val repository = new FileBasedTopLevelSbmp with SbmpTopLevelRepository with SbmpPlannerTemplateRepository{}
+  lazy val repository = new FileBasedTopLevelSbmp with SbmpTopLevelRepository with SbmpPlannerTemplateRepository{
+    override val parseFct: String => List[List[sphereRadius]] = parseFctSe3
+  }
   lazy val cmpRepository = new CtpSemanticTypes {}
 
   val kindingMap = repository.sbmpFullKindingMap

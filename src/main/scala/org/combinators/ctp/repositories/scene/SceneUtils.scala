@@ -235,15 +235,20 @@ ${scene.obstacles.indices.map(id => s"    mesh.addSubModel(verts$id, tris$id)").
   }
 
   def readStartStopFromWafrCfg(p: Properties): String = {
-    s"""        # create a start state
+    s"""        #start state
+       |        start_list = ${p.getProperty("start")}
        |        start = ob.State(space)
-       |        startRef = start()
-       |        startRef.values = ${p.getProperty("start")}
+       |        for index, value in enumerate(start_list):
+       |            start[index] = value
        |
-       |        # create a goal state
+       |        space.enforceBounds(start())
+       |
+       |        goal_list = ${p.getProperty("goal")}
        |        goal = ob.State(space)
-       |        goalRef = goal()
-       |        goalRef.values = ${p.getProperty("goal")}
+       |        for index, value in enumerate(goal_list):
+       |            goal[index] = value
+       |
+       |        space.enforceBounds(goal())
        |        """.stripMargin
   }
 

@@ -18,7 +18,7 @@ case class SubstitutionSchema(f: Map[String, String], substitutes: Map[String, S
       templateSource.close
       val newContent = substitutes.foldLeft(content) { case (a: String, (b: String, c: String)) => a.replace(b, c) }
       logger.debug(s"Template file $template read")
-      logger.debug("Replaced file contents: \n" + newContent)
+      logger.debug("Replaced file contents")
       logger.debug(s"Attempting to write file $target")
       val bw = new BufferedWriter(new FileWriter(target))
       bw.write(newContent)

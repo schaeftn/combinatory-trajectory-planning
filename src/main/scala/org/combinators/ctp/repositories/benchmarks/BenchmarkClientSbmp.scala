@@ -67,13 +67,19 @@ case class BenchmarkClientSbmp[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) e
     }
 
   def writeOutFile(uuidStr: String, resultPaths: List[List[List[Float]]]): Unit = {
+    logger.debug(s"writeOutFile with args: $uuidStr, $resultPaths")
     val outFolder = PropertyFiles.problemsProperties.getProperty("org.combinators.ctp.pathOutputFolder").concat(uuidStr)
+    logger.debug(s"writeOutFile outfolder: $outFolder")
+
+    val newFolder = new File(outFolder)
+    newFolder.mkdirs()
 
     resultPaths.zipWithIndex.foreach { case (path, index) =>
       printToFile(outFolder + File.separator + index, path)
     }
 
     def printToFile(str: String, outString: List[List[Float]]) {
+      logger.debug(s"printing to file: $str")
       val p = new java.io.PrintWriter(new File(str))
       try {
         p.println(outString)
@@ -153,7 +159,8 @@ case class BenchmarkClientSbmp[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) e
                 if (path.asInstanceOf[(List[List[Float]], List[List[Float]])]._2.isEmpty)
                   ((List.empty[List[Float]], List.empty[List[Float]]), 0.0f, time)
                 else
-                  (path.asInstanceOf[(List[List[Float]], List[List[Float]])], path_distance(path.asInstanceOf[(List[List[Float]], List[List[Float]])]._2), time)
+                  (path.asInstanceOf[(List[List[Float]], List[List[Float]])],
+                    path_distance(path.asInstanceOf[(List[List[Float]], List[List[Float]])]._2), time)
               } else {
                 if (path.asInstanceOf[List[Any]].isEmpty) {
                   (List.empty[List[Float]], 0.0f, time)
@@ -245,10 +252,13 @@ case class BenchmarkClientSbmp[S, T](sbmpAlg: SbmpAlg, algInterpreted: S => T) e
             } else {
               val fResultsParam = if (filteredResults.isEmpty)
                 List.empty[List[List[Float]]]
-              else
-                filteredResults.asInstanceOf[List[(List[List[Float]], Float, Float)]].map(_._1)
-
-               if(b.writePathFiles) writeOutFile(sbmpAlg.id.toString, fResultsParam)
+              else {
+                logger.info(s"asInstanceOf")
+                val typedResults = filteredResults.asInstanceOf[List[(List[List[Float]], Float, Float)]]
+                logger.info(s"after asInstanceOf")
+                typedResults.map(_._1)
+              }
+              if (b.writePathFiles) writeOutFile(sbmpAlg.id.toString, fResultsParam)
 
               logger.debug(f"fResultsParam: $fResultsParam")
               toMqttMsg2(fResultsParam,
